@@ -1,27 +1,54 @@
-﻿using Harmony;
-using Multiplayer.Common;
+﻿#region
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Verse;
+using Harmony;
+using Multiplayer.Common;
+
+#endregion
 
 namespace Multiplayer.Client
 {
     /// <summary>
-    /// Applies a normal Harmony patch, but allows multiple targets
+    ///     Applies a normal Harmony patch, but allows multiple targets
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
     public class MpPatch : Attribute
     {
-        private Type type;
-        private string typeName;
-        private string methodName;
-        private Type[] argTypes;
-        private MethodType methodType;
+        private readonly Type[] argTypes;
+        private readonly string methodName;
+        private readonly MethodType methodType;
+        private readonly string typeName;
 
         private MethodBase method;
+        private Type type;
+
+        public MpPatch(Type type, string innerType, string methodName) : this($"{type}+{innerType}", methodName)
+        {
+        }
+
+        public MpPatch(string typeName, string methodName)
+        {
+            this.typeName = typeName;
+            this.methodName = methodName;
+        }
+
+        public MpPatch(Type type, string methodName, Type[] argTypes = null)
+        {
+            this.type = type;
+            this.methodName = methodName;
+            this.argTypes = argTypes;
+        }
+
+        public MpPatch(Type type, MethodType methodType, Type[] argTypes = null)
+        {
+            this.type = type;
+            this.methodType = methodType;
+            this.argTypes = argTypes;
+        }
 
         public Type Type
         {
@@ -53,53 +80,21 @@ namespace Multiplayer.Client
             }
         }
 
-        public HarmonyMethod HarmonyMethod
-        {
-            get
+        public HarmonyMethod HarmonyMethod =>
+            new HarmonyMethod
             {
-                return new HarmonyMethod()
-                {
-                    declaringType = Type,
-                    methodName = methodName,
-                    argumentTypes = argTypes,
-                    methodType = methodType
-                };
-            }
-        }
-
-        public MpPatch(Type type, string innerType, string methodName) : this($"{type}+{innerType}", methodName)
-        {
-        }
-
-        public MpPatch(string typeName, string methodName)
-        {
-            this.typeName = typeName;
-            this.methodName = methodName;
-        }
-
-        public MpPatch(Type type, string methodName, Type[] argTypes = null)
-        {
-            this.type = type;
-            this.methodName = methodName;
-            this.argTypes = argTypes;
-        }
-
-        public MpPatch(Type type, MethodType methodType, Type[] argTypes = null)
-        {
-            this.type = type;
-            this.methodType = methodType;
-            this.argTypes = argTypes;
-        }
+                declaringType = Type,
+                methodName = methodName,
+                argumentTypes = argTypes,
+                methodType = methodType
+            };
     }
 
     public static class MpPatchExtensions
     {
         public static void DoAllMpPatches(this HarmonyInstance harmony)
         {
-            foreach (Type type in Assembly.GetCallingAssembly().GetTypes())
-            {
-                harmony.DoMpPatches(type);
-            }
+            foreach (Type type in Assembly.GetCallingAssembly().GetTypes()) harmony.DoMpPatches(type);
         }
 
         // Use null as harmony instance to just collect the methods
@@ -108,9 +103,9 @@ namespace Multiplayer.Client
             List<MethodBase> result = null;
 
             // On whole type
-            foreach (var attr in type.AllAttributes<MpPatch>())
+            foreach (MpPatch attr in type.AllAttributes<MpPatch>())
             {
-                var toPatch = attr.Method;
+                MethodBase toPatch = attr.Method;
 
                 if (harmony != null)
                     new PatchProcessor(harmony, type, attr.HarmonyMethod).Patch();
@@ -122,21 +117,20 @@ namespace Multiplayer.Client
             }
 
             // On methods
-            foreach (var m in type.GetDeclaredMethods().Where(m => m.IsStatic))
+            foreach (MethodInfo m in type.GetDeclaredMethods().Where(m => m.IsStatic))
+            foreach (MpPatch attr in m.AllAttributes<MpPatch>())
             {
-                foreach (MpPatch attr in m.AllAttributes<MpPatch>())
-                {
-                    var toPatch = attr.Method;
-                    HarmonyMethod patch = new HarmonyMethod(m);
+                MethodBase toPatch = attr.Method;
+                HarmonyMethod patch = new HarmonyMethod(m);
 
-                    if (harmony != null)
-                        harmony.Patch(toPatch, (attr is MpPrefix) ? patch : null, (attr is MpPostfix) ? patch : null, (attr is MpTranspiler) ? patch : null);
+                if (harmony != null)
+                    harmony.Patch(toPatch, attr is MpPrefix ? patch : null, attr is MpPostfix ? patch : null,
+                        attr is MpTranspiler ? patch : null);
 
-                    if (result == null)
-                        result = new List<MethodBase>();
+                if (result == null)
+                    result = new List<MethodBase>();
 
-                    result.Add(toPatch);
-                }
+                result.Add(toPatch);
             }
 
             return result;
@@ -144,7 +138,7 @@ namespace Multiplayer.Client
     }
 
     /// <summary>
-    /// Prefix method attribute
+    ///     Prefix method attribute
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class MpPrefix : MpPatch
@@ -163,7 +157,7 @@ namespace Multiplayer.Client
     }
 
     /// <summary>
-    /// Postfix method attribute
+    ///     Postfix method attribute
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class MpPostfix : MpPatch
@@ -182,7 +176,7 @@ namespace Multiplayer.Client
     }
 
     /// <summary>
-    /// Transpiler method attribute
+    ///     Transpiler method attribute
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class MpTranspiler : MpPatch
@@ -202,11 +196,8 @@ namespace Multiplayer.Client
 
     public class CodeFinder
     {
-        private MethodBase inMethod;
-        private int pos;
-        private List<CodeInstruction> list;
-
-        public int Pos => pos;
+        private readonly MethodBase inMethod;
+        private readonly List<CodeInstruction> list;
 
         public CodeFinder(MethodBase inMethod, List<CodeInstruction> list)
         {
@@ -214,9 +205,11 @@ namespace Multiplayer.Client
             this.list = list;
         }
 
+        public int Pos { get; private set; }
+
         public CodeFinder Advance(int steps)
         {
-            pos += steps;
+            Pos += steps;
             return this;
         }
 
@@ -234,35 +227,37 @@ namespace Multiplayer.Client
 
         public CodeFinder Find(OpCode opcode, object operand, int direction)
         {
-            while (pos < list.Count && pos >= 0)
+            while (Pos < list.Count && Pos >= 0)
             {
-                if (Matches(list[pos], opcode, operand)) return this;
-                pos += direction;
+                if (Matches(list[Pos], opcode, operand)) return this;
+                Pos += direction;
             }
 
-            throw new Exception($"Couldn't find instruction ({opcode}) with operand ({operand}) in {inMethod.FullDescription()}.");
+            throw new Exception(
+                $"Couldn't find instruction ({opcode}) with operand ({operand}) in {inMethod.FullDescription()}.");
         }
 
         public CodeFinder Find(Predicate<CodeInstruction> predicate, int direction)
         {
-            while (pos < list.Count && pos >= 0)
+            while (Pos < list.Count && Pos >= 0)
             {
-                if (predicate(list[pos])) return this;
-                pos += direction;
+                if (predicate(list[Pos])) return this;
+                Pos += direction;
             }
 
-            throw new Exception($"Couldn't find instruction using predicate ({predicate.Method}) in method {inMethod.FullDescription()}.");
+            throw new Exception(
+                $"Couldn't find instruction using predicate ({predicate.Method}) in method {inMethod.FullDescription()}.");
         }
 
         public CodeFinder Start()
         {
-            pos = 0;
+            Pos = 0;
             return this;
         }
 
         public CodeFinder End()
         {
-            pos = list.Count - 1;
+            Pos = list.Count - 1;
             return this;
         }
 
@@ -272,14 +267,14 @@ namespace Multiplayer.Client
             if (operand == null) return true;
 
             if (opcode == OpCodes.Stloc_S)
-                return (inst.operand as LocalBuilder).LocalIndex == (int)operand;
+                return (inst.operand as LocalBuilder).LocalIndex == (int) operand;
 
             return Equals(inst.operand, operand);
         }
 
         public static implicit operator int(CodeFinder finder)
         {
-            return finder.pos;
+            return finder.Pos;
         }
     }
 
@@ -288,5 +283,4 @@ namespace Multiplayer.Client
         public const int MpLast = Priority.Last - 2;
         public const int MpFirst = Priority.First + 1;
     }
-
 }

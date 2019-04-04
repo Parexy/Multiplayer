@@ -1,8 +1,5 @@
-﻿using Harmony;
-using Multiplayer.Common;
-using RimWorld;
-using RimWorld.Planet;
-using Steamworks;
+﻿#region
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,18 +9,26 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using System.Xml.Linq;
+using Harmony;
+using Multiplayer.Common;
+using RimWorld;
+using RimWorld.Planet;
 using Verse;
+
+#endregion
 
 namespace Multiplayer.Client
 {
     [MpPatch(typeof(Dialog_DebugActionsMenu), nameof(Dialog_DebugActionsMenu.DoListingItems))]
     [HotSwappable]
-    static class MpDebugTools
+    internal static class MpDebugTools
     {
-        static void Postfix(Dialog_DebugActionsMenu __instance)
+        public static int currentPlayer;
+        public static int currentHash;
+
+        private static void Postfix(Dialog_DebugActionsMenu __instance)
         {
-            var menu = __instance;
+            Dialog_DebugActionsMenu menu = __instance;
 
             if (MpVersion.IsDebug)
             {
@@ -56,18 +61,18 @@ namespace Multiplayer.Client
             }
         }
 
-        public static void EntryAction()
+        private static void EntryAction()
         {
             Log.Message(
                 GenDefDatabase.GetAllDefsInDatabaseForDef(typeof(TerrainDef))
-                .Select(def => $"{def.modContentPack?.Name} {def} {def.shortHash} {def.index}")
-                .Join(delimiter: "\n")
+                    .Select(def => $"{def.modContentPack?.Name} {def} {def.shortHash} {def.index}")
+                    .Join(delimiter: "\n")
             );
         }
 
         [SyncMethod]
         [SyncDebugOnly]
-        static void SaveGameCmd()
+        private static void SaveGameCmd()
         {
             Map map = Find.Maps[0];
             byte[] mapData = ScribeUtil.WriteExposable(Current.Game, "map", true);
@@ -76,9 +81,9 @@ namespace Multiplayer.Client
 
         [SyncMethod]
         [SyncDebugOnly]
-        static void AdvanceTime()
+        private static void AdvanceTime()
         {
-            File.WriteAllLines($"{Multiplayer.username}_all_static.txt", new string[] { AllModStatics() });
+            File.WriteAllLines($"{Multiplayer.username}_all_static.txt", new[] {AllModStatics()});
 
             int to = 322 * 1000;
             if (Find.TickManager.TicksGame < to)
@@ -88,73 +93,74 @@ namespace Multiplayer.Client
             }
         }
 
-        static void SaveGameLocal()
+        private static void SaveGameLocal()
         {
             byte[] data = ScribeUtil.WriteExposable(Current.Game, "game", true);
             File.WriteAllBytes($"game_0_{Multiplayer.username}.xml", data);
         }
 
-        static void PrintStaticFields()
+        private static void PrintStaticFields()
         {
-            Log.Message(StaticFieldsToString(typeof(Game).Assembly, type => type.Namespace.StartsWith("RimWorld") || type.Namespace.StartsWith("Verse")));
+            Log.Message(StaticFieldsToString(typeof(Game).Assembly,
+                type => type.Namespace.StartsWith("RimWorld") || type.Namespace.StartsWith("Verse")));
         }
 
-        public static string AllModStatics()
+        private static string AllModStatics()
         {
-            var builder = new StringBuilder();
+            StringBuilder builder = new StringBuilder();
 
-            foreach (var mod in LoadedModManager.RunningModsListForReading)
+            foreach (ModContentPack mod in LoadedModManager.RunningModsListForReading)
             {
                 builder.AppendLine("======== ").Append(mod.Name).AppendLine();
-                foreach (var asm in mod.assemblies.loadedAssemblies)
-                {
-                    builder.AppendLine(StaticFieldsToString(asm, t => !t.Namespace.StartsWith("Harmony") && !t.Namespace.StartsWith("Multiplayer")));
-                }
+                foreach (Assembly asm in mod.assemblies.loadedAssemblies)
+                    builder.AppendLine(StaticFieldsToString(asm,
+                        t => !t.Namespace.StartsWith("Harmony") && !t.Namespace.StartsWith("Multiplayer")));
             }
 
             return builder.ToString();
         }
 
-        public static string StaticFieldsToString(Assembly asm, Predicate<Type> typeValidator)
+        private static string StaticFieldsToString(Assembly asm, Predicate<Type> typeValidator)
         {
-            var builder = new StringBuilder();
+            StringBuilder builder = new StringBuilder();
 
             object FieldValue(FieldInfo field)
             {
-                var value = field.GetValue(null);
+                object value = field.GetValue(null);
                 if (value is ICollection col)
                     return col.Count;
-                if (field.Name.ToLowerInvariant().Contains("path") && value is string path && (path.Contains("/") || path.Contains("\\")))
+                if (field.Name.ToLowerInvariant().Contains("path") && value is string path &&
+                    (path.Contains("/") || path.Contains("\\")))
                     return "[x]";
                 return value;
             }
 
-            foreach (var type in asm.GetTypes())
-                if (!type.IsGenericTypeDefinition && type.Namespace != null && typeValidator(type) && !type.HasAttribute<DefOf>() && !type.HasAttribute<CompilerGeneratedAttribute>())
-                    foreach (var field in type.GetFields(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.DeclaredOnly))
+            foreach (Type type in asm.GetTypes())
+                if (!type.IsGenericTypeDefinition && type.Namespace != null && typeValidator(type) &&
+                    !type.HasAttribute<DefOf>() && !type.HasAttribute<CompilerGeneratedAttribute>())
+                    foreach (FieldInfo field in type.GetFields(
+                        BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.DeclaredOnly))
                         if (!field.IsLiteral && !field.IsInitOnly && !field.HasAttribute<CompilerGeneratedAttribute>())
                             builder.AppendLine($"{field.FieldType} {type}::{field.Name}: {FieldValue(field)}");
 
             return builder.ToString();
         }
 
-        static void QueueIncident()
+        private static void QueueIncident()
         {
-            Find.Storyteller.incidentQueue.Add(IncidentDefOf.TraderCaravanArrival, Find.TickManager.TicksGame + 600, new IncidentParms() { target = Find.CurrentMap });
+            Find.Storyteller.incidentQueue.Add(IncidentDefOf.TraderCaravanArrival, Find.TickManager.TicksGame + 600,
+                new IncidentParms {target = Find.CurrentMap});
         }
 
-        static void BlockingLongEvent()
+        private static void BlockingLongEvent()
         {
             LongEventHandler.QueueLongEvent(() => Thread.Sleep(60 * 1000), "Blocking", false, null);
         }
 
-        public static int currentPlayer;
-        public static int currentHash;
-
         public static void HandleCmd(ByteReader data)
         {
             currentPlayer = data.ReadInt32();
-            var source = (DebugSource)data.ReadInt32();
+            DebugSource source = (DebugSource) data.ReadInt32();
             int cursorX = data.ReadInt32();
             int cursorZ = data.ReadInt32();
 
@@ -164,9 +170,9 @@ namespace Multiplayer.Client
                 MouseTilePatch.result = cursorX;
 
             currentHash = data.ReadInt32();
-            var state = Multiplayer.game.playerDebugState.GetOrAddNew(currentPlayer);
+            PlayerDebugState state = Multiplayer.game.playerDebugState.GetOrAddNew(currentPlayer);
 
-            var prevTool = DebugTools.curTool;
+            DebugTool prevTool = DebugTools.curTool;
             DebugTools.curTool = state.tool;
 
             List<object> prevSelected = Find.Selector.selected;
@@ -179,13 +185,13 @@ namespace Multiplayer.Client
 
             if (Multiplayer.MapContext != null)
             {
-                var thing = ThingsById.thingsById.GetValueSafe(selectedId);
+                Thing thing = ThingsById.thingsById.GetValueSafe(selectedId);
                 if (thing != null)
                     Find.Selector.selected.Add(thing);
             }
             else
             {
-                var obj = Find.WorldObjects.AllWorldObjects.FirstOrDefault(w => w.ID == selectedId);
+                WorldObject obj = Find.WorldObjects.AllWorldObjects.FirstOrDefault(w => w.ID == selectedId);
                 if (obj != null)
                     Find.WorldSelector.selected.Add(obj);
             }
@@ -209,7 +215,8 @@ namespace Multiplayer.Client
                 }
                 else if (source == DebugSource.Lister)
                 {
-                    var options = (state.window as List<DebugMenuOption>) ?? new List<DebugMenuOption>();
+                    List<DebugMenuOption> options =
+                        state.window as List<DebugMenuOption> ?? new List<DebugMenuOption>();
                     new Dialog_DebugOptionListLister(options).DoListingItems();
                 }
                 else if (source == DebugSource.Tool)
@@ -223,13 +230,12 @@ namespace Multiplayer.Client
             }
             finally
             {
-                if (TickPatch.currentExecutingCmdIssuedBySelf && DebugTools.curTool != null && DebugTools.curTool != state.tool)
+                if (TickPatch.currentExecutingCmdIssuedBySelf && DebugTools.curTool != null &&
+                    DebugTools.curTool != state.tool)
                 {
-                    var map = Multiplayer.MapContext;
-                    prevTool = new DebugTool(DebugTools.curTool.label, () =>
-                    {
-                        SendCmd(DebugSource.Tool, 0, map);
-                    }, DebugTools.curTool.onGUIAction);
+                    Map map = Multiplayer.MapContext;
+                    prevTool = new DebugTool(DebugTools.curTool.label, () => { SendCmd(DebugSource.Tool, 0, map); },
+                        DebugTools.curTool.onGUIAction);
                 }
 
                 state.tool = DebugTools.curTool;
@@ -244,7 +250,7 @@ namespace Multiplayer.Client
 
         public static void SendCmd(DebugSource source, int hash, Map map)
         {
-            var writer = new ByteWriter();
+            ByteWriter writer = new ByteWriter();
             int cursorX = 0, cursorZ = 0;
 
             if (map != null)
@@ -254,11 +260,11 @@ namespace Multiplayer.Client
             }
             else
             {
-                cursorX = GenWorld.MouseTile(false);
+                cursorX = GenWorld.MouseTile();
             }
 
             writer.WriteInt32(Multiplayer.session.playerId);
-            writer.WriteInt32((int)source);
+            writer.WriteInt32((int) source);
             writer.WriteInt32(cursorX);
             writer.WriteInt32(cursorZ);
             writer.WriteInt32(hash);
@@ -268,7 +274,7 @@ namespace Multiplayer.Client
             else
                 writer.WriteInt32(Find.WorldSelector.SingleSelectedObject?.ID ?? -1);
 
-            var mapId = map?.uniqueID ?? ScheduledCommand.Global;
+            int mapId = map?.uniqueID ?? ScheduledCommand.Global;
 
             Multiplayer.Client.SendCommand(CommandType.DebugTools, mapId, writer.ToArray());
         }
@@ -277,9 +283,9 @@ namespace Multiplayer.Client
         {
             if (ListingWorldMarker.drawing)
                 return DebugSource.ListingWorld;
-            else if (ListingMapMarker.drawing)
+            if (ListingMapMarker.drawing)
                 return DebugSource.ListingMap;
-            else if (ListingPlayMarker.drawing)
+            if (ListingPlayMarker.drawing)
                 return DebugSource.ListingPlay;
 
             return DebugSource.None;
@@ -288,8 +294,8 @@ namespace Multiplayer.Client
 
     public class PlayerDebugState
     {
-        public object window;
         public DebugTool tool;
+        public object window;
     }
 
     public enum DebugSource
@@ -300,67 +306,98 @@ namespace Multiplayer.Client
         ListingPlay,
         Lister,
         Tool,
-        FloatMenu,
+        FloatMenu
     }
 
     [HarmonyPatch(typeof(Dialog_DebugActionsMenu), nameof(Dialog_DebugActionsMenu.DoListingItems_AllModePlayActions))]
-    static class ListingPlayMarker
+    internal static class ListingPlayMarker
     {
         public static bool drawing;
 
-        static void Prefix() => drawing = true;
-        static void Postfix() => drawing = false;
+        private static void Prefix()
+        {
+            drawing = true;
+        }
+
+        private static void Postfix()
+        {
+            drawing = false;
+        }
     }
 
     [HarmonyPatch(typeof(Dialog_DebugActionsMenu), nameof(Dialog_DebugActionsMenu.DoListingItems_World))]
-    static class ListingWorldMarker
+    internal static class ListingWorldMarker
     {
         public static bool drawing;
 
-        static void Prefix() => drawing = true;
-        static void Postfix() => drawing = false;
+        private static void Prefix()
+        {
+            drawing = true;
+        }
+
+        private static void Postfix()
+        {
+            drawing = false;
+        }
     }
 
     [MpPatch(typeof(Dialog_DebugActionsMenu), nameof(Dialog_DebugActionsMenu.DoIncidentDebugAction))]
     [MpPatch(typeof(Dialog_DebugActionsMenu), nameof(Dialog_DebugActionsMenu.DoIncidentWithPointsAction))]
-    static class ListingIncidentMarker
+    internal static class ListingIncidentMarker
     {
         public static IIncidentTarget target;
 
-        static void Prefix(IIncidentTarget target) => ListingIncidentMarker.target = target;
-        static void Postfix() => target = null;
+        private static void Prefix(IIncidentTarget target)
+        {
+            ListingIncidentMarker.target = target;
+        }
+
+        private static void Postfix()
+        {
+            target = null;
+        }
     }
 
     [MpPatch(typeof(Dialog_DebugActionsMenu), nameof(Dialog_DebugActionsMenu.DoListingItems_MapActions))]
     [MpPatch(typeof(Dialog_DebugActionsMenu), nameof(Dialog_DebugActionsMenu.DoListingItems_MapTools))]
-    static class ListingMapMarker
+    internal static class ListingMapMarker
     {
         public static bool drawing;
 
-        static void Prefix() => drawing = true;
-        static void Postfix() => drawing = false;
+        private static void Prefix()
+        {
+            drawing = true;
+        }
+
+        private static void Postfix()
+        {
+            drawing = false;
+        }
     }
 
     [MpPatch(typeof(Dialog_DebugOptionLister), nameof(Dialog_DebugOptionLister.DoGap))]
     [MpPatch(typeof(Dialog_DebugOptionLister), nameof(Dialog_DebugOptionLister.DoLabel))]
-    static class CancelDebugDrawing
+    internal static class CancelDebugDrawing
     {
-        static bool Prefix() => !Multiplayer.ExecutingCmds;
+        private static bool Prefix()
+        {
+            return !Multiplayer.ExecutingCmds;
+        }
     }
 
     [HarmonyPatch(typeof(Dialog_DebugOptionLister), nameof(Dialog_DebugOptionLister.DebugAction))]
     [HotSwappable]
-    static class DebugActionPatch
+    internal static class DebugActionPatch
     {
-        static bool Prefix(Dialog_DebugOptionLister __instance, string label, ref Action action)
+        private static bool Prefix(Dialog_DebugOptionLister __instance, string label, ref Action action)
         {
             if (Multiplayer.Client == null) return true;
             if (Current.ProgramState == ProgramState.Playing && !Multiplayer.WorldComp.debugMode) return true;
 
-            var originalAction = (action.Target as DebugListerContext)?.originalAction ?? action;
+            Action originalAction = (action.Target as DebugListerContext)?.originalAction ?? action;
 
             int hash = Gen.HashCombineInt(
-                GenText.StableStringHash(originalAction.Method.MethodDesc()), 
+                GenText.StableStringHash(originalAction.Method.MethodDesc()),
                 GenText.StableStringHash(label)
             );
 
@@ -374,7 +411,7 @@ namespace Multiplayer.Client
 
             if (__instance is Dialog_DebugActionsMenu)
             {
-                var source = MpDebugTools.ListingSource();
+                DebugSource source = MpDebugTools.ListingSource();
                 if (source == DebugSource.None) return true;
 
                 Map map = source == DebugSource.ListingMap ? Find.CurrentMap : null;
@@ -387,7 +424,7 @@ namespace Multiplayer.Client
 
             if (__instance is Dialog_DebugOptionListLister)
             {
-                var context = (DebugListerContext)action.Target;
+                DebugListerContext context = (DebugListerContext) action.Target;
                 action = () => MpDebugTools.SendCmd(DebugSource.Lister, hash, context.map);
             }
 
@@ -397,16 +434,18 @@ namespace Multiplayer.Client
 
     [MpPatch(typeof(Dialog_DebugOptionLister), nameof(Dialog_DebugOptionLister.DebugToolMap))]
     [MpPatch(typeof(Dialog_DebugOptionLister), nameof(Dialog_DebugOptionLister.DebugToolWorld))]
-    static class DebugToolPatch
+    internal static class DebugToolPatch
     {
-        static bool Prefix(Dialog_DebugOptionLister __instance, string label, Action toolAction, ref Container<DebugTool>? __state)
+        private static bool Prefix(Dialog_DebugOptionLister __instance, string label, Action toolAction,
+            ref Container<DebugTool>? __state)
         {
             if (Multiplayer.Client == null) return true;
             if (Current.ProgramState == ProgramState.Playing && !Multiplayer.WorldComp.debugMode) return true;
 
             if (Multiplayer.ExecutingCmds)
             {
-                int hash = Gen.HashCombineInt(GenText.StableStringHash(toolAction.Method.MethodDesc()), GenText.StableStringHash(label));
+                int hash = Gen.HashCombineInt(GenText.StableStringHash(toolAction.Method.MethodDesc()),
+                    GenText.StableStringHash(label));
                 if (hash == MpDebugTools.currentHash)
                     DebugTools.curTool = new DebugTool(label, toolAction);
 
@@ -418,17 +457,19 @@ namespace Multiplayer.Client
             return true;
         }
 
-        static void Postfix(Dialog_DebugOptionLister __instance, string label, Action toolAction, Container<DebugTool>? __state)
+        private static void Postfix(Dialog_DebugOptionLister __instance, string label, Action toolAction,
+            Container<DebugTool>? __state)
         {
             // New tool chosen
             if (__state != null && DebugTools.curTool != __state?.Inner)
             {
-                var originalAction = (toolAction.Target as DebugListerContext)?.originalAction ?? toolAction;
-                int hash = Gen.HashCombineInt(GenText.StableStringHash(originalAction.Method.MethodDesc()), GenText.StableStringHash(label));
+                Action originalAction = (toolAction.Target as DebugListerContext)?.originalAction ?? toolAction;
+                int hash = Gen.HashCombineInt(GenText.StableStringHash(originalAction.Method.MethodDesc()),
+                    GenText.StableStringHash(label));
 
                 if (__instance is Dialog_DebugActionsMenu)
                 {
-                    var source = MpDebugTools.ListingSource();
+                    DebugSource source = MpDebugTools.ListingSource();
                     if (source == DebugSource.None) return;
 
                     Map map = source == DebugSource.ListingMap ? Find.CurrentMap : null;
@@ -439,7 +480,7 @@ namespace Multiplayer.Client
 
                 if (__instance is Dialog_DebugOptionListLister lister)
                 {
-                    var context = (DebugListerContext)toolAction.Target;
+                    DebugListerContext context = (DebugListerContext) toolAction.Target;
                     MpDebugTools.SendCmd(DebugSource.Lister, hash, context.map);
                     DebugTools.curTool = null;
                 }
@@ -452,33 +493,35 @@ namespace Multiplayer.Client
         public Map map;
         public Action originalAction;
 
-        public void Do() { }
+        public void Do()
+        {
+        }
     }
 
     [HarmonyPatch(typeof(WindowStack), nameof(WindowStack.Add))]
-    static class DebugListerAddPatch
+    internal static class DebugListerAddPatch
     {
-        static bool Prefix(Window window)
+        private static bool Prefix(Window window)
         {
             if (Multiplayer.Client == null) return true;
             if (!Multiplayer.ExecutingCmds) return true;
             if (!Multiplayer.WorldComp.debugMode) return true;
 
             bool keepOpen = TickPatch.currentExecutingCmdIssuedBySelf;
-            var map = Multiplayer.MapContext;
+            Map map = Multiplayer.MapContext;
 
             if (window is Dialog_DebugOptionListLister lister)
             {
-                var options = lister.options;
+                List<DebugMenuOption> options = lister.options;
 
                 if (keepOpen)
                 {
                     lister.options = new List<DebugMenuOption>();
 
-                    foreach (var option in options)
+                    foreach (DebugMenuOption option in options)
                     {
-                        var copy = option;
-                        copy.method = new DebugListerContext() { map = map, originalAction = copy.method }.Do;
+                        DebugMenuOption copy = option;
+                        copy.method = new DebugListerContext {map = map, originalAction = copy.method}.Do;
                         lister.options.Add(copy);
                     }
                 }
@@ -489,15 +532,15 @@ namespace Multiplayer.Client
 
             if (window is FloatMenu menu)
             {
-                var options = menu.options;
+                List<FloatMenuOption> options = menu.options;
 
                 if (keepOpen)
                 {
                     menu.options = new List<FloatMenuOption>();
 
-                    foreach (var option in options)
+                    foreach (FloatMenuOption option in options)
                     {
-                        var copy = new FloatMenuOption(option.labelInt, option.action);
+                        FloatMenuOption copy = new FloatMenuOption(option.labelInt, option.action);
                         int hash = copy.Hash();
                         copy.action = () => MpDebugTools.SendCmd(DebugSource.FloatMenu, hash, map);
                         menu.options.Add(copy);
@@ -513,8 +556,8 @@ namespace Multiplayer.Client
 
         public static int Hash(this FloatMenuOption opt)
         {
-            return Gen.HashCombineInt(GenText.StableStringHash(opt.action.Method.MethodDesc()), GenText.StableStringHash(opt.labelInt));
+            return Gen.HashCombineInt(GenText.StableStringHash(opt.action.Method.MethodDesc()),
+                GenText.StableStringHash(opt.labelInt));
         }
     }
-
 }

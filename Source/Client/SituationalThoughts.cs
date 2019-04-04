@@ -1,17 +1,18 @@
-﻿using Harmony;
-using RimWorld;
-using System;
+﻿#region
+
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+using Harmony;
+using RimWorld;
 using Verse;
+
+#endregion
 
 namespace Multiplayer.Client
 {
     [HarmonyPatch(typeof(Pawn_NeedsTracker), nameof(Pawn_NeedsTracker.AddOrRemoveNeedsAsAppropriate))]
-    static class AddOrRemoveNeedMoodPatch
+    internal static class AddOrRemoveNeedMoodPatch
     {
-        static void Postfix(Pawn_NeedsTracker __instance)
+        private static void Postfix(Pawn_NeedsTracker __instance)
         {
             MultiplayerPawnComp comp = __instance.pawn.GetComp<MultiplayerPawnComp>();
             if (__instance.mood == null)
@@ -27,11 +28,11 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(SituationalThoughtHandler), nameof(SituationalThoughtHandler.Notify_SituationalThoughtsDirty))]
-    static class NotifySituationalThoughtsPatch
+    internal static class NotifySituationalThoughtsPatch
     {
         private static bool ignore;
 
-        static void Prefix(SituationalThoughtHandler __instance)
+        private static void Prefix(SituationalThoughtHandler __instance)
         {
             if (ignore) return;
 
@@ -45,11 +46,11 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(SituationalThoughtHandler), nameof(SituationalThoughtHandler.RemoveExpiredThoughtsFromCache))]
-    static class RemoveExpiredThoughtsFromCachePatch
+    internal static class RemoveExpiredThoughtsFromCachePatch
     {
         private static bool ignore;
 
-        static void Prefix(SituationalThoughtHandler __instance)
+        private static void Prefix(SituationalThoughtHandler __instance)
         {
             if (ignore) return;
 
@@ -64,12 +65,12 @@ namespace Multiplayer.Client
 
     [HarmonyPatch(typeof(SituationalThoughtHandler), nameof(SituationalThoughtHandler.AppendMoodThoughts))]
     [HarmonyPriority(Priority.First)]
-    static class AppendMoodThoughtsPatch
+    internal static class AppendMoodThoughtsPatch
     {
-        private static bool Cancel => Multiplayer.Client != null && !Multiplayer.Ticking && !Multiplayer.ExecutingCmds;
         private static bool ignore;
+        private static bool Cancel => Multiplayer.Client != null && !Multiplayer.Ticking && !Multiplayer.ExecutingCmds;
 
-        static bool Prefix(SituationalThoughtHandler __instance, List<Thought> outThoughts)
+        private static bool Prefix(SituationalThoughtHandler __instance, List<Thought> outThoughts)
         {
             if (!Cancel || ignore) return true;
 
@@ -86,12 +87,13 @@ namespace Multiplayer.Client
 
     [HarmonyPatch(typeof(SituationalThoughtHandler), nameof(SituationalThoughtHandler.AppendSocialThoughts))]
     [HarmonyPriority(Priority.First)]
-    static class AppendSocialThoughtsPatch
+    internal static class AppendSocialThoughtsPatch
     {
-        private static bool Cancel => Multiplayer.Client != null && !Multiplayer.Ticking && !Multiplayer.ExecutingCmds;
         private static bool ignore;
+        private static bool Cancel => Multiplayer.Client != null && !Multiplayer.Ticking && !Multiplayer.ExecutingCmds;
 
-        static bool Prefix(SituationalThoughtHandler __instance, Pawn otherPawn, List<ISocialThought> outThoughts)
+        private static bool Prefix(SituationalThoughtHandler __instance, Pawn otherPawn,
+            List<ISocialThought> outThoughts)
         {
             if (!Cancel || ignore) return true;
 

@@ -1,18 +1,27 @@
-﻿using RimWorld.Planet;
+﻿#region
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 using Verse.AI;
+
+#endregion
 
 namespace Multiplayer.Client
 {
     public static class SimpleProfiler
     {
+        public static bool available;
+        public static bool running;
+
+        private static readonly HashSet<int> printed = new HashSet<int>();
+
         // Inits (or clears) the profiler
         [DllImport("simple_profiler.dll", CharSet = CharSet.Ansi)]
         private static extern void init_profiler(string id);
@@ -31,9 +40,6 @@ namespace Multiplayer.Client
 
         [DllImport("kernel32.dll", CharSet = CharSet.Auto)]
         public static extern IntPtr GetModuleHandle(string lpModuleName);
-
-        public static bool available;
-        public static bool running;
 
         public static void CheckAvailable()
         {
@@ -66,8 +72,6 @@ namespace Multiplayer.Client
             print_profiler(file);
         }
 
-        private static HashSet<int> printed = new HashSet<int>();
-
         public static void DumpMemory(object obj, StringBuilder builder)
         {
             printed.Clear();
@@ -76,15 +80,13 @@ namespace Multiplayer.Client
 
         private static IEnumerable<FieldInfo> AllFields(Type t)
         {
-            var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
+            BindingFlags flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
-            foreach (var field in t.GetFields(flags))
-            {
+            foreach (FieldInfo field in t.GetFields(flags))
                 if (field.DeclaringType == t)
                     yield return field;
-            }
 
-            var baseType = t.BaseType;
+            Type baseType = t.BaseType;
             if (baseType != null)
                 foreach (FieldInfo f in AllFields(baseType))
                     yield return f;
@@ -135,8 +137,10 @@ namespace Multiplayer.Client
                         builder.Append(' ', depth + 1).Append('[').Append(i).Append("]:");
                         DumpMemory(elem, builder, depth + 2);
                     }
+
                     i++;
                 }
+
                 builder.Append(' ', depth + 1).Append("[Size: ").Append(i).Append("]").AppendLine();
                 return;
             }
@@ -152,8 +156,8 @@ namespace Multiplayer.Client
 
                 if (f.Name == "calcGrid" &&
                     (f.DeclaringType == typeof(PathFinder) ||
-                    f.DeclaringType == typeof(WorldPathFinder)
-                )) continue;
+                     f.DeclaringType == typeof(WorldPathFinder)
+                    )) continue;
 
                 builder.Append(' ', depth);
                 builder.Append(f.Name).Append(":");
@@ -189,15 +193,11 @@ namespace Multiplayer.Client
 
         public static bool IsCollection(object obj)
         {
-            return (
-                obj is ICollection ||
-                obj is IList ||
-                obj is IDictionary ||
-                (
-                    obj.GetType().IsGenericType &&
-                    typeof(HashSet<>).IsAssignableFrom(obj.GetType().GetGenericTypeDefinition())
-                )
-            );
+            return obj is ICollection ||
+                   obj is IList ||
+                   obj is IDictionary ||
+                   obj.GetType().IsGenericType &&
+                   typeof(HashSet<>).IsAssignableFrom(obj.GetType().GetGenericTypeDefinition());
         }
 
         public static bool IsOfGenericType(this Type typeToCheck, Type genericType)
@@ -231,7 +231,7 @@ namespace Multiplayer.Client
                 }
 
                 if (genericType.IsInterface)
-                    foreach (var i in typeToCheck.GetInterfaces())
+                    foreach (Type i in typeToCheck.GetInterfaces())
                         if (i.IsOfGenericType(genericType, out concreteGenericType))
                             return true;
 

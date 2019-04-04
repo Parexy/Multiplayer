@@ -1,21 +1,22 @@
-﻿using Harmony;
-using Multiplayer.Common;
-using RimWorld;
-using System;
+﻿#region
+
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
+using Harmony;
+using Multiplayer.Common;
+using RimWorld;
 using Verse;
+
+#endregion
 
 namespace Multiplayer.Client
 {
     [HarmonyPatch(typeof(Designator))]
     [HarmonyPatch(nameof(Designator.Finalize))]
-    [HarmonyPatch(new[] { typeof(bool) })]
+    [HarmonyPatch(new[] {typeof(bool)})]
     public static class DesignatorFinalizePatch
     {
-        static bool Prefix(bool somethingSucceeded)
+        private static bool Prefix(bool somethingSucceeded)
         {
             if (Multiplayer.Client == null) return true;
             return !somethingSucceeded || Multiplayer.ExecutingCmds;
@@ -128,11 +129,10 @@ namespace Multiplayer.Client
     {
         public static Thing thingToInstall;
 
-        static void Postfix(ref Thing __result)
+        private static void Postfix(ref Thing __result)
         {
             if (thingToInstall != null)
                 __result = thingToInstall;
         }
     }
-
 }

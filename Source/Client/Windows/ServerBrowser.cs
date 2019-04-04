@@ -1,33 +1,53 @@
-﻿extern alias zip;
+﻿#region
 
-using LiteNetLib;
-using Multiplayer.Common;
-using RimWorld;
-using Steamworks;
+extern alias zip;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
 using System.Xml;
+using Harmony;
+using LiteNetLib;
+using Multiplayer.Common;
+using RimWorld;
+using Steamworks;
 using UnityEngine;
 using Verse;
 using Verse.Steam;
-using Harmony;
 using zip::Ionic.Zip;
+
+#endregion
 
 namespace Multiplayer.Client
 {
     [HotSwappable]
     public class ServerBrowser : Window
     {
-        private NetManager net;
-        private List<LanServer> servers = new List<LanServer>();
+        private static Tabs tab;
+        private static readonly Color SteamGreen = new Color32(144, 186, 60, 255);
 
-        public override Vector2 InitialSize => new Vector2(800f, 500f);
+        private readonly List<SteamPersona> friends = new List<SteamPersona>();
+        private readonly List<SaveFile> mpReplays = new List<SaveFile>();
+        private readonly NetManager net;
+        private readonly List<LanServer> servers = new List<LanServer>();
+
+        private readonly List<SaveFile> spSaves = new List<SaveFile>();
+        private float fileButtonsWidth;
+        private bool filesRead;
+        private float hostHeight;
+        private Vector2 hostScroll;
+
+        private Vector2 lanScroll;
+
+        private long lastFriendUpdate;
+
+        private bool mpCollapsed, spCollapsed;
+
+        private SaveFile selectedFile;
+        private Vector2 steamScroll;
 
         public ServerBrowser()
         {
@@ -50,24 +70,16 @@ namespace Multiplayer.Client
             closeOnAccept = false;
         }
 
-        private Vector2 lanScroll;
-        private Vector2 steamScroll;
-        private Vector2 hostScroll;
-        private static Tabs tab;
-
-        enum Tabs
-        {
-            Lan, Direct, Steam, Host
-        }
+        public override Vector2 InitialSize => new Vector2(800f, 500f);
 
         public override void DoWindowContents(Rect inRect)
         {
-            List<TabRecord> tabs = new List<TabRecord>()
+            List<TabRecord> tabs = new List<TabRecord>
             {
-                new TabRecord("MpLan".Translate(), () => tab = Tabs.Lan,  tab == Tabs.Lan),
+                new TabRecord("MpLan".Translate(), () => tab = Tabs.Lan, tab == Tabs.Lan),
                 new TabRecord("MpDirect".Translate(), () => tab = Tabs.Direct, tab == Tabs.Direct),
                 new TabRecord("MpSteam".Translate(), () => tab = Tabs.Steam, tab == Tabs.Steam),
-                new TabRecord("MpHostTab".Translate(), () => tab = Tabs.Host, tab == Tabs.Host),
+                new TabRecord("MpHostTab".Translate(), () => tab = Tabs.Host, tab == Tabs.Host)
             };
 
             inRect.yMin += 35f;
@@ -89,10 +101,6 @@ namespace Multiplayer.Client
             GUI.EndGroup();
         }
 
-        private List<SaveFile> spSaves = new List<SaveFile>();
-        private List<SaveFile> mpReplays = new List<SaveFile>();
-        private bool filesRead;
-
         private void ReloadFiles()
         {
             selectedFile = null;
@@ -102,24 +110,29 @@ namespace Multiplayer.Client
 
             foreach (FileInfo file in GenFilePaths.AllSavedGameFiles)
             {
-                var saveFile = new SaveFile(Path.GetFileNameWithoutExtension(file.Name), false, file);
+                SaveFile saveFile = new SaveFile(Path.GetFileNameWithoutExtension(file.Name), false, file);
 
-                using (var stream = file.OpenRead())
+                using (FileStream stream = file.OpenRead())
+                {
                     ReadSaveInfo(stream, saveFile);
+                }
 
                 spSaves.Add(saveFile);
             }
 
-            var replaysDir = new DirectoryInfo(GenFilePaths.FolderUnderSaveData("MpReplays"));
+            DirectoryInfo replaysDir = new DirectoryInfo(GenFilePaths.FolderUnderSaveData("MpReplays"));
 
-            foreach (var file in replaysDir.GetFiles("*.zip", MpVersion.IsDebug ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly).OrderByDescending(f => f.LastWriteTime))
+            foreach (FileInfo file in replaysDir
+                .GetFiles("*.zip", MpVersion.IsDebug ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly)
+                .OrderByDescending(f => f.LastWriteTime))
             {
-                var replay = Replay.ForLoading(file);
+                Replay replay = Replay.ForLoading(file);
                 if (!replay.LoadInfo()) continue;
 
-                var displayName = Path.ChangeExtension(file.FullName.Substring(Multiplayer.ReplaysDir.Length + 1), null);
+                string displayName =
+                    Path.ChangeExtension(file.FullName.Substring(Multiplayer.ReplaysDir.Length + 1), null);
 
-                var saveFile = new SaveFile(displayName, true, file)
+                SaveFile saveFile = new SaveFile(displayName, true, file)
                 {
                     gameName = replay.info.name,
                     protocol = replay.info.protocol,
@@ -137,15 +150,17 @@ namespace Multiplayer.Client
                 }
                 else
                 {
-                    using (var zip = replay.ZipFile)
+                    using (ZipFile zip = replay.ZipFile)
+                    {
                         ReadSaveInfo(zip["world/000_save"].OpenReader(), saveFile);
+                    }
                 }
             }
         }
 
         private void ReadSaveInfo(Stream stream, SaveFile save)
         {
-            using (var reader = new XmlTextReader(stream))
+            using (XmlTextReader reader = new XmlTextReader(stream))
             {
                 reader.ReadToNextElement(); // savedGame
                 reader.ReadToNextElement(); // meta
@@ -164,12 +179,6 @@ namespace Multiplayer.Client
 
             save.modAssemblyHashes = new int[save.modNames.Length];
         }
-
-        private bool mpCollapsed, spCollapsed;
-        private float hostHeight;
-
-        private SaveFile selectedFile;
-        private float fileButtonsWidth;
 
         private void DrawHost(Rect inRect)
         {
@@ -229,7 +238,8 @@ namespace Multiplayer.Client
                 Text.Anchor = TextAnchor.MiddleCenter;
 
                 bool noSaves = spSaves.Count == 0 && mpReplays.Count == 0;
-                Widgets.Label(new Rect(outRect.x, outRect.yMax, outRect.width, 80), noSaves ? "MpNoSaves".Translate() : "MpNothingSelected".Translate());
+                Widgets.Label(new Rect(outRect.x, outRect.yMax, outRect.width, 80),
+                    noSaves ? "MpNoSaves".Translate() : "MpNothingSelected".Translate());
 
                 Text.Anchor = TextAnchor.UpperLeft;
             }
@@ -237,14 +247,12 @@ namespace Multiplayer.Client
             {
                 float width = 0;
 
-                GUI.BeginGroup(new Rect(outRect.x + (outRect.width - fileButtonsWidth) / 2, outRect.yMax + 20, fileButtonsWidth, 40));
+                GUI.BeginGroup(new Rect(outRect.x + (outRect.width - fileButtonsWidth) / 2, outRect.yMax + 20,
+                    fileButtonsWidth, 40));
                 DrawFileButtons(selectedFile, ref width);
                 GUI.EndGroup();
 
-                if (Event.current.type == EventType.layout)
-                {
-                    fileButtonsWidth = width;
-                }
+                if (Event.current.type == EventType.layout) fileButtonsWidth = width;
             }
         }
 
@@ -253,38 +261,41 @@ namespace Multiplayer.Client
             if (file.replay)
             {
                 if (Widgets.ButtonText(new Rect(width, 0, 120, 40), "MpWatchReplay".Translate()))
-                {
                     CheckGameVersionAndMods(
                         file,
-                        () => { Close(false); Replay.LoadReplay(file.file); }
+                        () =>
+                        {
+                            Close(false);
+                            Replay.LoadReplay(file.file);
+                        }
                     );
-                }
 
                 width += 120 + 10;
             }
 
             if (Widgets.ButtonText(new Rect(width, 0, 120, 40), "MpHostButton".Translate()))
-            {
                 CheckGameVersionAndMods(
-                    file, 
-                    () => { Close(false); Find.WindowStack.Add(new HostWindow(file) { returnToServerBrowser = true }); }
+                    file,
+                    () =>
+                    {
+                        Close(false);
+                        Find.WindowStack.Add(new HostWindow(file) {returnToServerBrowser = true});
+                    }
                 );
-            }
 
             width += 120 + 10;
 
             if (Widgets.ButtonText(new Rect(width, 0, 120, 40), "Delete".Translate()))
-            {
-                Find.WindowStack.Add(Dialog_MessageBox.CreateConfirmation("ConfirmDelete".Translate(file.displayName), () =>
-                {
-                    file.file.Delete();
-                    ReloadFiles();
-                }, true));
-            }
+                Find.WindowStack.Add(Dialog_MessageBox.CreateConfirmation("ConfirmDelete".Translate(file.displayName),
+                    () =>
+                    {
+                        file.file.Delete();
+                        ReloadFiles();
+                    }, true));
 
             width += 120;
         }
-        
+
         private static void CheckGameVersionAndMods(SaveFile file, Action action)
         {
             ScribeMetaHeaderUtility.lastMode = ScribeMetaHeaderUtility.ScribeHeaderMode.Map;
@@ -293,34 +304,32 @@ namespace Multiplayer.Client
             ScribeMetaHeaderUtility.loadedModNamesList = file.modNames.ToList();
 
             if (!ScribeMetaHeaderUtility.TryCreateDialogsForVersionMismatchWarnings(action))
-            {
                 action();
-            }
             else
-            {
                 Find.WindowStack.Windows
                     .OfType<Dialog_MessageBox>()
                     .Where(w => w.buttonAText == "LoadAnyway".Translate())
                     .Do(w => w.buttonAText = "Continue anyway");
-            }
         }
 
         private void DrawSaveList(List<SaveFile> saves, float width, ref float y)
         {
             for (int i = 0; i < saves.Count; i++)
             {
-                var saveFile = saves[i];
+                SaveFile saveFile = saves[i];
                 Rect entryRect = new Rect(0, y, width, 40);
 
                 if (saveFile == selectedFile)
                 {
                     Widgets.DrawRectFast(entryRect, new Color(1f, 1f, 0.7f, 0.1f));
 
-                    var lineColor = new Color(1, 1, 1, 0.3f);
+                    Color lineColor = new Color(1, 1, 1, 0.3f);
                     Widgets.DrawLine(entryRect.min, entryRect.TopRightCorner(), lineColor, 2f);
-                    Widgets.DrawLine(entryRect.min + new Vector2(2, 1), entryRect.BottomLeftCorner() + new Vector2(2, -1), lineColor, 2f);
+                    Widgets.DrawLine(entryRect.min + new Vector2(2, 1),
+                        entryRect.BottomLeftCorner() + new Vector2(2, -1), lineColor, 2f);
                     Widgets.DrawLine(entryRect.BottomLeftCorner(), entryRect.max, lineColor, 2f);
-                    Widgets.DrawLine(entryRect.TopRightCorner() - new Vector2(2, -1), entryRect.max - new Vector2(2, 1), lineColor, 2f);
+                    Widgets.DrawLine(entryRect.TopRightCorner() - new Vector2(2, -1), entryRect.max - new Vector2(2, 1),
+                        lineColor, 2f);
                 }
                 else if (i % 2 == 0)
                 {
@@ -334,7 +343,7 @@ namespace Multiplayer.Client
                 GUI.color = new Color(0.6f, 0.6f, 0.6f);
                 Text.Font = GameFont.Tiny;
 
-                var infoText = new Rect(entryRect.xMax - 120, entryRect.yMin + 3, 120, entryRect.height);
+                Rect infoText = new Rect(entryRect.xMax - 120, entryRect.yMin + 3, 120, entryRect.height);
                 Widgets.Label(infoText, saveFile.file.LastWriteTime.ToString("g"));
 
                 if (saveFile.gameName != null)
@@ -352,10 +361,11 @@ namespace Multiplayer.Client
                     bool autosave = saveFile.replaySections > 1;
 
                     GUI.color = autosave ? new Color(0.8f, 0.8f, 0, 0.6f) : new Color(0.8f, 0.8f, 0);
-                    var outdated = new Rect(infoText.x - 80, infoText.y + 8f, 80, 24f);
+                    Rect outdated = new Rect(infoText.x - 80, infoText.y + 8f, 80, 24f);
                     Widgets.Label(outdated, "MpReplayOutdated".Translate());
 
-                    string text = "MpReplayOutdatedDesc1".Translate(saveFile.protocol, MpVersion.Protocol) + "\n\n" + "MpReplayOutdatedDesc2".Translate() + "\n" + "MpReplayOutdatedDesc3".Translate();
+                    string text = "MpReplayOutdatedDesc1".Translate(saveFile.protocol, MpVersion.Protocol) + "\n\n" +
+                                  "MpReplayOutdatedDesc2".Translate() + "\n" + "MpReplayOutdatedDesc3".Translate();
                     if (autosave)
                         text += "\n\n" + "MpReplayOutdatedDesc4".Translate();
 
@@ -379,33 +389,35 @@ namespace Multiplayer.Client
 
         private IEnumerable<FloatMenuOption> SaveFloatMenu(SaveFile save)
         {
-            var saveMods = new StringBuilder();
+            StringBuilder saveMods = new StringBuilder();
             for (int i = 0; i < save.modIds.Length; i++)
             {
-                var modName = save.modNames[i];
-                var modId = save.modIds[i];
-                var prefix = ModLister.AllInstalledMods.Any(m => m.Identifier == modId) ? "+" : "-";
+                string modName = save.modNames[i];
+                string modId = save.modIds[i];
+                string prefix = ModLister.AllInstalledMods.Any(m => m.Identifier == modId) ? "+" : "-";
                 saveMods.Append($"{prefix} {modName}\n");
             }
 
-            var activeMods = LoadedModManager.RunningModsListForReading.Join(m => "+ " + m.Name, "\n");
+            string activeMods = LoadedModManager.RunningModsListForReading.Join(m => "+ " + m.Name, "\n");
 
-            yield return new FloatMenuOption("MpSeeModList".Translate(), () =>
-            {
-                Find.WindowStack.Add(new TwoTextAreas_Window($"RimWorld {save.rwVersion}\nSave mod list:\n\n{saveMods}", $"RimWorld {VersionControl.CurrentVersionString}\nActive mod list:\n\n{activeMods}"));
-            });
+            yield return new FloatMenuOption("MpSeeModList".Translate(),
+                () =>
+                {
+                    Find.WindowStack.Add(new TwoTextAreas_Window(
+                        $"RimWorld {save.rwVersion}\nSave mod list:\n\n{saveMods}",
+                        $"RimWorld {VersionControl.CurrentVersionString}\nActive mod list:\n\n{activeMods}"));
+                });
 
-            yield return new FloatMenuOption("Rename".Translate(), () =>
-            {
-                Find.WindowStack.Add(new Dialog_RenameFile(save.file, () => ReloadFiles()));
-            });
+            yield return new FloatMenuOption("Rename".Translate(),
+                () => { Find.WindowStack.Add(new Dialog_RenameFile(save.file, () => ReloadFiles())); });
 
             if (!MpVersion.IsDebug) yield break;
 
-            yield return new FloatMenuOption("Debug info", () =>
-            {
-                Find.WindowStack.Add(new DebugTextWindow(DesyncDebugInfo.Get(Replay.ForLoading(save.file))));
-            });
+            yield return new FloatMenuOption("Debug info",
+                () =>
+                {
+                    Find.WindowStack.Add(new DebugTextWindow(DesyncDebugInfo.Get(Replay.ForLoading(save.file))));
+                });
 
             yield return new FloatMenuOption("Subscribe to Steam mods", () =>
             {
@@ -417,9 +429,6 @@ namespace Multiplayer.Client
                 }
             });
         }
-
-        private List<SteamPersona> friends = new List<SteamPersona>();
-        private static readonly Color SteamGreen = new Color32(144, 186, 60, 255);
 
         private void DrawSteam(Rect inRect)
         {
@@ -456,7 +465,8 @@ namespace Multiplayer.Client
                     Widgets.DrawAltRect(entryRect);
 
                 if (Event.current.type == EventType.repaint)
-                    GUI.DrawTextureWithTexCoords(new Rect(5, entryRect.y + 4, 32, 32), SteamImages.GetTexture(friend.avatar), new Rect(0, 1, 1, -1));
+                    GUI.DrawTextureWithTexCoords(new Rect(5, entryRect.y + 4, 32, 32),
+                        SteamImages.GetTexture(friend.avatar), new Rect(0, 1, 1, -1));
 
                 Text.Anchor = TextAnchor.MiddleLeft;
                 Widgets.Label(entryRect.Right(45).Up(5), friend.username);
@@ -478,9 +488,10 @@ namespace Multiplayer.Client
 
                         Log.Message("Connecting through Steam");
 
-                        Find.WindowStack.Add(new SteamConnectingWindow(friend.serverHost) { returnToServerBrowser = true });
+                        Find.WindowStack.Add(
+                            new SteamConnectingWindow(friend.serverHost) {returnToServerBrowser = true});
 
-                        var conn = new SteamClientConn(friend.serverHost);
+                        SteamClientConn conn = new SteamClientConn(friend.serverHost);
                         conn.username = Multiplayer.username;
                         Multiplayer.session = new MultiplayerSession();
 
@@ -507,11 +518,14 @@ namespace Multiplayer.Client
 
         private void DrawDirect(Rect inRect)
         {
-            MultiplayerMod.settings.serverAddress = Widgets.TextField(new Rect(inRect.center.x - 200 / 2, 15f, 200, 35f), MultiplayerMod.settings.serverAddress);
+            MultiplayerMod.settings.serverAddress =
+                Widgets.TextField(new Rect(inRect.center.x - 200 / 2, 15f, 200, 35f),
+                    MultiplayerMod.settings.serverAddress);
 
             const float btnWidth = 115f;
 
-            if (Widgets.ButtonText(new Rect(inRect.center.x - btnWidth / 2, 60f, btnWidth, 35f), "MpConnectButton".Translate()))
+            if (Widgets.ButtonText(new Rect(inRect.center.x - btnWidth / 2, 60f, btnWidth, 35f),
+                "MpConnectButton".Translate()))
             {
                 string addr = MultiplayerMod.settings.serverAddress.Trim();
                 int port = MultiplayerServer.DefaultPort;
@@ -524,7 +538,7 @@ namespace Multiplayer.Client
                 Log.Message("Connecting directly");
                 try
                 {
-                    Find.WindowStack.Add(new ConnectingWindow(hostport[0], port) { returnToServerBrowser = true });
+                    Find.WindowStack.Add(new ConnectingWindow(hostport[0], port) {returnToServerBrowser = true});
                     MultiplayerMod.settings.Write();
                     Close(false);
                 }
@@ -538,7 +552,8 @@ namespace Multiplayer.Client
         private void DrawLan(Rect inRect)
         {
             Text.Anchor = TextAnchor.MiddleCenter;
-            Widgets.Label(new Rect(inRect.x, 8f, inRect.width, 40), "MpLanSearching".Translate() + MpUtil.FixedEllipsis());
+            Widgets.Label(new Rect(inRect.x, 8f, inRect.width, 40),
+                "MpLanSearching".Translate() + MpUtil.FixedEllipsis());
             Text.Anchor = TextAnchor.UpperLeft;
             inRect.yMin += 40f;
 
@@ -568,7 +583,8 @@ namespace Multiplayer.Client
                 {
                     Close(false);
                     Log.Message("Connecting to lan server");
-                    Find.WindowStack.Add(new ConnectingWindow(server.endpoint.Address.ToString(), server.endpoint.Port) { returnToServerBrowser = true });
+                    Find.WindowStack.Add(new ConnectingWindow(server.endpoint.Address.ToString(), server.endpoint.Port)
+                        {returnToServerBrowser = true});
                 }
 
                 Text.Anchor = TextAnchor.UpperLeft;
@@ -600,8 +616,6 @@ namespace Multiplayer.Client
             }
         }
 
-        private long lastFriendUpdate = 0;
-
         private void UpdateSteam()
         {
             if (Multiplayer.Clock.ElapsedMilliseconds - lastFriendUpdate < 2000) return;
@@ -626,17 +640,15 @@ namespace Multiplayer.Client
                 if (connectValue != null &&
                     connectValue.Contains(SteamIntegration.SteamConnectStart) &&
                     ulong.TryParse(connectValue.Substring(SteamIntegration.SteamConnectStart.Length), out ulong hostId))
-                {
-                    serverHost = (CSteamID)hostId;
-                }
+                    serverHost = (CSteamID) hostId;
 
-                friends.Add(new SteamPersona()
+                friends.Add(new SteamPersona
                 {
                     id = friend,
                     avatar = avatar,
                     username = username,
                     playingRimworld = playingRimworld,
-                    serverHost = serverHost,
+                    serverHost = serverHost
                 });
             }
 
@@ -665,20 +677,24 @@ namespace Multiplayer.Client
             LanServer server = servers.Find(s => s.endpoint.Equals(endpoint));
 
             if (server == null)
-            {
-                servers.Add(new LanServer()
+                servers.Add(new LanServer
                 {
                     endpoint = endpoint,
                     lastUpdate = Multiplayer.Clock.ElapsedMilliseconds
                 });
-            }
             else
-            {
                 server.lastUpdate = Multiplayer.Clock.ElapsedMilliseconds;
-            }
         }
 
-        class LanServer
+        private enum Tabs
+        {
+            Lan,
+            Direct,
+            Steam,
+            Host
+        }
+
+        private class LanServer
         {
             public IPEndPoint endpoint;
             public long lastUpdate;
@@ -687,29 +703,36 @@ namespace Multiplayer.Client
 
     public class SteamPersona
     {
-        public CSteamID id;
-        public string username;
         public int avatar;
+        public CSteamID id;
 
         public bool playingRimworld;
         public CSteamID serverHost = CSteamID.Nil;
+        public string username;
     }
 
     public class SaveFile
     {
         public string displayName;
-        public bool replay;
-        public int replaySections;
         public FileInfo file;
 
         public string gameName;
-
-        public string rwVersion;
-        public string[] modNames = new string[0];
-        public string[] modIds = new string[0];
         public int[] modAssemblyHashes = new int[0];
+        public string[] modIds = new string[0];
+        public string[] modNames = new string[0];
 
         public int protocol;
+        public bool replay;
+        public int replaySections;
+
+        public string rwVersion;
+
+        public SaveFile(string displayName, bool replay, FileInfo file)
+        {
+            this.displayName = displayName;
+            this.replay = replay;
+            this.file = file;
+        }
 
         public Color VersionColor
         {
@@ -718,7 +741,8 @@ namespace Multiplayer.Client
                 if (rwVersion == null)
                     return Color.red;
 
-                if (VersionControl.MajorFromVersionString(rwVersion) == VersionControl.CurrentMajor && VersionControl.MinorFromVersionString(rwVersion) == VersionControl.CurrentMinor)
+                if (VersionControl.MajorFromVersionString(rwVersion) == VersionControl.CurrentMajor &&
+                    VersionControl.MinorFromVersionString(rwVersion) == VersionControl.CurrentMinor)
                     return new Color(0.6f, 0.6f, 0.6f);
 
                 if (BackCompatibility.IsSaveCompatibleWith(rwVersion))
@@ -727,13 +751,5 @@ namespace Multiplayer.Client
                 return Color.red;
             }
         }
-
-        public SaveFile(string displayName, bool replay, FileInfo file)
-        {
-            this.displayName = displayName;
-            this.replay = replay;
-            this.file = file;
-        }
     }
-
 }

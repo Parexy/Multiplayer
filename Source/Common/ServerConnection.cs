@@ -1,63 +1,67 @@
-﻿using System;
+﻿#region
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+
+#endregion
 
 namespace Multiplayer.Common
 {
     public class ServerJoiningState : MpConnectionState
     {
-        public static Regex UsernamePattern = new Regex(@"^[a-zA-Z0-9_]+$");
+        public static readonly Regex UsernamePattern = new Regex(@"^[a-zA-Z0-9_]+$");
 
         public ServerJoiningState(IConnection conn) : base(conn)
         {
         }
 
-        [PacketHandler(Packets.Client_Protocol)]
+        [PacketHandler(Packets.ClientProtocol)]
         public void HandleProtocol(ByteReader data)
         {
             int clientProtocol = data.ReadInt32();
             if (clientProtocol != MpVersion.Protocol)
             {
-                Player.Disconnect(MpDisconnectReason.Protocol, ByteWriter.GetBytes(MpVersion.Version, MpVersion.Protocol));
+                Player.Disconnect(MpDisconnectReason.Protocol,
+                    ByteWriter.GetBytes(MpVersion.Version, MpVersion.Protocol));
                 return;
             }
 
-            connection.Send(Packets.Server_ModList, Server.rwVersion, Server.modNames);
+            connection.Send(Packets.ServerModList, Server.rwVersion, Server.modNames);
         }
 
-        [PacketHandler(Packets.Client_Defs)]
+        [PacketHandler(Packets.ClientDefs)]
         public void HandleDefs(ByteReader data)
         {
-            var count = data.ReadInt32();
+            int count = data.ReadInt32();
             if (count > 512)
             {
                 Player.Disconnect(MpDisconnectReason.Generic);
                 return;
             }
 
-            var response = new ByteWriter();
-            var disconnect = false;
+            ByteWriter response = new ByteWriter();
+            bool disconnect = false;
 
             for (int i = 0; i < count; i++)
             {
-                var defType = data.ReadString(128);
-                var defCount = data.ReadInt32();
-                var defHash = data.ReadInt32();
+                string defType = data.ReadString(128);
+                int defCount = data.ReadInt32();
+                int defHash = data.ReadInt32();
 
-                var status = DefCheckStatus.OK;
+                DefCheckStatus status = DefCheckStatus.Ok;
 
                 if (!Server.defInfos.TryGetValue(defType, out DefInfo info))
-                    status = DefCheckStatus.Not_Found;
+                    status = DefCheckStatus.NotFound;
                 else if (info.count != defCount)
-                    status = DefCheckStatus.Count_Diff;
+                    status = DefCheckStatus.CountDiff;
                 else if (info.hash != defHash)
-                    status = DefCheckStatus.Hash_Diff;
+                    status = DefCheckStatus.HashDiff;
 
-                if (status != DefCheckStatus.OK)
+                if (status != DefCheckStatus.Ok)
                     disconnect = true;
 
-                response.WriteByte((byte)status);
+                response.WriteByte((byte) status);
             }
 
             if (disconnect)
@@ -66,10 +70,10 @@ namespace Multiplayer.Common
                 return;
             }
 
-            connection.Send(Packets.Server_DefsOK, Server.settings.gameName, Player.id);
+            connection.Send(Packets.ServerDefsOk, Server.settings.gameName, Player.id);
         }
 
-        [PacketHandler(Packets.Client_Username)]
+        [PacketHandler(Packets.ClientUsername)]
         public void HandleClientUsername(ByteReader data)
         {
             if (connection.username != null && connection.username.Length != 0)
@@ -100,11 +104,11 @@ namespace Multiplayer.Common
             Server.SendNotification("MpPlayerConnected", Player.Username);
             Server.SendChat($"{Player.Username} has joined.");
 
-            var writer = new ByteWriter();
-            writer.WriteByte((byte)PlayerListAction.Add);
+            ByteWriter writer = new ByteWriter();
+            writer.WriteByte((byte) PlayerListAction.Add);
             writer.WriteRaw(Player.SerializePlayerInfo());
 
-            Server.SendToAll(Packets.Server_PlayerList, writer.ToArray());
+            Server.SendToAll(Packets.ServerPlayerList, writer.ToArray());
 
             SendWorldData();
         }
@@ -126,7 +130,8 @@ namespace Multiplayer.Common
             if (Server.PlayingPlayers.Count(p => p.FactionId == factionId) == 1)
             {
                 byte[] extra = ByteWriter.GetBytes(factionId);
-                MultiplayerServer.instance.SendCommand(CommandType.FactionOnline, ScheduledCommand.NoFaction, ScheduledCommand.Global, extra);
+                MultiplayerServer.instance.SendCommand(CommandType.FactionOnline, ScheduledCommand.NoFaction,
+                    ScheduledCommand.Global, extra);
             }
 
             ByteWriter writer = new ByteWriter();
@@ -137,7 +142,7 @@ namespace Multiplayer.Common
 
             writer.WriteInt32(MultiplayerServer.instance.mapCmds.Count);
 
-            foreach (var kv in MultiplayerServer.instance.mapCmds)
+            foreach (KeyValuePair<int, List<byte[]>> kv in MultiplayerServer.instance.mapCmds)
             {
                 int mapId = kv.Key;
 
@@ -148,13 +153,13 @@ namespace Multiplayer.Common
                 writer.WriteInt32(mapId);
 
                 writer.WriteInt32(mapCmds.Count);
-                foreach (var arr in mapCmds)
+                foreach (byte[] arr in mapCmds)
                     writer.WritePrefixedBytes(arr);
             }
 
             writer.WriteInt32(MultiplayerServer.instance.mapData.Count);
 
-            foreach (var kv in MultiplayerServer.instance.mapData)
+            foreach (KeyValuePair<int, byte[]> kv in MultiplayerServer.instance.mapData)
             {
                 int mapId = kv.Key;
                 byte[] mapData = kv.Value;
@@ -166,7 +171,7 @@ namespace Multiplayer.Common
             connection.State = ConnectionStateEnum.ServerPlaying;
 
             byte[] packetData = writer.ToArray();
-            connection.SendFragmented(Packets.Server_WorldData, packetData);
+            connection.SendFragmented(Packets.ServerWorldData, packetData);
 
             Player.SendPlayerList();
 
@@ -176,34 +181,36 @@ namespace Multiplayer.Common
 
     public enum DefCheckStatus : byte
     {
-        OK,
-        Not_Found,
-        Count_Diff,
-        Hash_Diff,
+        Ok,
+        NotFound,
+        CountDiff,
+        HashDiff
     }
 
     public class ServerPlayingState : MpConnectionState
     {
+        public const int MaxChatMsgLength = 128;
+
         public ServerPlayingState(IConnection conn) : base(conn)
         {
         }
 
-        [PacketHandler(Packets.Client_WorldReady)]
+        [PacketHandler(Packets.ClientWorldReady)]
         public void HandleWorldReady(ByteReader data)
         {
             Player.UpdateStatus(PlayerStatus.Playing);
         }
 
-        [PacketHandler(Packets.Client_Desynced)]
+        [PacketHandler(Packets.ClientDesynced)]
         public void HandleDesynced(ByteReader data)
         {
             Player.UpdateStatus(PlayerStatus.Desynced);
         }
 
-        [PacketHandler(Packets.Client_Command)]
+        [PacketHandler(Packets.ClientCommand)]
         public void HandleClientCommand(ByteReader data)
         {
-            CommandType cmd = (CommandType)data.ReadInt32();
+            CommandType cmd = (CommandType) data.ReadInt32();
             int mapId = data.ReadInt32();
             byte[] extra = data.ReadPrefixedBytes(32767);
 
@@ -213,9 +220,7 @@ namespace Multiplayer.Common
             MultiplayerServer.instance.SendCommand(cmd, factionId, mapId, extra, Player);
         }
 
-        public const int MaxChatMsgLength = 128;
-
-        [PacketHandler(Packets.Client_Chat)]
+        [PacketHandler(Packets.ClientChat)]
         public void HandleChat(ByteReader data)
         {
             string msg = data.ReadString();
@@ -226,9 +231,9 @@ namespace Multiplayer.Common
 
             if (msg[0] == '/')
             {
-                var cmd = msg.Substring(1);
-                var parts = cmd.Split(' ');
-                var handler = Server.GetCmdHandler(parts[0]);
+                string cmd = msg.Substring(1);
+                string[] parts = cmd.Split(' ');
+                ChatCmdHandler handler = Server.GetCmdHandler(parts[0]);
 
                 if (handler != null)
                 {
@@ -248,11 +253,11 @@ namespace Multiplayer.Common
             }
         }
 
-        [PacketHandler(Packets.Client_AutosavedData)]
+        [PacketHandler(Packets.ClientAutosavedData)]
         [IsFragmented]
         public void HandleAutosavedData(ByteReader data)
         {
-            var arbiter = Server.ArbiterPlaying;
+            bool arbiter = Server.ArbiterPlaying;
             if (arbiter && !Player.IsArbiter) return;
             if (!arbiter && Player.Username != Server.hostUsername) return;
 
@@ -272,12 +277,12 @@ namespace Multiplayer.Common
             }
         }
 
-        [PacketHandler(Packets.Client_Cursor)]
+        [PacketHandler(Packets.ClientCursor)]
         public void HandleCursor(ByteReader data)
         {
             if (Player.lastCursorTick == Server.netTimer) return;
 
-            var writer = new ByteWriter();
+            ByteWriter writer = new ByteWriter();
 
             byte seq = data.ReadByte();
             byte map = data.ReadByte();
@@ -308,25 +313,25 @@ namespace Multiplayer.Common
 
             Player.lastCursorTick = Server.netTimer;
 
-            Server.SendToAll(Packets.Server_Cursor, writer.ToArray(), reliable: false, excluding: Player);
+            Server.SendToAll(Packets.ServerCursor, writer.ToArray(), false, Player);
         }
 
-        [PacketHandler(Packets.Client_Selected)]
+        [PacketHandler(Packets.ClientSelected)]
         public void HandleSelected(ByteReader data)
         {
             bool reset = data.ReadBool();
 
-            var writer = new ByteWriter();
+            ByteWriter writer = new ByteWriter();
 
             writer.WriteInt32(Player.id);
             writer.WriteBool(reset);
             writer.WritePrefixedInts(data.ReadPrefixedInts(100));
             writer.WritePrefixedInts(data.ReadPrefixedInts(100));
 
-            Server.SendToAll(Packets.Server_Selected, writer.ToArray(), excluding: Player);
+            Server.SendToAll(Packets.ServerSelected, writer.ToArray(), excluding: Player);
         }
 
-        [PacketHandler(Packets.Client_IdBlockRequest)]
+        [PacketHandler(Packets.ClientIdBlockRequest)]
         public void HandleIdBlockRequest(ByteReader data)
         {
             int mapId = data.ReadInt32();
@@ -336,13 +341,9 @@ namespace Multiplayer.Common
                 //IdBlock nextBlock = MultiplayerServer.instance.NextIdBlock();
                 //MultiplayerServer.instance.SendCommand(CommandType.GlobalIdBlock, ScheduledCommand.NoFaction, ScheduledCommand.Global, nextBlock.Serialize());
             }
-            else
-            {
-                // todo
-            }
         }
 
-        [PacketHandler(Packets.Client_KeepAlive)]
+        [PacketHandler(Packets.ClientKeepAlive)]
         public void HandleClientKeepAlive(ByteReader data)
         {
             int id = data.ReadInt32();
@@ -354,25 +355,25 @@ namespace Multiplayer.Common
             if (connection is MpNetConnection) return;
 
             if (MultiplayerServer.instance.keepAliveId == id)
-                connection.Latency = (int)MultiplayerServer.instance.lastKeepAlive.ElapsedMilliseconds / 2;
+                connection.Latency = (int) MultiplayerServer.instance.lastKeepAlive.ElapsedMilliseconds / 2;
             else
                 connection.Latency = 2000;
         }
 
-        [PacketHandler(Packets.Client_SyncInfo)]
+        [PacketHandler(Packets.ClientSyncInfo)]
         [IsFragmented]
         public void HandleDesyncCheck(ByteReader data)
         {
-            var arbiter = Server.ArbiterPlaying;
+            bool arbiter = Server.ArbiterPlaying;
             if (arbiter && !Player.IsArbiter) return;
             if (!arbiter && Player.Username != Server.hostUsername) return;
 
-            var raw = data.ReadRaw(data.Left);
-            foreach (var p in Server.PlayingPlayers.Where(p => !p.IsArbiter))
-                p.conn.SendFragmented(Packets.Server_SyncInfo, raw);
+            byte[] raw = data.ReadRaw(data.Left);
+            foreach (ServerPlayer p in Server.PlayingPlayers.Where(p => !p.IsArbiter))
+                p.conn.SendFragmented(Packets.ServerSyncInfo, raw);
         }
 
-        [PacketHandler(Packets.Client_Pause)]
+        [PacketHandler(Packets.ClientPause)]
         public void HandlePause(ByteReader data)
         {
             bool pause = data.ReadBool();
@@ -380,15 +381,16 @@ namespace Multiplayer.Common
             if (Server.paused == pause) return;
 
             Server.paused = pause;
-            Server.SendToAll(Packets.Server_Pause, new object[] { pause });
+            Server.SendToAll(Packets.ServerPause, new object[] {pause});
         }
 
-        [PacketHandler(Packets.Client_Debug)]
+        [PacketHandler(Packets.ClientDebug)]
         public void HandleDebug(ByteReader data)
         {
             if (!MpVersion.IsDebug) return;
 
-            Server.PlayingPlayers.FirstOrDefault(p => p.IsArbiter)?.SendPacket(Packets.Server_Debug, data.ReadRaw(data.Left));
+            Server.PlayingPlayers.FirstOrDefault(p => p.IsArbiter)
+                ?.SendPacket(Packets.ServerDebug, data.ReadRaw(data.Left));
         }
     }
 
@@ -408,11 +410,11 @@ namespace Multiplayer.Common
         {
         }
 
-        [PacketHandler(Packets.Client_SteamRequest)]
+        [PacketHandler(Packets.ClientSteamRequest)]
         public void HandleSteamRequest(ByteReader data)
         {
             connection.State = ConnectionStateEnum.ServerJoining;
-            connection.Send(Packets.Server_SteamAccept);
+            connection.Send(Packets.ServerSteamAccept);
         }
     }
 }

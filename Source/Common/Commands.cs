@@ -1,4 +1,8 @@
-﻿using System;
+﻿#region
+
+using System;
+
+#endregion
 
 namespace Multiplayer.Common
 {
@@ -22,19 +26,19 @@ namespace Multiplayer.Common
         MapIdBlock,
         Forbid,
         Designator,
-        SpawnPawn,
+        SpawnPawn
     }
 
     public class ScheduledCommand
     {
         public const int NoFaction = -1;
         public const int Global = -1;
-
-        public readonly CommandType type;
-        public readonly int ticks;
+        public readonly byte[] data;
         public readonly int factionId;
         public readonly int mapId;
-        public readonly byte[] data;
+        public readonly int ticks;
+
+        public readonly CommandType type;
 
         // Client only, not serialized
         public bool issuedBySelf;
@@ -62,7 +66,7 @@ namespace Multiplayer.Common
 
         public static ScheduledCommand Deserialize(ByteReader data)
         {
-            CommandType cmd = (CommandType)data.ReadInt32();
+            CommandType cmd = (CommandType) data.ReadInt32();
             int ticks = data.ReadInt32();
             int factionId = data.ReadInt32();
             int mapId = data.ReadInt32();

@@ -1,18 +1,18 @@
-﻿using Harmony;
-using Multiplayer.Common;
-using RimWorld;
-using RimWorld.Planet;
-using System;
+﻿#region
+
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
+using Harmony;
+using RimWorld;
+using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 using Verse.AI;
 using Verse.AI.Group;
+
+#endregion
 
 namespace Multiplayer.Client
 {
@@ -21,7 +21,17 @@ namespace Multiplayer.Client
         public static TradingWindow drawingTrade;
         public static bool cancelPressed;
 
-        public override Vector2 InitialSize => new Vector2(1024f, UI.screenHeight);
+        private static readonly List<TabRecord> tabs = new List<TabRecord>();
+
+        private static readonly HashSet<Tradeable> newTradeables = new HashSet<Tradeable>();
+        private static readonly HashSet<Tradeable> oldTradeables = new HashSet<Tradeable>();
+
+        public Dictionary<Tradeable, float> added = new Dictionary<Tradeable, float>();
+        private Dialog_Trade dialog;
+        public Dictionary<Tradeable, float> removed = new Dictionary<Tradeable, float>();
+        private int selectedSession = -1;
+
+        public int selectedTab = -1;
 
         public TradingWindow()
         {
@@ -30,11 +40,7 @@ namespace Multiplayer.Client
             absorbInputAroundWindow = true;
         }
 
-        public int selectedTab = -1;
-        private int selectedSession = -1;
-        private Dialog_Trade dialog;
-
-        private static List<TabRecord> tabs = new List<TabRecord>();
+        public override Vector2 InitialSize => new Vector2(1024f, UI.screenHeight);
 
         public override void DoWindowContents(Rect inRect)
         {
@@ -42,7 +48,7 @@ namespace Multiplayer.Client
             removed.RemoveAll(kv => Time.time - kv.Value > 0.5f && RemoveCachedTradeable(kv.Key));
 
             tabs.Clear();
-            var trading = Multiplayer.WorldComp.trading;
+            List<MpTradeSession> trading = Multiplayer.WorldComp.trading;
             for (int i = 0; i < trading.Count; i++)
             {
                 int j = i;
@@ -64,7 +70,7 @@ namespace Multiplayer.Client
 
             inRect.yMin += 10f;
 
-            var session = Multiplayer.WorldComp.trading[selectedTab];
+            MpTradeSession session = Multiplayer.WorldComp.trading[selectedTab];
             if (session.sessionId != selectedSession)
             {
                 RecreateDialog();
@@ -106,11 +112,13 @@ namespace Multiplayer.Client
                 {
                     float num = inRect.width - 590f;
                     Rect position = new Rect(inRect.x + num, inRect.y, inRect.width - num, 58f);
-                    Rect traderNameRect = new Rect(position.x + position.width / 2f, position.y, position.width / 2f - 1f, position.height);
+                    Rect traderNameRect = new Rect(position.x + position.width / 2f, position.y,
+                        position.width / 2f - 1f, position.height);
                     Rect traderTimeRect = traderNameRect.Up(traderNameRect.height - 5f);
 
                     Text.Anchor = TextAnchor.LowerRight;
-                    Widgets.Label(traderTimeRect, "MpTraderLeavesIn".Translate(traderLeavingIn?.ToStringTicksToPeriod()));
+                    Widgets.Label(traderTimeRect,
+                        "MpTraderLeavesIn".Translate(traderLeavingIn?.ToStringTicksToPeriod()));
                     Text.Anchor = TextAnchor.UpperLeft;
                 }
 
@@ -136,10 +144,11 @@ namespace Multiplayer.Client
 
                 if (lord.LordJob is LordJob_VisitColony || lord.LordJob is LordJob_TradeWithColony)
                 {
-                    Transition transition = lord.graph.transitions.FirstOrDefault(t => t.preActions.Any(a => a is TransitionAction_CheckGiveGift));
+                    Transition transition = lord.graph.transitions.FirstOrDefault(t =>
+                        t.preActions.Any(a => a is TransitionAction_CheckGiveGift));
                     if (transition == null) return null;
 
-                    var trigger = transition.triggers.OfType<Trigger_TicksPassed>().FirstOrDefault();
+                    Trigger_TicksPassed trigger = transition.triggers.OfType<Trigger_TicksPassed>().FirstOrDefault();
                     return trigger?.TicksLeft;
                 }
             }
@@ -155,13 +164,14 @@ namespace Multiplayer.Client
         {
             base.PostClose();
 
-            if (selectedTab >= 0 && Multiplayer.WorldComp.trading.ElementAtOrDefault(selectedTab)?.playerNegotiator.Map == Find.CurrentMap)
+            if (selectedTab >= 0 &&
+                Multiplayer.WorldComp.trading.ElementAtOrDefault(selectedTab)?.playerNegotiator.Map == Find.CurrentMap)
                 Find.World.renderer.wantedMode = WorldRenderMode.Planet;
         }
 
         private void RecreateDialog()
         {
-            var session = Multiplayer.WorldComp.trading[selectedTab];
+            MpTradeSession session = Multiplayer.WorldComp.trading[selectedTab];
 
             CancelDialogTradeCtor.cancel = true;
             MpTradeSession.SetTradeSession(session);
@@ -195,22 +205,16 @@ namespace Multiplayer.Client
         }
 
         [SyncMethod]
-        static void CancelTradeSession(MpTradeSession session)
+        private static void CancelTradeSession(MpTradeSession session)
         {
             Multiplayer.WorldComp.RemoveTradeSession(session);
         }
-
-        public Dictionary<Tradeable, float> added = new Dictionary<Tradeable, float>();
-        public Dictionary<Tradeable, float> removed = new Dictionary<Tradeable, float>();
 
         private bool RemoveCachedTradeable(Tradeable t)
         {
             dialog?.cachedTradeables.Remove(t);
             return true;
         }
-
-        private static HashSet<Tradeable> newTradeables = new HashSet<Tradeable>();
-        private static HashSet<Tradeable> oldTradeables = new HashSet<Tradeable>();
 
         private void BeforeCache()
         {
@@ -232,26 +236,22 @@ namespace Multiplayer.Client
         public static IEnumerable<Tradeable> AllTradeables()
         {
             foreach (Tradeable t in TradeSession.deal.AllTradeables)
-            {
                 if (!TradeSession.giftMode || t.FirstThingColony != null)
                     yield return t;
-            }
 
             if (drawingTrade != null)
-            {
-                foreach (var kv in drawingTrade.removed)
+                foreach (KeyValuePair<Tradeable, float> kv in drawingTrade.removed)
                     if (!TradeSession.giftMode || kv.Key.FirstThingColony != null)
                         yield return kv.Key;
-            }
         }
     }
 
     [MpPatch(typeof(JobDriver_TradeWithPawn), "<MakeNewToils>c__Iterator0+<MakeNewToils>c__AnonStorey1", "<>m__1")]
-    static class ShowTradingWindow
+    internal static class ShowTradingWindow
     {
         public static int tradeJobStartedByMe = -1;
 
-        static void Prefix(Toil ___trade)
+        private static void Prefix(Toil ___trade)
         {
             if (___trade.actor.CurJob.loadID == tradeJobStartedByMe)
             {
@@ -261,10 +261,11 @@ namespace Multiplayer.Client
         }
     }
 
-    [HarmonyPatch(typeof(Widgets), nameof(Widgets.ButtonText), new[] { typeof(Rect), typeof(string), typeof(bool), typeof(bool), typeof(bool) })]
-    static class MakeCancelTradeButtonRed
+    [HarmonyPatch(typeof(Widgets), nameof(Widgets.ButtonText), typeof(Rect), typeof(string), typeof(bool), typeof(bool),
+        typeof(bool))]
+    internal static class MakeCancelTradeButtonRed
     {
-        static void Prefix(string label, ref bool __state)
+        private static void Prefix(string label, ref bool __state)
         {
             if (TradingWindow.drawingTrade == null) return;
             if (label != "CancelButton".Translate()) return;
@@ -273,7 +274,7 @@ namespace Multiplayer.Client
             __state = true;
         }
 
-        static void Postfix(bool __state)
+        private static void Postfix(bool __state)
         {
             if (__state)
                 GUI.color = Color.white;
@@ -281,9 +282,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Dialog_Trade), nameof(Dialog_Trade.Close))]
-    static class HandleCancelTrade
+    internal static class HandleCancelTrade
     {
-        static void Prefix()
+        private static void Prefix()
         {
             if (TradingWindow.drawingTrade != null)
                 TradingWindow.cancelPressed = true;
@@ -291,9 +292,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(TradeDeal), nameof(TradeDeal.TryExecute))]
-    static class TradeDealExecutePatch
+    internal static class TradeDealExecutePatch
     {
-        static bool Prefix(TradeDeal __instance)
+        private static bool Prefix(TradeDeal __instance)
         {
             if (TradingWindow.drawingTrade != null)
             {
@@ -306,9 +307,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(TradeDeal), nameof(TradeDeal.Reset))]
-    static class TradeDealResetPatch
+    internal static class TradeDealResetPatch
     {
-        static bool Prefix(TradeDeal __instance)
+        private static bool Prefix(TradeDeal __instance)
         {
             if (TradingWindow.drawingTrade != null)
             {
@@ -321,9 +322,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(TradeUI), nameof(TradeUI.DrawTradeableRow))]
-    static class TradeableDrawPatch
+    internal static class TradeableDrawPatch
     {
-        static void Prefix(Tradeable trad, Rect rect)
+        private static void Prefix(Tradeable trad, Rect rect)
         {
             if (TradingWindow.drawingTrade != null)
             {
@@ -342,23 +343,27 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Dialog_Trade), nameof(Dialog_Trade.DoWindowContents))]
-    static class HandleToggleGiftMode
+    internal static class HandleToggleGiftMode
     {
-        static FieldInfo TradeModeIcon = AccessTools.Field(typeof(Dialog_Trade), nameof(Dialog_Trade.TradeModeIcon));
-        static FieldInfo GiftModeIcon = AccessTools.Field(typeof(Dialog_Trade), nameof(Dialog_Trade.GiftModeIcon));
+        private static readonly FieldInfo TradeModeIcon =
+            AccessTools.Field(typeof(Dialog_Trade), nameof(Dialog_Trade.TradeModeIcon));
 
-        static MethodInfo ButtonImageWithBG = AccessTools.Method(typeof(Widgets), nameof(Widgets.ButtonImageWithBG));
-        static MethodInfo ToggleGiftModeMethod = AccessTools.Method(typeof(HandleToggleGiftMode), nameof(ToggleGiftMode));
+        private static readonly FieldInfo GiftModeIcon =
+            AccessTools.Field(typeof(Dialog_Trade), nameof(Dialog_Trade.GiftModeIcon));
 
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> e, MethodBase original)
+        private static readonly MethodInfo ButtonImageWithBG =
+            AccessTools.Method(typeof(Widgets), nameof(Widgets.ButtonImageWithBG));
+
+        private static readonly MethodInfo ToggleGiftModeMethod =
+            AccessTools.Method(typeof(HandleToggleGiftMode), nameof(ToggleGiftMode));
+
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> e, MethodBase original)
         {
             List<CodeInstruction> insts = new List<CodeInstruction>(e);
             CodeFinder finder = new CodeFinder(original, insts);
 
-            int tradeMode = finder.
-                Start().
-                Forward(OpCodes.Ldsfld, TradeModeIcon).
-                Forward(OpCodes.Call, ButtonImageWithBG);
+            int tradeMode = finder.Start().Forward(OpCodes.Ldsfld, TradeModeIcon)
+                .Forward(OpCodes.Call, ButtonImageWithBG);
 
             insts.Insert(
                 tradeMode + 2,
@@ -366,10 +371,8 @@ namespace Multiplayer.Client
                 new CodeInstruction(OpCodes.Brtrue, insts[tradeMode + 1].operand)
             );
 
-            int giftMode = finder.
-                Start().
-                Forward(OpCodes.Ldsfld, GiftModeIcon).
-                Forward(OpCodes.Call, ButtonImageWithBG);
+            int giftMode = finder.Start().Forward(OpCodes.Ldsfld, GiftModeIcon)
+                .Forward(OpCodes.Call, ButtonImageWithBG);
 
             insts.Insert(
                 giftMode + 2,
@@ -381,7 +384,7 @@ namespace Multiplayer.Client
         }
 
         // Returns whether to jump
-        static bool ToggleGiftMode()
+        private static bool ToggleGiftMode()
         {
             if (TradingWindow.drawingTrade == null) return false;
             MpTradeSession.current.ToggleGiftMode();
@@ -390,9 +393,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Tradeable), nameof(Tradeable.CountHeldBy))]
-    static class DontShowTraderItemsInGiftMode
+    internal static class DontShowTraderItemsInGiftMode
     {
-        static void Postfix(Transactor trans, ref int __result)
+        private static void Postfix(Transactor trans, ref int __result)
         {
             if (TradingWindow.drawingTrade != null && TradeSession.giftMode && trans == Transactor.Trader)
                 __result = 0;
@@ -401,9 +404,9 @@ namespace Multiplayer.Client
 
     [MpPatch(typeof(Dialog_Trade), "<DoWindowContents>m__8")]
     [MpPatch(typeof(Dialog_Trade), "<DoWindowContents>m__9")]
-    static class FixTradeSorters
+    internal static class FixTradeSorters
     {
-        static void Prefix(ref bool __state)
+        private static void Prefix(ref bool __state)
         {
             TradingWindow trading = Find.WindowStack.WindowOfType<TradingWindow>();
             if (trading != null)
@@ -413,7 +416,7 @@ namespace Multiplayer.Client
             }
         }
 
-        static void Postfix(bool __state)
+        private static void Postfix(bool __state)
         {
             if (__state)
                 MpTradeSession.SetTradeSession(null);
@@ -421,30 +424,32 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Dialog_Trade), nameof(Dialog_Trade.CacheTradeables))]
-    static class CacheTradeablesPatch
+    internal static class CacheTradeablesPatch
     {
-        static void Postfix(Dialog_Trade __instance)
+        private static void Postfix(Dialog_Trade __instance)
         {
             if (TradeSession.giftMode)
                 __instance.cachedCurrencyTradeable = null;
         }
 
         // Replace TradeDeal.get_AllTradeables with TradingWindow.AllTradeables
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> e, MethodBase original)
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> e, MethodBase original)
         {
             List<CodeInstruction> insts = new List<CodeInstruction>(e);
             CodeFinder finder = new CodeFinder(original, insts);
 
             for (int i = 0; i < 2; i++)
             {
-                int getAllTradeables = finder.Forward(OpCodes.Callvirt, AccessTools.Method(typeof(TradeDeal), "get_AllTradeables"));
+                int getAllTradeables = finder.Forward(OpCodes.Callvirt,
+                    AccessTools.Method(typeof(TradeDeal), "get_AllTradeables"));
 
                 insts.RemoveRange(getAllTradeables - 1, 2);
-                insts.Insert(getAllTradeables - 1, new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(TradingWindow), nameof(TradingWindow.AllTradeables))));
+                insts.Insert(getAllTradeables - 1,
+                    new CodeInstruction(OpCodes.Call,
+                        AccessTools.Method(typeof(TradingWindow), nameof(TradingWindow.AllTradeables))));
             }
 
             return insts;
         }
     }
-
 }

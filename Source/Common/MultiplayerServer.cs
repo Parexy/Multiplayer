@@ -1,4 +1,5 @@
-﻿using LiteNetLib;
+﻿#region
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,68 +8,70 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using LiteNetLib;
+
+#endregion
 
 namespace Multiplayer.Common
 {
     public class MultiplayerServer
     {
+        public const int DefaultPort = 30502;
+
+        public static MultiplayerServer instance;
+
+        private readonly Dictionary<string, ChatCmdHandler> chatCmds = new Dictionary<string, ChatCmdHandler>();
+        private readonly NetManager lanManager;
+
+        private readonly NetManager netManager;
+        private NetManager arbiter;
+
+        public int coopFactionId;
+        public bool debugMode;
+        public HashSet<int> debugOnlySyncCmds = new HashSet<int>();
+        public Dictionary<string, DefInfo> defInfos;
+        public int gameTimer;
+        public HashSet<int> hostOnlySyncCmds = new HashSet<int>();
+
+        public string hostUsername;
+
+        public int keepAliveId;
+
+        private int lastAutosave;
+        public Stopwatch lastKeepAlive = Stopwatch.StartNew();
+
+        public Dictionary<int, List<byte[]>>
+            mapCmds = new Dictionary<int, List<byte[]>>(); // Map id to serialized cmds list
+
+        public Dictionary<int, byte[]> mapData = new Dictionary<int, byte[]>(); // Map id to compressed map data
+        public string[] modNames;
+
+        public int netTimer;
+
+        private int nextPlayerId;
+
+        public int nextUniqueId; // currently unused
+        public bool paused;
+
+        // todo remove entries
+        public Dictionary<string, int> playerFactions = new Dictionary<string, int>(); // Username to faction id
+
+        public List<ServerPlayer> players = new List<ServerPlayer>();
+        public ActionQueue queue = new ActionQueue();
+
+        public volatile bool running = true;
+
+        public string rwVersion;
+        public byte[] savedGame; // Compressed game save
+        public ServerSettings settings;
+        public Dictionary<int, List<byte[]>> tmpMapCmds;
+
         static MultiplayerServer()
         {
             MpConnectionState.SetImplementation(ConnectionStateEnum.ServerSteam, typeof(ServerSteamState));
             MpConnectionState.SetImplementation(ConnectionStateEnum.ServerJoining, typeof(ServerJoiningState));
             MpConnectionState.SetImplementation(ConnectionStateEnum.ServerPlaying, typeof(ServerPlayingState));
         }
-
-        public static MultiplayerServer instance;
-
-        public const int DefaultPort = 30502;
-
-        public int coopFactionId;
-        public byte[] savedGame; // Compressed game save
-        public Dictionary<int, byte[]> mapData = new Dictionary<int, byte[]>(); // Map id to compressed map data
-
-        public Dictionary<int, List<byte[]>> mapCmds = new Dictionary<int, List<byte[]>>(); // Map id to serialized cmds list
-        public Dictionary<int, List<byte[]>> tmpMapCmds;
-
-        // todo remove entries
-        public Dictionary<string, int> playerFactions = new Dictionary<string, int>(); // Username to faction id
-
-        public List<ServerPlayer> players = new List<ServerPlayer>();
-        public IEnumerable<ServerPlayer> PlayingPlayers => players.Where(p => p.IsPlaying);
-
-        public string hostUsername;
-        public int gameTimer;
-        public bool paused;
-        public ActionQueue queue = new ActionQueue();
-        public ServerSettings settings;
-        public bool debugMode;
-
-        public volatile bool running = true;
-
-        private Dictionary<string, ChatCmdHandler> chatCmds = new Dictionary<string, ChatCmdHandler>();
-        public HashSet<int> debugOnlySyncCmds = new HashSet<int>();
-        public HashSet<int> hostOnlySyncCmds = new HashSet<int>();
-
-        public int keepAliveId;
-        public Stopwatch lastKeepAlive = Stopwatch.StartNew();
-
-        private NetManager netManager;
-        private NetManager lanManager;
-        private NetManager arbiter;
-
-        public int nextUniqueId; // currently unused
-
-        public string rwVersion;
-        public string[] modNames;
-        public Dictionary<string, DefInfo> defInfos;
-
-        public int NetPort => netManager.LocalPort;
-        public int LanPort => lanManager.LocalPort;
-        public int ArbiterPort => arbiter.LocalPort;
-
-        public bool ArbiterPlaying => PlayingPlayers.Any(p => p.IsArbiter && p.status == PlayerStatus.Playing);
-
-        public event Action<MultiplayerServer> NetTick;
 
         public MultiplayerServer(ServerSettings settings)
         {
@@ -83,6 +86,16 @@ namespace Multiplayer.Common
             if (settings.lanAddress != null)
                 lanManager = new NetManager(new MpNetListener(this, false));
         }
+
+        public IEnumerable<ServerPlayer> PlayingPlayers => players.Where(p => p.IsPlaying);
+
+        public int NetPort => netManager.LocalPort;
+        public int LanPort => lanManager.LocalPort;
+        public int ArbiterPort => arbiter.LocalPort;
+
+        public bool ArbiterPlaying => PlayingPlayers.Any(p => p.IsArbiter && p.status == PlayerStatus.Playing);
+
+        public event Action<MultiplayerServer> NetTick;
 
         public bool? StartListeningNet()
         {
@@ -128,7 +141,7 @@ namespace Multiplayer.Common
 
         private void Stop()
         {
-            foreach (var player in players)
+            foreach (ServerPlayer player in players)
                 player.conn.Close(MpDisconnectReason.ServerClosed);
 
             netManager?.Stop();
@@ -137,8 +150,6 @@ namespace Multiplayer.Common
 
             instance = null;
         }
-
-        public int netTimer;
 
         public void TickNet()
         {
@@ -160,17 +171,15 @@ namespace Multiplayer.Common
                 SendLatencies();
 
                 keepAliveId++;
-                SendToAll(Packets.Server_KeepAlive, new object[] { keepAliveId });
+                SendToAll(Packets.ServerKeepAlive, new object[] {keepAliveId});
                 lastKeepAlive.Restart();
             }
         }
 
-        private int lastAutosave;
-
         public void Tick()
         {
             if (gameTimer % 3 == 0)
-                SendToAll(Packets.Server_TimeControl, new object[] { gameTimer });
+                SendToAll(Packets.ServerTimeControl, new object[] {gameTimer});
 
             gameTimer++;
 
@@ -185,17 +194,17 @@ namespace Multiplayer.Common
 
         private void SendLatencies()
         {
-            var writer = new ByteWriter();
-            writer.WriteByte((byte)PlayerListAction.Latencies);
+            ByteWriter writer = new ByteWriter();
+            writer.WriteByte((byte) PlayerListAction.Latencies);
 
             writer.WriteInt32(PlayingPlayers.Count());
-            foreach (var player in PlayingPlayers)
+            foreach (ServerPlayer player in PlayingPlayers)
             {
                 writer.WriteInt32(player.Latency);
                 writer.WriteInt32(player.ticksBehind);
             }
 
-            SendToAll(Packets.Server_PlayerList, writer.ToArray());
+            SendToAll(Packets.ServerPlayerList, writer.ToArray());
         }
 
         public bool DoAutosave()
@@ -215,8 +224,6 @@ namespace Multiplayer.Common
         {
             queue.Enqueue(action);
         }
-
-        private int nextPlayerId;
 
         public ServerPlayer OnConnected(IConnection conn)
         {
@@ -248,7 +255,7 @@ namespace Multiplayer.Common
                 SendNotification("MpPlayerDisconnected", conn.username);
                 SendChat($"{conn.username} has left.");
 
-                SendToAll(Packets.Server_PlayerList, new object[] { (byte)PlayerListAction.Remove, player.id });
+                SendToAll(Packets.ServerPlayerList, new object[] {(byte) PlayerListAction.Remove, player.id});
             }
 
             conn.State = ConnectionStateEnum.Disconnected;
@@ -287,7 +294,8 @@ namespace Multiplayer.Common
             return new IdBlock(blockStart, blockSize);
         }
 
-        public void SendCommand(CommandType cmd, int factionId, int mapId, byte[] data, ServerPlayer sourcePlayer = null)
+        public void SendCommand(CommandType cmd, int factionId, int mapId, byte[] data,
+            ServerPlayer sourcePlayer = null)
         {
             if (sourcePlayer != null)
             {
@@ -309,26 +317,24 @@ namespace Multiplayer.Common
             mapCmds.GetOrAddNew(mapId).Add(toSave);
             tmpMapCmds?.GetOrAddNew(mapId).Add(toSave);
 
-            byte[] toSend = toSave.Append(new byte[] { 0 });
-            byte[] toSendSource = toSave.Append(new byte[] { 1 });
+            byte[] toSend = toSave.Append(new byte[] {0});
+            byte[] toSendSource = toSave.Append(new byte[] {1});
 
-            foreach (var player in PlayingPlayers)
-            {
+            foreach (ServerPlayer player in PlayingPlayers)
                 player.conn.Send(
-                    Packets.Server_Command,
+                    Packets.ServerCommand,
                     sourcePlayer == player ? toSendSource : toSend
                 );
-            }
         }
 
         public void SendChat(string msg)
         {
-            SendToAll(Packets.Server_Chat, new[] { msg });
+            SendToAll(Packets.ServerChat, new[] {msg});
         }
 
         public void SendNotification(string key, params string[] args)
         {
-            SendToAll(Packets.Server_Notification, new object[] { key, args });
+            SendToAll(Packets.ServerNotification, new object[] {key, args});
         }
 
         public void RegisterChatCmd(string cmdName, ChatCmdHandler handler)
@@ -345,8 +351,8 @@ namespace Multiplayer.Common
 
     public class MpNetListener : INetEventListener
     {
-        private MultiplayerServer server;
-        private bool arbiter;
+        private readonly bool arbiter;
+        private readonly MultiplayerServer server;
 
         public MpNetListener(MultiplayerServer server, bool arbiter)
         {
@@ -356,7 +362,8 @@ namespace Multiplayer.Common
 
         public void OnConnectionRequest(ConnectionRequest req)
         {
-            if (!arbiter && server.settings.maxPlayers > 0 && server.players.Count(p => !p.IsArbiter) >= server.settings.maxPlayers)
+            if (!arbiter && server.settings.maxPlayers > 0 &&
+                server.players.Count(p => !p.IsArbiter) >= server.settings.maxPlayers)
             {
                 req.Reject(IConnection.GetDisconnectBytes(MpDisconnectReason.ServerFull));
                 return;
@@ -371,11 +378,8 @@ namespace Multiplayer.Common
             conn.State = ConnectionStateEnum.ServerJoining;
             peer.Tag = conn;
 
-            var player = server.OnConnected(conn);
-            if (arbiter)
-            {
-                player.type = PlayerType.Arbiter;
-            }
+            ServerPlayer player = server.OnConnected(conn);
+            if (arbiter) player.type = PlayerType.Arbiter;
         }
 
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
@@ -392,11 +396,18 @@ namespace Multiplayer.Common
         public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod method)
         {
             byte[] data = reader.GetRemainingBytes();
-            peer.GetConnection().serverPlayer.HandleReceive(new ByteReader(data), method == DeliveryMethod.ReliableOrdered);
+            peer.GetConnection().serverPlayer
+                .HandleReceive(new ByteReader(data), method == DeliveryMethod.ReliableOrdered);
         }
 
-        public void OnNetworkError(IPEndPoint endPoint, SocketError socketError) { }
-        public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType) { }
+        public void OnNetworkError(IPEndPoint endPoint, SocketError socketError)
+        {
+        }
+
+        public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader,
+            UnconnectedMessageType messageType)
+        {
+        }
     }
 
     public class DefInfo
@@ -408,14 +419,14 @@ namespace Multiplayer.Common
 
     public class ServerSettings
     {
-        public string gameName;
+        public bool arbiter;
+        public int autosaveInterval = 8;
         public string bindAddress;
         public int bindPort;
+        public string gameName;
         public string lanAddress;
         public int maxPlayers = 8;
-        public int autosaveInterval = 8;
         public bool steam;
-        public bool arbiter;
     }
 
     public struct ColorRGB
@@ -432,16 +443,22 @@ namespace Multiplayer.Common
 
     public class ServerPlayer
     {
-        public int id;
         public IConnection conn;
-        public PlayerType type;
+        public int id;
+
+        public int lastCursorTick = -1;
         public PlayerStatus status;
-        public int ticksBehind;
 
         public ulong steamId;
         public string steamPersonaName = "";
+        public int ticksBehind;
+        public PlayerType type;
 
-        public int lastCursorTick = -1;
+        public ServerPlayer(int id, IConnection connection)
+        {
+            this.id = id;
+            conn = connection;
+        }
 
         public string Username => conn.username;
         public int Latency => conn.Latency;
@@ -451,12 +468,6 @@ namespace Multiplayer.Common
         public bool IsArbiter => type == PlayerType.Arbiter;
 
         public MultiplayerServer Server => MultiplayerServer.instance;
-
-        public ServerPlayer(int id, IConnection connection)
-        {
-            this.id = id;
-            conn = connection;
-        }
 
         public void HandleReceive(ByteReader data, bool reliable)
         {
@@ -484,7 +495,7 @@ namespace Multiplayer.Common
 
         public void SendChat(string msg)
         {
-            SendPacket(Packets.Server_Chat, new[] { msg });
+            SendPacket(Packets.ServerChat, new[] {msg});
         }
 
         public void SendPacket(Packets packet, byte[] data, bool reliable = true)
@@ -499,26 +510,26 @@ namespace Multiplayer.Common
 
         public void SendPlayerList()
         {
-            var writer = new ByteWriter();
+            ByteWriter writer = new ByteWriter();
 
-            writer.WriteByte((byte)PlayerListAction.List);
+            writer.WriteByte((byte) PlayerListAction.List);
             writer.WriteInt32(Server.PlayingPlayers.Count());
 
-            foreach (var player in Server.PlayingPlayers)
+            foreach (ServerPlayer player in Server.PlayingPlayers)
                 writer.WriteRaw(player.SerializePlayerInfo());
 
-            conn.Send(Packets.Server_PlayerList, writer.ToArray());
+            conn.Send(Packets.ServerPlayerList, writer.ToArray());
         }
 
         public byte[] SerializePlayerInfo()
         {
-            var writer = new ByteWriter();
+            ByteWriter writer = new ByteWriter();
 
             writer.WriteInt32(id);
             writer.WriteString(Username);
             writer.WriteInt32(Latency);
-            writer.WriteByte((byte)type);
-            writer.WriteByte((byte)status);
+            writer.WriteByte((byte) type);
+            writer.WriteByte((byte) status);
             writer.WriteULong(steamId);
             writer.WriteString(steamPersonaName);
             writer.WriteInt32(ticksBehind);
@@ -530,7 +541,8 @@ namespace Multiplayer.Common
         {
             if (this.status == status) return;
             this.status = status;
-            Server.SendToAll(Packets.Server_PlayerList, new object[] { (byte)PlayerListAction.Status, id, (byte)status });
+            Server.SendToAll(Packets.ServerPlayerList,
+                new object[] {(byte) PlayerListAction.Status, id, (byte) status});
         }
     }
 
@@ -550,11 +562,11 @@ namespace Multiplayer.Common
 
     public class IdBlock
     {
-        public int blockStart;
         public int blockSize;
-        public int mapId = -1;
+        public int blockStart;
 
         public int current;
+        public int mapId = -1;
         public bool overflowHandled;
 
         public IdBlock(int blockStart, int blockSize, int mapId = -1)
@@ -592,8 +604,8 @@ namespace Multiplayer.Common
 
     public class ActionQueue
     {
-        private Queue<Action> queue = new Queue<Action>();
-        private Queue<Action> tempQueue = new Queue<Action>();
+        private readonly Queue<Action> queue = new Queue<Action>();
+        private readonly Queue<Action> tempQueue = new Queue<Action>();
 
         public void RunQueue()
         {
@@ -621,7 +633,9 @@ namespace Multiplayer.Common
         public void Enqueue(Action action)
         {
             lock (queue)
+            {
                 queue.Enqueue(action);
+            }
         }
     }
 }

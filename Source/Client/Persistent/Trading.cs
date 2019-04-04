@@ -1,31 +1,44 @@
-﻿using Harmony;
-using Multiplayer.Common;
-using RimWorld;
-using RimWorld.Planet;
-using System;
+﻿#region
+
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
-using UnityEngine;
+using Harmony;
+using RimWorld;
+using RimWorld.Planet;
 using Verse;
 using Verse.AI;
 using Verse.AI.Group;
+
+#endregion
 
 namespace Multiplayer.Client
 {
     public class MpTradeSession : IExposable, ISessionWithTransferables
     {
         public static MpTradeSession current;
+        public MpTradeDeal deal;
+        public bool giftMode;
+        public bool giftsOnly;
+        public Pawn playerNegotiator;
 
         public int sessionId;
         public ITrader trader;
-        public Pawn playerNegotiator;
-        public bool giftMode;
-        public MpTradeDeal deal;
-        public bool giftsOnly;
+
+        public MpTradeSession()
+        {
+        }
+
+        private MpTradeSession(ITrader trader, Pawn playerNegotiator, bool giftMode)
+        {
+            sessionId = Multiplayer.GlobalIdBlock.NextId();
+
+            this.trader = trader;
+            this.playerNegotiator = playerNegotiator;
+            this.giftMode = giftMode;
+            giftsOnly = giftMode;
+        }
 
         public string Label
         {
@@ -37,18 +50,40 @@ namespace Multiplayer.Client
             }
         }
 
+        public void ExposeData()
+        {
+            Scribe_Values.Look(ref sessionId, "sessionId");
+
+            ILoadReferenceable trader = (ILoadReferenceable) this.trader;
+            Scribe_References.Look(ref trader, "trader");
+            this.trader = (ITrader) trader;
+
+            Scribe_References.Look(ref playerNegotiator, "playerNegotiator");
+            Scribe_Values.Look(ref giftMode, "giftMode");
+            Scribe_Values.Look(ref giftsOnly, "giftsOnly");
+
+            Scribe_Deep.Look(ref deal, "tradeDeal", this);
+        }
+
         public int SessionId => sessionId;
 
-        public MpTradeSession() { }
-
-        private MpTradeSession(ITrader trader, Pawn playerNegotiator, bool giftMode)
+        public Transferable GetTransferableByThingId(int thingId)
         {
-            sessionId = Multiplayer.GlobalIdBlock.NextId();
+            for (int i = 0; i < deal.tradeables.Count; i++)
+            {
+                Tradeable tr = deal.tradeables[i];
+                if (tr.FirstThingColony?.thingIDNumber == thingId)
+                    return tr;
+                if (tr.FirstThingTrader?.thingIDNumber == thingId)
+                    return tr;
+            }
 
-            this.trader = trader;
-            this.playerNegotiator = playerNegotiator;
-            this.giftMode = giftMode;
-            giftsOnly = giftMode;
+            return null;
+        }
+
+        public void Notify_CountChanged(Transferable tr)
+        {
+            deal.caravanDirty = true;
         }
 
         public static void TryCreate(ITrader trader, Pawn playerNegotiator, bool giftMode)
@@ -107,7 +142,7 @@ namespace Multiplayer.Client
 
             if (trader is SettlementBase traderBase)
             {
-                var caravan = playerNegotiator.GetCaravan();
+                Caravan caravan = playerNegotiator.GetCaravan();
                 if (caravan == null)
                     return true;
 
@@ -159,62 +194,34 @@ namespace Multiplayer.Client
             TradeSession.giftMode = session?.giftMode ?? false;
             TradeSession.deal = session?.deal;
         }
-
-        public void ExposeData()
-        {
-            Scribe_Values.Look(ref sessionId, "sessionId");
-
-            ILoadReferenceable trader = (ILoadReferenceable)this.trader;
-            Scribe_References.Look(ref trader, "trader");
-            this.trader = (ITrader)trader;
-
-            Scribe_References.Look(ref playerNegotiator, "playerNegotiator");
-            Scribe_Values.Look(ref giftMode, "giftMode");
-            Scribe_Values.Look(ref giftsOnly, "giftsOnly");
-
-            Scribe_Deep.Look(ref deal, "tradeDeal", this);
-        }
-
-        public Transferable GetTransferableByThingId(int thingId)
-        {
-            for (int i = 0; i < deal.tradeables.Count; i++)
-            {
-                Tradeable tr = deal.tradeables[i];
-                if (tr.FirstThingColony?.thingIDNumber == thingId)
-                    return tr;
-                if (tr.FirstThingTrader?.thingIDNumber == thingId)
-                    return tr;
-            }
-
-            return null;
-        }
-
-        public void Notify_CountChanged(Transferable tr)
-        {
-            deal.caravanDirty = true;
-        }
     }
 
     public class MpTradeDeal : TradeDeal, IExposable
     {
-        public MpTradeSession session;
-
-        private static HashSet<Thing> newThings = new HashSet<Thing>();
-        private static HashSet<Thing> oldThings = new HashSet<Thing>();
-
-        public UIShouldReset uiShouldReset;
-
-        public HashSet<Thing> recacheThings = new HashSet<Thing>();
-        public bool recacheColony;
-        public bool recacheTrader;
-        public bool ShouldRecache => recacheColony || recacheTrader || recacheThings.Count > 0;
+        private static readonly HashSet<Thing> newThings = new HashSet<Thing>();
+        private static readonly HashSet<Thing> oldThings = new HashSet<Thing>();
         public bool caravanDirty;
 
         public Thing permanentSilver;
+        public bool recacheColony;
+
+        public HashSet<Thing> recacheThings = new HashSet<Thing>();
+        public bool recacheTrader;
+        public MpTradeSession session;
+
+        public UIShouldReset uiShouldReset;
 
         public MpTradeDeal(MpTradeSession session)
         {
             this.session = session;
+        }
+
+        public bool ShouldRecache => recacheColony || recacheTrader || recacheThings.Count > 0;
+
+        public void ExposeData()
+        {
+            Scribe_Deep.Look(ref permanentSilver, "permanentSilver");
+            Scribe_Collections.Look(ref tradeables, "tradeables", LookMode.Deep);
         }
 
         public void Recache()
@@ -328,7 +335,9 @@ namespace Multiplayer.Client
             for (int j = things.Count - 1; j >= 1; j--)
             {
                 Thing thing = things[j];
-                TransferAsOneMode mode = tradeable.TraderWillTrade ? TransferAsOneMode.Normal : TransferAsOneMode.InactiveTradeable;
+                TransferAsOneMode mode = tradeable.TraderWillTrade
+                    ? TransferAsOneMode.Normal
+                    : TransferAsOneMode.InactiveTradeable;
 
                 if (recacheThings.Contains(thing))
                 {
@@ -338,12 +347,6 @@ namespace Multiplayer.Client
                         AddToTradeables(thing, side);
                 }
             }
-        }
-
-        public void ExposeData()
-        {
-            Scribe_Deep.Look(ref permanentSilver, "permanentSilver");
-            Scribe_Collections.Look(ref tradeables, "tradeables", LookMode.Deep);
         }
     }
 
@@ -355,17 +358,20 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(TradeDeal), nameof(TradeDeal.Reset))]
-    static class CancelTradeDealReset
+    internal static class CancelTradeDealReset
     {
         public static bool cancel;
 
-        static bool Prefix() => !cancel && Scribe.mode != LoadSaveMode.LoadingVars;
+        private static bool Prefix()
+        {
+            return !cancel && Scribe.mode != LoadSaveMode.LoadingVars;
+        }
     }
 
     [HarmonyPatch(typeof(WindowStack), nameof(WindowStack.Add))]
-    static class CancelDialogTrade
+    internal static class CancelDialogTrade
     {
-        static bool Prefix(Window window)
+        private static bool Prefix(Window window)
         {
             if (window is Dialog_Trade && (Multiplayer.ExecutingCmds || Multiplayer.Ticking))
                 return false;
@@ -375,12 +381,12 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Dialog_Trade), MethodType.Constructor)]
-    [HarmonyPatch(new[] { typeof(Pawn), typeof(ITrader), typeof(bool) })]
-    static class CancelDialogTradeCtor
+    [HarmonyPatch(new[] {typeof(Pawn), typeof(ITrader), typeof(bool)})]
+    internal static class CancelDialogTradeCtor
     {
         public static bool cancel;
 
-        static bool Prefix(Pawn playerNegotiator, ITrader trader, bool giftsOnly)
+        private static bool Prefix(Pawn playerNegotiator, ITrader trader, bool giftsOnly)
         {
             if (cancel) return false;
 
@@ -398,10 +404,11 @@ namespace Multiplayer.Client
         }
     }
 
-    [HarmonyPatch(typeof(IncidentWorker_TraderCaravanArrival), nameof(IncidentWorker_TraderCaravanArrival.TryExecuteWorker))]
-    static class ArriveAtCenter
+    [HarmonyPatch(typeof(IncidentWorker_TraderCaravanArrival),
+        nameof(IncidentWorker_TraderCaravanArrival.TryExecuteWorker))]
+    internal static class ArriveAtCenter
     {
-        static void Prefix(IncidentParms parms)
+        private static void Prefix(IncidentParms parms)
         {
             //if (MpVersion.IsDebug && Prefs.DevMode)
             //    parms.spawnCenter = (parms.target as Map).Center;
@@ -409,9 +416,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(TradeDeal), nameof(TradeDeal.TryExecute))]
-    static class NullCheckDialogTrade
+    internal static class NullCheckDialogTrade
     {
-        static IEnumerable<CodeInstruction> Transpiler(ILGenerator gen, IEnumerable<CodeInstruction> e)
+        private static IEnumerable<CodeInstruction> Transpiler(ILGenerator gen, IEnumerable<CodeInstruction> e)
         {
             List<CodeInstruction> insts = new List<CodeInstruction>(e);
             LocalBuilder local = gen.DeclareLocal(typeof(Dialog_Trade));
@@ -421,7 +428,8 @@ namespace Multiplayer.Client
                 CodeInstruction inst = insts[i];
                 yield return inst;
 
-                if (inst.opcode == OpCodes.Callvirt && ((MethodInfo)inst.operand).Name == nameof(WindowStack.WindowOfType))
+                if (inst.opcode == OpCodes.Callvirt &&
+                    ((MethodInfo) inst.operand).Name == nameof(WindowStack.WindowOfType))
                 {
                     Label label = gen.DefineLabel();
                     insts[i + 2].labels.Add(label);
@@ -436,9 +444,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Reachability), nameof(Reachability.ClearCache))]
-    static class ReachabilityChanged
+    internal static class ReachabilityChanged
     {
-        static void Postfix(Reachability __instance)
+        private static void Postfix(Reachability __instance)
         {
             if (Multiplayer.Client != null)
                 Multiplayer.WorldComp.DirtyColonyTradeForMap(__instance.map);
@@ -446,9 +454,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Area_Home), nameof(Area_Home.Set))]
-    static class AreaHomeChanged
+    internal static class AreaHomeChanged
     {
-        static void Postfix(Area_Home __instance)
+        private static void Postfix(Area_Home __instance)
         {
             if (Multiplayer.Client != null)
                 Multiplayer.WorldComp.DirtyColonyTradeForMap(__instance.Map);
@@ -459,9 +467,9 @@ namespace Multiplayer.Client
     [MpPatch(typeof(HaulDestinationManager), nameof(HaulDestinationManager.RemoveHaulDestination))]
     [MpPatch(typeof(HaulDestinationManager), nameof(HaulDestinationManager.SetCellFor))]
     [MpPatch(typeof(HaulDestinationManager), nameof(HaulDestinationManager.ClearCellFor))]
-    static class HaulDestinationChanged
+    internal static class HaulDestinationChanged
     {
-        static void Postfix(HaulDestinationManager __instance)
+        private static void Postfix(HaulDestinationManager __instance)
         {
             if (Multiplayer.Client != null)
                 Multiplayer.WorldComp.DirtyColonyTradeForMap(__instance.map);
@@ -469,9 +477,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(CompRottable), nameof(CompRottable.StageChanged))]
-    static class RottableStageChanged
+    internal static class RottableStageChanged
     {
-        static void Postfix(CompRottable __instance)
+        private static void Postfix(CompRottable __instance)
         {
             if (Multiplayer.Client == null) return;
             Multiplayer.WorldComp.DirtyColonyTradeForMap(__instance.parent.Map);
@@ -480,9 +488,9 @@ namespace Multiplayer.Client
 
     [MpPatch(typeof(ListerThings), nameof(ListerThings.Add))]
     [MpPatch(typeof(ListerThings), nameof(ListerThings.Remove))]
-    static class ListerThingsChangedItem
+    internal static class ListerThingsChangedItem
     {
-        static void Postfix(ListerThings __instance, Thing t)
+        private static void Postfix(ListerThings __instance, Thing t)
         {
             if (Multiplayer.Client == null) return;
             if (t.def.category == ThingCategory.Item && ListerThings.EverListable(t.def, __instance.use))
@@ -492,9 +500,9 @@ namespace Multiplayer.Client
 
     [MpPatch(typeof(Pawn_HealthTracker), nameof(Pawn_HealthTracker.MakeDowned))]
     [MpPatch(typeof(Pawn_HealthTracker), nameof(Pawn_HealthTracker.MakeUndowned))]
-    static class PawnDownedStateChanged
+    internal static class PawnDownedStateChanged
     {
-        static void Postfix(Pawn_HealthTracker __instance)
+        private static void Postfix(Pawn_HealthTracker __instance)
         {
             if (Multiplayer.Client != null)
                 Multiplayer.WorldComp.DirtyColonyTradeForMap(__instance.pawn.Map);
@@ -503,9 +511,9 @@ namespace Multiplayer.Client
 
     [HarmonyPatch(typeof(CompPowerTrader))]
     [HarmonyPatch(nameof(CompPowerTrader.PowerOn), MethodType.Setter)]
-    static class OrbitalTradeBeaconPowerChanged
+    internal static class OrbitalTradeBeaconPowerChanged
     {
-        static void Postfix(CompPowerTrader __instance, bool value)
+        private static void Postfix(CompPowerTrader __instance, bool value)
         {
             if (Multiplayer.Client == null) return;
             if (!(__instance.parent is Building_OrbitalTradeBeacon)) return;
@@ -519,15 +527,15 @@ namespace Multiplayer.Client
 
     [HarmonyPatch(typeof(Thing))]
     [HarmonyPatch(nameof(Thing.HitPoints), MethodType.Setter)]
-    static class ThingHitPointsChanged
+    internal static class ThingHitPointsChanged
     {
-        static void Prefix(Thing __instance, int value, ref bool __state)
+        private static void Prefix(Thing __instance, int value, ref bool __state)
         {
             if (Multiplayer.Client == null) return;
             __state = __instance.def.category == ThingCategory.Item && value != __instance.hitPointsInt;
         }
 
-        static void Postfix(Thing __instance, bool __state)
+        private static void Postfix(Thing __instance, bool __state)
         {
             if (__state)
                 Multiplayer.WorldComp.DirtyTradeForSpawnedThing(__instance);
@@ -537,9 +545,9 @@ namespace Multiplayer.Client
     [MpPatch(typeof(ThingOwner), nameof(ThingOwner.NotifyAdded))]
     [MpPatch(typeof(ThingOwner), nameof(ThingOwner.NotifyAddedAndMergedWith))]
     [MpPatch(typeof(ThingOwner), nameof(ThingOwner.NotifyRemoved))]
-    static class ThingOwner_ChangedPatch
+    internal static class ThingOwner_ChangedPatch
     {
-        static void Postfix(ThingOwner __instance)
+        private static void Postfix(ThingOwner __instance)
         {
             if (Multiplayer.Client == null) return;
 
@@ -549,7 +557,8 @@ namespace Multiplayer.Client
 
                 if (inv.pawn.GetLord()?.LordJob is LordJob_TradeWithColony lordJob)
                     // Carrier inventory changed
-                    trader = lordJob.lord.ownedPawns.FirstOrDefault(p => p.GetTraderCaravanRole() == TraderCaravanRole.Trader);
+                    trader = lordJob.lord.ownedPawns.FirstOrDefault(p =>
+                        p.GetTraderCaravanRole() == TraderCaravanRole.Trader);
                 else if (inv.pawn.trader != null)
                     // Trader inventory changed
                     trader = inv.pawn;
@@ -570,16 +579,17 @@ namespace Multiplayer.Client
 
     [MpPatch(typeof(Lord), nameof(Lord.AddPawn))]
     [MpPatch(typeof(Lord), nameof(Lord.Notify_PawnLost))]
-    static class Lord_TradeChanged
+    internal static class Lord_TradeChanged
     {
-        static void Postfix(Lord __instance)
+        private static void Postfix(Lord __instance)
         {
             if (Multiplayer.Client == null) return;
 
             if (__instance.LordJob is LordJob_TradeWithColony)
             {
                 // Chattel changed
-                ITrader trader = __instance.ownedPawns.FirstOrDefault(p => p.GetTraderCaravanRole() == TraderCaravanRole.Trader);
+                ITrader trader =
+                    __instance.ownedPawns.FirstOrDefault(p => p.GetTraderCaravanRole() == TraderCaravanRole.Trader);
                 Multiplayer.WorldComp.DirtyTraderTradeForTrader(trader);
             }
             else if (__instance.LordJob is LordJob_PrisonBreak)
@@ -592,9 +602,9 @@ namespace Multiplayer.Client
 
     [MpPatch(typeof(MentalStateHandler), nameof(MentalStateHandler.TryStartMentalState))]
     [MpPatch(typeof(MentalStateHandler), nameof(MentalStateHandler.ClearMentalStateDirect))]
-    static class MentalStateChanged
+    internal static class MentalStateChanged
     {
-        static void Postfix(MentalStateHandler __instance)
+        private static void Postfix(MentalStateHandler __instance)
         {
             if (Multiplayer.Client == null) return;
 
@@ -604,33 +614,30 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(JobDriver), nameof(JobDriver.Notify_Starting))]
-    static class JobExitMapStarted
+    internal static class JobExitMapStarted
     {
-        static void Postfix(JobDriver __instance)
+        private static void Postfix(JobDriver __instance)
         {
             if (Multiplayer.Client == null) return;
 
-            if (__instance.job.exitMapOnArrival)
-            {
-                // Prisoners exiting the map can't be sold
-                Multiplayer.WorldComp.DirtyColonyTradeForMap(__instance.pawn.Map);
-            }
+            if (__instance.job.exitMapOnArrival) Multiplayer.WorldComp.DirtyColonyTradeForMap(__instance.pawn.Map);
         }
     }
 
     [HarmonyPatch(typeof(SettlementBase_TraderTracker), nameof(SettlementBase_TraderTracker.TraderTrackerTick))]
-    static class DontDestroyStockWhileTrading
+    internal static class DontDestroyStockWhileTrading
     {
-        static bool Prefix(SettlementBase_TraderTracker __instance)
+        private static bool Prefix(SettlementBase_TraderTracker __instance)
         {
-            return Multiplayer.Client == null || !Multiplayer.WorldComp.trading.Any(t => t.trader == __instance.settlement);
+            return Multiplayer.Client == null ||
+                   !Multiplayer.WorldComp.trading.Any(t => t.trader == __instance.settlement);
         }
     }
 
     [HarmonyPatch(typeof(MapPawns), nameof(MapPawns.DoListChangedNotifications))]
-    static class MapPawnsChanged
+    internal static class MapPawnsChanged
     {
-        static void Postfix(MapPawns __instance)
+        private static void Postfix(MapPawns __instance)
         {
             if (Multiplayer.Client == null) return;
             Multiplayer.WorldComp.DirtyColonyTradeForMap(__instance.map);
@@ -638,9 +645,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Pawn_AgeTracker), nameof(Pawn_AgeTracker.RecalculateLifeStageIndex))]
-    static class PawnLifeStageChanged
+    internal static class PawnLifeStageChanged
     {
-        static void Postfix(Pawn_AgeTracker __instance)
+        private static void Postfix(Pawn_AgeTracker __instance)
         {
             if (Multiplayer.Client == null) return;
             if (!__instance.pawn.Spawned) return;
@@ -650,14 +657,14 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Pawn_AgeTracker), nameof(Pawn_AgeTracker.AgeTick))]
-    static class PawnAgeChanged
+    internal static class PawnAgeChanged
     {
-        static void Prefix(Pawn_AgeTracker __instance, ref int __state)
+        private static void Prefix(Pawn_AgeTracker __instance, ref int __state)
         {
             __state = __instance.AgeBiologicalYears;
         }
 
-        static void Postfix(Pawn_AgeTracker __instance, int __state)
+        private static void Postfix(Pawn_AgeTracker __instance, int __state)
         {
             if (Multiplayer.Client == null) return;
             if (__state == __instance.AgeBiologicalYears) return;
@@ -667,14 +674,17 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(TransferableUtility), nameof(TransferableUtility.TransferAsOne))]
-    static class TransferAsOneAgeCheck_Patch
+    internal static class TransferAsOneAgeCheck_Patch
     {
-        static MethodInfo AgeBiologicalFloat = AccessTools.Method(typeof(Pawn_AgeTracker), "get_AgeBiologicalYearsFloat");
-        static MethodInfo AgeBiologicalInt = AccessTools.Method(typeof(Pawn_AgeTracker), "get_AgeBiologicalYears");
+        private static readonly MethodInfo AgeBiologicalFloat =
+            AccessTools.Method(typeof(Pawn_AgeTracker), "get_AgeBiologicalYearsFloat");
 
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
+        private static readonly MethodInfo AgeBiologicalInt =
+            AccessTools.Method(typeof(Pawn_AgeTracker), "get_AgeBiologicalYears");
+
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
         {
-            foreach (var inst in insts)
+            foreach (CodeInstruction inst in insts)
             {
                 if (inst.operand == AgeBiologicalFloat)
                 {
@@ -689,10 +699,10 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(TradeDeal), nameof(TradeDeal.InSellablePosition))]
-    static class InSellablePositionPatch
+    internal static class InSellablePositionPatch
     {
         // todo actually handle this
-        static void Postfix(Thing t, ref bool __result, ref string reason)
+        private static void Postfix(Thing t, ref bool __result, ref string reason)
         {
             if (Multiplayer.Client == null) return;
 

@@ -1,4 +1,5 @@
-﻿using LiteNetLib;
+﻿#region
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -8,6 +9,9 @@ using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
+using LiteNetLib;
+
+#endregion
 
 namespace Multiplayer.Common
 {
@@ -41,7 +45,7 @@ namespace Multiplayer.Common
 
         public static int Combine(this int i1, int i2)
         {
-            return i1 ^ (i2 << 16 | (i2 >> 16));
+            return i1 ^ ((i2 << 16) | (i2 >> 16));
         }
 
         public static T[] Append<T>(this T[] arr1, params T[] arr2)
@@ -66,7 +70,7 @@ namespace Multiplayer.Common
 
         public static MpNetConnection GetConnection(this NetPeer peer)
         {
-            return (MpNetConnection)peer.Tag;
+            return (MpNetConnection) peer.Tag;
         }
 
         public static void Write(this MemoryStream stream, byte[] arr)
@@ -104,7 +108,7 @@ namespace Multiplayer.Common
 
         public static double ElapsedMillisDouble(this Stopwatch watch)
         {
-            return (double)watch.ElapsedTicks / Stopwatch.Frequency * 1000;
+            return (double) watch.ElapsedTicks / Stopwatch.Frequency * 1000;
         }
 
         public static string ToHexString(this byte[] ba)
@@ -120,16 +124,16 @@ namespace Multiplayer.Common
     {
         public static void ProcessCombined<T, U>(IEnumerable<T> first, IEnumerable<U> second, Action<T, U> action)
         {
-            using (var firstEnumerator = first.GetEnumerator())
-            using (var secondEnumerator = second.GetEnumerator())
+            using (IEnumerator<T> firstEnumerator = first.GetEnumerator())
+            using (IEnumerator<U> secondEnumerator = second.GetEnumerator())
             {
                 bool hasFirst = true;
                 bool hasSecond = true;
 
-                while ((hasFirst && (hasFirst = firstEnumerator.MoveNext())) | (hasSecond && (hasSecond = secondEnumerator.MoveNext())))
-                {
-                    action(hasFirst ? firstEnumerator.Current : default(T), hasSecond ? secondEnumerator.Current : default(U));
-                }
+                while ((hasFirst && (hasFirst = firstEnumerator.MoveNext())) |
+                       (hasSecond && (hasSecond = secondEnumerator.MoveNext())))
+                    action(hasFirst ? firstEnumerator.Current : default,
+                        hasSecond ? secondEnumerator.Current : default);
             }
         }
     }
@@ -166,9 +170,11 @@ namespace Multiplayer.Common
 
     public static class Utils
     {
+        public static long MillisNow => DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
+
         public static byte[] GetMD5(IEnumerable<string> strings)
         {
-            using (var hash = MD5.Create())
+            using (MD5 hash = MD5.Create())
             {
                 foreach (string s in strings)
                 {
@@ -181,8 +187,5 @@ namespace Multiplayer.Common
                 return hash.Hash;
             }
         }
-
-        public static long MillisNow => DateTime.Now.Ticks / TimeSpan.TicksPerMillisecond;
     }
-
 }

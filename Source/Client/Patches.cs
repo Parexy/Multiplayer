@@ -1,12 +1,7 @@
-﻿using Harmony;
-using Harmony.ILCopying;
-using Multiplayer.Common;
-using RimWorld;
-using RimWorld.Planet;
-using Steamworks;
+﻿#region
+
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
@@ -14,19 +9,25 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
+using Harmony;
+using Multiplayer.Common;
+using RimWorld;
+using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 using Verse.AI;
 using Verse.Profile;
 using Verse.Sound;
 
+#endregion
+
 namespace Multiplayer.Client
 {
     [HarmonyPatch(typeof(Log))]
     [HarmonyPatch(nameof(Log.ReachedMaxMessagesLimit), MethodType.Getter)]
-    static class LogMaxMessagesPatch
+    internal static class LogMaxMessagesPatch
     {
-        static void Postfix(ref bool __result)
+        private static void Postfix(ref bool __result)
         {
             if (MpVersion.IsDebug)
                 __result = false;
@@ -38,8 +39,15 @@ namespace Multiplayer.Client
     {
         public static bool drawing;
 
-        static void Prefix() => drawing = true;
-        static void Postfix() => drawing = false;
+        private static void Prefix()
+        {
+            drawing = true;
+        }
+
+        private static void Postfix()
+        {
+            drawing = false;
+        }
     }
 
     [HarmonyPatch(typeof(WildAnimalSpawner))]
@@ -48,8 +56,15 @@ namespace Multiplayer.Client
     {
         public static bool ticking;
 
-        static void Prefix() => ticking = true;
-        static void Postfix() => ticking = false;
+        private static void Prefix()
+        {
+            ticking = true;
+        }
+
+        private static void Postfix()
+        {
+            ticking = false;
+        }
     }
 
     [HarmonyPatch(typeof(WildPlantSpawner))]
@@ -58,8 +73,15 @@ namespace Multiplayer.Client
     {
         public static bool ticking;
 
-        static void Prefix() => ticking = true;
-        static void Postfix() => ticking = false;
+        private static void Prefix()
+        {
+            ticking = true;
+        }
+
+        private static void Postfix()
+        {
+            ticking = false;
+        }
     }
 
     [HarmonyPatch(typeof(SteadyEnvironmentEffects))]
@@ -68,21 +90,31 @@ namespace Multiplayer.Client
     {
         public static bool ticking;
 
-        static void Prefix() => ticking = true;
-        static void Postfix() => ticking = false;
+        private static void Prefix()
+        {
+            ticking = true;
+        }
+
+        private static void Postfix()
+        {
+            ticking = false;
+        }
     }
 
     [MpPatch(typeof(MainMenuDrawer), nameof(MainMenuDrawer.DoMainMenuControls))]
     public static class MainMenu_AddHeight
     {
-        static void Prefix(ref Rect rect) => rect.height += 45f;
+        private static void Prefix(ref Rect rect)
+        {
+            rect.height += 45f;
+        }
     }
 
     [MpPatch(typeof(OptionListingUtility), nameof(OptionListingUtility.DrawOptionListing))]
     [HotSwappable]
     public static class MainMenuPatch
     {
-        static void Prefix(Rect rect, List<ListableOption> optList)
+        private static void Prefix(Rect rect, List<ListableOption> optList)
         {
             if (!MainMenuMarker.drawing) return;
 
@@ -90,7 +122,6 @@ namespace Multiplayer.Client
             {
                 int newColony = optList.FindIndex(opt => opt.label == "NewColony".Translate());
                 if (newColony != -1)
-                {
                     optList.Insert(newColony + 1, new ListableOption("Multiplayer", () =>
                     {
                         if (Prefs.DevMode && Event.current.button == 1)
@@ -98,29 +129,34 @@ namespace Multiplayer.Client
                         else
                             Find.WindowStack.Add(new ServerBrowser());
                     }));
-                }
             }
 
             if (optList.Any(opt => opt.label == "ReviewScenario".Translate()))
             {
                 if (Multiplayer.session == null)
-                    optList.Insert(0, new ListableOption("MpHostServer".Translate(), () => Find.WindowStack.Add(new HostWindow())));
+                    optList.Insert(0,
+                        new ListableOption("MpHostServer".Translate(), () => Find.WindowStack.Add(new HostWindow())));
 
                 if (MpVersion.IsDebug && Multiplayer.IsReplay)
-                    optList.Insert(0, new ListableOption("MpHostServer".Translate(), () => Find.WindowStack.Add(new HostWindow(withSimulation: true))));
+                    optList.Insert(0,
+                        new ListableOption("MpHostServer".Translate(),
+                            () => Find.WindowStack.Add(new HostWindow(withSimulation: true))));
 
                 if (Multiplayer.Client != null)
                 {
                     if (!Multiplayer.IsReplay)
-                        optList.Insert(0, new ListableOption("MpSaveReplay".Translate(), () => Find.WindowStack.Add(new Dialog_SaveReplay())));
+                        optList.Insert(0,
+                            new ListableOption("MpSaveReplay".Translate(),
+                                () => Find.WindowStack.Add(new Dialog_SaveReplay())));
                     else
                         optList.Insert(0, new ListableOption("MpConvert".Translate(), ConvertToSingleplayer));
 
                     optList.RemoveAll(opt => opt.label == "Save".Translate() || opt.label == "LoadGame".Translate());
 
-                    var quitMenuLabel = "QuitToMainMenu".Translate();
-                    var saveAndQuitMenu = "SaveAndQuitToMainMenu".Translate();
-                    var quitMenu = optList.Find(opt => opt.label == quitMenuLabel || opt.label == saveAndQuitMenu);
+                    string quitMenuLabel = "QuitToMainMenu".Translate();
+                    string saveAndQuitMenu = "SaveAndQuitToMainMenu".Translate();
+                    ListableOption quitMenu =
+                        optList.Find(opt => opt.label == quitMenuLabel || opt.label == saveAndQuitMenu);
 
                     if (quitMenu != null)
                     {
@@ -128,9 +164,10 @@ namespace Multiplayer.Client
                         quitMenu.action = AskQuitToMainMenu;
                     }
 
-                    var quitOSLabel = "QuitToOS".Translate();
-                    var saveAndQuitOSLabel = "SaveAndQuitToOS".Translate();
-                    var quitOS = optList.Find(opt => opt.label == quitOSLabel || opt.label == saveAndQuitOSLabel);
+                    string quitOSLabel = "QuitToOS".Translate();
+                    string saveAndQuitOSLabel = "SaveAndQuitToOS".Translate();
+                    ListableOption quitOS =
+                        optList.Find(opt => opt.label == quitOSLabel || opt.label == saveAndQuitOSLabel);
 
                     if (quitOS != null)
                     {
@@ -138,7 +175,9 @@ namespace Multiplayer.Client
                         quitOS.action = () =>
                         {
                             if (Multiplayer.LocalServer != null)
-                                Find.WindowStack.Add(Dialog_MessageBox.CreateConfirmation("MpServerCloseConfirmation".Translate(), Root.Shutdown, true));
+                                Find.WindowStack.Add(
+                                    Dialog_MessageBox.CreateConfirmation("MpServerCloseConfirmation".Translate(),
+                                        Root.Shutdown, true));
                             else
                                 Root.Shutdown();
                         };
@@ -147,24 +186,28 @@ namespace Multiplayer.Client
             }
         }
 
-        static void ShowModDebugInfo()
+        private static void ShowModDebugInfo()
         {
-            var mods = LoadedModManager.RunningModsListForReading;
+            List<ModContentPack> mods = LoadedModManager.RunningModsListForReading;
 
             DebugTables.MakeTablesDialog(
                 mods.Select((mod, i) => i),
                 new TableDataGetter<int>($"Mod name {new string(' ', 20)}", i => mods[i].Name),
                 new TableDataGetter<int>($"Mod id {new string(' ', 20)}", i => mods[i].Identifier),
-                new TableDataGetter<int>($"Assembly hash {new string(' ', 10)}", i => Multiplayer.enabledModAssemblyHashes[i].assemblyHash),
-                new TableDataGetter<int>($"XML hash {new string(' ', 10)}", i => Multiplayer.enabledModAssemblyHashes[i].xmlHash),
-                new TableDataGetter<int>($"About hash {new string(' ', 10)}", i => Multiplayer.enabledModAssemblyHashes[i].aboutHash)
+                new TableDataGetter<int>($"Assembly hash {new string(' ', 10)}",
+                    i => Multiplayer.enabledModAssemblyHashes[i].assemblyHash),
+                new TableDataGetter<int>($"XML hash {new string(' ', 10)}",
+                    i => Multiplayer.enabledModAssemblyHashes[i].xmlHash),
+                new TableDataGetter<int>($"About hash {new string(' ', 10)}",
+                    i => Multiplayer.enabledModAssemblyHashes[i].aboutHash)
             );
         }
 
         public static void AskQuitToMainMenu()
         {
             if (Multiplayer.LocalServer != null)
-                Find.WindowStack.Add(Dialog_MessageBox.CreateConfirmation("MpServerCloseConfirmation".Translate(), GenScene.GoToMainMenu, true));
+                Find.WindowStack.Add(Dialog_MessageBox.CreateConfirmation("MpServerCloseConfirmation".Translate(),
+                    GenScene.GoToMainMenu, true));
             else
                 GenScene.GoToMainMenu();
         }
@@ -179,7 +222,7 @@ namespace Multiplayer.Client
 
                 OnMainThread.StopMultiplayer();
 
-                var doc = SaveLoad.SaveGame();
+                XmlDocument doc = SaveLoad.SaveGame();
                 MemoryUtility.ClearAllMapsAndWorld();
 
                 Current.Game = new Game();
@@ -193,9 +236,9 @@ namespace Multiplayer.Client
 
     [MpPatch(typeof(GenScene), nameof(GenScene.GoToMainMenu))]
     [MpPatch(typeof(Root), nameof(Root.Shutdown))]
-    static class Shutdown_Quit_Patch
+    internal static class Shutdown_Quit_Patch
     {
-        static void Prefix()
+        private static void Prefix()
         {
             OnMainThread.StopMultiplayer();
         }
@@ -205,7 +248,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(Pawn_JobTracker.StartJob))]
     public static class JobTrackerStart
     {
-        static void Prefix(Pawn_JobTracker __instance, Job newJob, ref Container<Map>? __state)
+        private static void Prefix(Pawn_JobTracker __instance, Job newJob, ref Container<Map>? __state)
         {
             if (Multiplayer.Client == null) return;
 
@@ -225,7 +268,7 @@ namespace Multiplayer.Client
             __state = pawn.Map;
         }
 
-        static void Postfix(Container<Map>? __state)
+        private static void Postfix(Container<Map>? __state)
         {
             if (__state != null)
                 __state.PopFaction();
@@ -236,7 +279,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(Pawn_JobTracker.EndCurrentJob))]
     public static class JobTrackerEndCurrent
     {
-        static void Prefix(Pawn_JobTracker __instance, JobCondition condition, ref Container<Map>? __state)
+        private static void Prefix(Pawn_JobTracker __instance, JobCondition condition, ref Container<Map>? __state)
         {
             if (Multiplayer.Client == null) return;
             Pawn pawn = __instance.pawn;
@@ -247,7 +290,7 @@ namespace Multiplayer.Client
             __state = pawn.Map;
         }
 
-        static void Postfix(Container<Map>? __state)
+        private static void Postfix(Container<Map>? __state)
         {
             if (__state != null)
                 __state.PopFaction();
@@ -258,7 +301,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(Pawn_JobTracker.CheckForJobOverride))]
     public static class JobTrackerOverride
     {
-        static void Prefix(Pawn_JobTracker __instance, ref Container<Map>? __state)
+        private static void Prefix(Pawn_JobTracker __instance, ref Container<Map>? __state)
         {
             if (Multiplayer.Client == null) return;
             Pawn pawn = __instance.pawn;
@@ -270,7 +313,7 @@ namespace Multiplayer.Client
             __state = pawn.Map;
         }
 
-        static void Postfix(Container<Map>? __state)
+        private static void Postfix(Container<Map>? __state)
         {
             if (__state != null)
             {
@@ -282,7 +325,7 @@ namespace Multiplayer.Client
 
     public static class ThingContext
     {
-        private static Stack<Pair<Thing, Map>> stack = new Stack<Pair<Thing, Map>>();
+        private static readonly Stack<Pair<Thing, Map>> stack = new Stack<Pair<Thing, Map>>();
 
         static ThingContext()
         {
@@ -318,7 +361,10 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(GameEnder.CheckOrUpdateGameOver))]
     public static class GameEnderPatch
     {
-        static bool Prefix() => Multiplayer.Client == null;
+        private static bool Prefix()
+        {
+            return Multiplayer.Client == null;
+        }
     }
 
     [HarmonyPatch(typeof(UniqueIDsManager))]
@@ -326,6 +372,9 @@ namespace Multiplayer.Client
     public static class UniqueIdsPatch
     {
         private static IdBlock currentBlock;
+
+        private static int localIds = -1;
+
         public static IdBlock CurrentBlock
         {
             get => currentBlock;
@@ -338,14 +387,12 @@ namespace Multiplayer.Client
             }
         }
 
-        private static int localIds = -1;
-
-        static bool Prefix()
+        private static bool Prefix()
         {
             return Multiplayer.Client == null || !Multiplayer.InInterface;
         }
 
-        static void Postfix(ref int __result)
+        private static void Postfix(ref int __result)
         {
             if (Multiplayer.Client == null) return;
 
@@ -386,7 +433,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(PawnComponentsUtility.AddAndRemoveDynamicComponents))]
     public static class AddAndRemoveCompsPatch
     {
-        static void Prefix(Pawn pawn, ref Container<Map>? __state)
+        private static void Prefix(Pawn pawn, ref Container<Map>? __state)
         {
             if (Multiplayer.Client == null || pawn.Faction == null) return;
 
@@ -394,7 +441,7 @@ namespace Multiplayer.Client
             __state = pawn.Map;
         }
 
-        static void Postfix(Pawn pawn, Container<Map>? __state)
+        private static void Postfix(Pawn pawn, Container<Map>? __state)
         {
             if (__state != null)
                 __state.PopFaction();
@@ -404,13 +451,13 @@ namespace Multiplayer.Client
     [HarmonyPatch]
     public static class WidgetsResolveParsePatch
     {
-        static MethodBase TargetMethod()
+        private static MethodBase TargetMethod()
         {
             return AccessTools.Method(typeof(Widgets), nameof(Widgets.ResolveParseNow)).MakeGenericMethod(typeof(int));
         }
 
         // Fix input field handling
-        static void Prefix(bool force, ref int val, ref string buffer, ref string edited)
+        private static void Prefix(bool force, ref int val, ref string buffer, ref string edited)
         {
             if (force)
                 edited = Widgets.ToStringTypedIn(val);
@@ -418,10 +465,10 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Dialog_BillConfig), MethodType.Constructor)]
-    [HarmonyPatch(new[] { typeof(Bill_Production), typeof(IntVec3) })]
+    [HarmonyPatch(new[] {typeof(Bill_Production), typeof(IntVec3)})]
     public static class DialogPatch
     {
-        static void Postfix(Dialog_BillConfig __instance)
+        private static void Postfix(Dialog_BillConfig __instance)
         {
             __instance.absorbInputAroundWindow = false;
         }
@@ -431,21 +478,27 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(ListerHaulables.ListerHaulablesTick))]
     public static class HaulablesTickPatch
     {
-        static bool Prefix() => Multiplayer.Client == null || MultiplayerMapComp.tickingFactions;
+        private static bool Prefix()
+        {
+            return Multiplayer.Client == null || MultiplayerMapComp.tickingFactions;
+        }
     }
 
     [HarmonyPatch(typeof(ResourceCounter))]
     [HarmonyPatch(nameof(ResourceCounter.ResourceCounterTick))]
     public static class ResourcesTickPatch
     {
-        static bool Prefix() => Multiplayer.Client == null || MultiplayerMapComp.tickingFactions;
+        private static bool Prefix()
+        {
+            return Multiplayer.Client == null || MultiplayerMapComp.tickingFactions;
+        }
     }
 
     [HarmonyPatch(typeof(WindowStack))]
     [HarmonyPatch(nameof(WindowStack.WindowsForcePause), MethodType.Getter)]
     public static class WindowsPausePatch
     {
-        static void Postfix(ref bool __result)
+        private static void Postfix(ref bool __result)
         {
             if (Multiplayer.Client != null)
                 __result = false;
@@ -456,10 +509,11 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(AutoBuildRoofAreaSetter.TryGenerateAreaNow))]
     public static class AutoRoofPatch
     {
-        static bool Prefix(AutoBuildRoofAreaSetter __instance, Room room, ref Map __state)
+        private static bool Prefix(AutoBuildRoofAreaSetter __instance, Room room, ref Map __state)
         {
             if (Multiplayer.Client == null) return true;
-            if (room.Dereferenced || room.TouchesMapEdge || room.RegionCount > 26 || room.CellCount > 320 || room.RegionType == RegionType.Portal) return false;
+            if (room.Dereferenced || room.TouchesMapEdge || room.RegionCount > 26 || room.CellCount > 320 ||
+                room.RegionType == RegionType.Portal) return false;
 
             Map map = room.Map;
             Faction faction = null;
@@ -480,7 +534,7 @@ namespace Multiplayer.Client
             return true;
         }
 
-        static void Postfix(ref Map __state)
+        private static void Postfix(ref Map __state)
         {
             if (__state != null)
                 __state.PopFaction();
@@ -489,10 +543,10 @@ namespace Multiplayer.Client
 
     [HarmonyPatch(typeof(PawnTweener))]
     [HarmonyPatch(nameof(PawnTweener.TweenedPos), MethodType.Getter)]
-    static class DrawPosPatch
+    internal static class DrawPosPatch
     {
         // Give the root position during ticking
-        static void Postfix(PawnTweener __instance, ref Vector3 __result)
+        private static void Postfix(PawnTweener __instance, ref Vector3 __result)
         {
             if (Multiplayer.Client == null || Multiplayer.InInterface) return;
             __result = __instance.TweenedPosRoot();
@@ -506,10 +560,11 @@ namespace Multiplayer.Client
         public static Container<Map>? state;
 
         // Postfix so Thing's faction is already loaded
-        static void Postfix(Thing __instance)
+        private static void Postfix(Thing __instance)
         {
             if (!(__instance is Pawn)) return;
-            if (Multiplayer.Client == null || __instance.Faction == null || Find.FactionManager == null || Find.FactionManager.AllFactions.Count() == 0) return;
+            if (Multiplayer.Client == null || __instance.Faction == null || Find.FactionManager == null ||
+                Find.FactionManager.AllFactions.Count() == 0) return;
 
             ThingContext.Push(__instance);
             state = __instance.Map;
@@ -521,7 +576,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(Pawn.ExposeData))]
     public static class PawnExposeDataLast
     {
-        static void Postfix()
+        private static void Postfix()
         {
             if (PawnExposeDataFirst.state != null)
             {
@@ -536,7 +591,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(Pawn_NeedsTracker.AddOrRemoveNeedsAsAppropriate))]
     public static class AddRemoveNeeds
     {
-        static void Prefix(Pawn_NeedsTracker __instance)
+        private static void Prefix(Pawn_NeedsTracker __instance)
         {
             //MpLog.Log("add remove needs {0} {1}", FactionContext.OfPlayer.ToString(), __instance.GetPropertyOrField("pawn"));
         }
@@ -546,13 +601,13 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(PawnTweener.PreDrawPosCalculation))]
     public static class PreDrawPosCalcPatch
     {
-        static void Prefix()
+        private static void Prefix()
         {
             //if (MapAsyncTimeComp.tickingMap != null)
             //    SimpleProfiler.Pause();
         }
 
-        static void Postfix()
+        private static void Postfix()
         {
             //if (MapAsyncTimeComp.tickingMap != null)
             //    SimpleProfiler.Start();
@@ -563,7 +618,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(TickManager.TickRateMultiplier), MethodType.Getter)]
     public static class TickRatePatch
     {
-        static bool Prefix(TickManager __instance, ref float __result)
+        private static bool Prefix(TickManager __instance, ref float __result)
         {
             if (Multiplayer.Client == null) return true;
 
@@ -603,11 +658,14 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(Log.Warning))]
     public static class CrossRefWarningPatch
     {
-        private static Regex regex = new Regex(@"^Could not resolve reference to object with loadID ([\w.-]*) of type ([\w.<>+]*)\. Was it compressed away");
+        private static readonly Regex regex =
+            new Regex(
+                @"^Could not resolve reference to object with loadID ([\w.-]*) of type ([\w.<>+]*)\. Was it compressed away");
+
         public static bool ignore;
 
         // The only non-generic entry point during cross reference resolving
-        static bool Prefix(string text)
+        private static bool Prefix(string text)
         {
             if (Multiplayer.Client == null || ignore) return true;
 
@@ -633,7 +691,7 @@ namespace Multiplayer.Client
     {
         public static IntVec3? result;
 
-        static void Postfix(ref IntVec3 __result)
+        private static void Postfix(ref IntVec3 __result)
         {
             if (result.HasValue)
                 __result = result.Value;
@@ -645,7 +703,7 @@ namespace Multiplayer.Client
     {
         public static int? result;
 
-        static void Postfix(ref int __result)
+        private static void Postfix(ref int __result)
         {
             if (result.HasValue)
                 __result = result.Value;
@@ -658,9 +716,12 @@ namespace Multiplayer.Client
     {
         public static bool? shouldQueue;
 
-        static bool Prefix(KeyBindingDef __instance) => !(__instance == KeyBindingDefOf.QueueOrder && shouldQueue.HasValue);
+        private static bool Prefix(KeyBindingDef __instance)
+        {
+            return !(__instance == KeyBindingDefOf.QueueOrder && shouldQueue.HasValue);
+        }
 
-        static void Postfix(KeyBindingDef __instance, ref bool __result)
+        private static void Postfix(KeyBindingDef __instance, ref bool __result)
         {
             if (__instance == KeyBindingDefOf.QueueOrder && shouldQueue.HasValue)
                 __result = shouldQueue.Value;
@@ -668,35 +729,41 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Pawn), nameof(Pawn.SpawnSetup))]
-    static class PawnSpawnSetupMarker
+    internal static class PawnSpawnSetupMarker
     {
         public static bool respawningAfterLoad;
 
-        static void Prefix(bool respawningAfterLoad)
+        private static void Prefix(bool respawningAfterLoad)
         {
             PawnSpawnSetupMarker.respawningAfterLoad = respawningAfterLoad;
         }
 
-        static void Postfix()
+        private static void Postfix()
         {
             respawningAfterLoad = false;
         }
     }
 
     [HarmonyPatch(typeof(Pawn_PathFollower), nameof(Pawn_PathFollower.ResetToCurrentPosition))]
-    static class PatherResetPatch
+    internal static class PatherResetPatch
     {
-        static bool Prefix() => !PawnSpawnSetupMarker.respawningAfterLoad;
+        private static bool Prefix()
+        {
+            return !PawnSpawnSetupMarker.respawningAfterLoad;
+        }
     }
 
     [HarmonyPatch(typeof(Root_Play), nameof(Root_Play.SetupForQuickTestPlay))]
-    static class SetupQuickTestPatch
+    internal static class SetupQuickTestPatch
     {
         public static bool marker;
 
-        static void Prefix() => marker = true;
+        private static void Prefix()
+        {
+            marker = true;
+        }
 
-        static void Postfix()
+        private static void Postfix()
         {
             if (MpVersion.IsDebug)
                 Find.GameInitData.mapSize = 250;
@@ -705,9 +772,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(GameInitData), nameof(GameInitData.ChooseRandomStartingTile))]
-    static class RandomStartingTilePatch
+    internal static class RandomStartingTilePatch
     {
-        static void Postfix()
+        private static void Postfix()
         {
             if (MpVersion.IsDebug && SetupQuickTestPatch.marker)
             {
@@ -718,9 +785,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(GenText), nameof(GenText.RandomSeedString))]
-    static class GrammarRandomStringPatch
+    internal static class GrammarRandomStringPatch
     {
-        static void Postfix(ref string __result)
+        private static void Postfix(ref string __result)
         {
             if (MpVersion.IsDebug && SetupQuickTestPatch.marker)
                 __result = "multiplayer1";
@@ -728,9 +795,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Pawn_ApparelTracker), "<SortWornApparelIntoDrawOrder>m__0")]
-    static class FixApparelSort
+    internal static class FixApparelSort
     {
-        static void Postfix(Apparel a, Apparel b, ref int __result)
+        private static void Postfix(Apparel a, Apparel b, ref int __result)
         {
             if (__result == 0)
                 __result = a.thingIDNumber.CompareTo(b.thingIDNumber);
@@ -740,15 +807,18 @@ namespace Multiplayer.Client
     [MpPatch(typeof(OutfitDatabase), nameof(OutfitDatabase.GenerateStartingOutfits))]
     [MpPatch(typeof(DrugPolicyDatabase), nameof(DrugPolicyDatabase.GenerateStartingDrugPolicies))]
     [MpPatch(typeof(FoodRestrictionDatabase), nameof(FoodRestrictionDatabase.GenerateStartingFoodRestrictions))]
-    static class CancelReinitializationDuringLoading
+    internal static class CancelReinitializationDuringLoading
     {
-        static bool Prefix() => Scribe.mode != LoadSaveMode.LoadingVars;
+        private static bool Prefix()
+        {
+            return Scribe.mode != LoadSaveMode.LoadingVars;
+        }
     }
 
     [HarmonyPatch(typeof(OutfitDatabase), nameof(OutfitDatabase.MakeNewOutfit))]
-    static class OutfitUniqueIdPatch
+    internal static class OutfitUniqueIdPatch
     {
-        static void Postfix(Outfit __result)
+        private static void Postfix(Outfit __result)
         {
             if (Multiplayer.Ticking || Multiplayer.ExecutingCmds)
                 __result.uniqueId = Multiplayer.GlobalIdBlock.NextId();
@@ -756,9 +826,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(DrugPolicyDatabase), nameof(DrugPolicyDatabase.MakeNewDrugPolicy))]
-    static class DrugPolicyUniqueIdPatch
+    internal static class DrugPolicyUniqueIdPatch
     {
-        static void Postfix(DrugPolicy __result)
+        private static void Postfix(DrugPolicy __result)
         {
             if (Multiplayer.Ticking || Multiplayer.ExecutingCmds)
                 __result.uniqueId = Multiplayer.GlobalIdBlock.NextId();
@@ -766,9 +836,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(FoodRestrictionDatabase), nameof(FoodRestrictionDatabase.MakeNewFoodRestriction))]
-    static class FoodRestrictionUniqueIdPatch
+    internal static class FoodRestrictionUniqueIdPatch
     {
-        static void Postfix(FoodRestriction __result)
+        private static void Postfix(FoodRestriction __result)
         {
             if (Multiplayer.Ticking || Multiplayer.ExecutingCmds)
                 __result.id = Multiplayer.GlobalIdBlock.NextId();
@@ -776,11 +846,11 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(ListerFilthInHomeArea), nameof(ListerFilthInHomeArea.RebuildAll))]
-    static class ListerFilthRebuildPatch
+    internal static class ListerFilthRebuildPatch
     {
-        static bool ignore;
+        private static bool ignore;
 
-        static void Prefix(ListerFilthInHomeArea __instance)
+        private static void Prefix(ListerFilthInHomeArea __instance)
         {
             if (Multiplayer.Client == null || ignore) return;
 
@@ -791,16 +861,17 @@ namespace Multiplayer.Client
                 data.listerFilthInHomeArea.RebuildAll();
                 __instance.map.PopFaction();
             }
+
             ignore = false;
         }
     }
 
     [HarmonyPatch(typeof(ListerFilthInHomeArea), nameof(ListerFilthInHomeArea.Notify_FilthSpawned))]
-    static class ListerFilthSpawnedPatch
+    internal static class ListerFilthSpawnedPatch
     {
-        static bool ignore;
+        private static bool ignore;
 
-        static void Prefix(ListerFilthInHomeArea __instance, Filth f)
+        private static void Prefix(ListerFilthInHomeArea __instance, Filth f)
         {
             if (Multiplayer.Client == null || ignore) return;
 
@@ -811,16 +882,17 @@ namespace Multiplayer.Client
                 data.listerFilthInHomeArea.Notify_FilthSpawned(f);
                 __instance.map.PopFaction();
             }
+
             ignore = false;
         }
     }
 
     [HarmonyPatch(typeof(ListerFilthInHomeArea), nameof(ListerFilthInHomeArea.Notify_FilthDespawned))]
-    static class ListerFilthDespawnedPatch
+    internal static class ListerFilthDespawnedPatch
     {
-        static bool ignore;
+        private static bool ignore;
 
-        static void Prefix(ListerFilthInHomeArea __instance, Filth f)
+        private static void Prefix(ListerFilthInHomeArea __instance, Filth f)
         {
             if (Multiplayer.Client == null || ignore) return;
 
@@ -831,37 +903,49 @@ namespace Multiplayer.Client
                 data.listerFilthInHomeArea.Notify_FilthDespawned(f);
                 __instance.map.PopFaction();
             }
+
             ignore = false;
         }
     }
 
     [HarmonyPatch(typeof(Game), nameof(Game.LoadGame))]
-    static class LoadGameMarker
+    internal static class LoadGameMarker
     {
         public static bool loading;
 
-        static void Prefix() => loading = true;
-        static void Postfix() => loading = false;
+        private static void Prefix()
+        {
+            loading = true;
+        }
+
+        private static void Postfix()
+        {
+            loading = false;
+        }
     }
 
     [MpPatch(typeof(SoundStarter), nameof(SoundStarter.PlayOneShot))]
     [MpPatch(typeof(Command_SetPlantToGrow), nameof(Command_SetPlantToGrow.WarnAsAppropriate))]
     [MpPatch(typeof(TutorUtility), nameof(TutorUtility.DoModalDialogIfNotKnown))]
     [MpPatch(typeof(CameraJumper), nameof(CameraJumper.TryHideWorld))]
-    static class CancelFeedbackNotTargetedAtMe
+    internal static class CancelFeedbackNotTargetedAtMe
     {
         public static bool Cancel =>
             Multiplayer.Client != null &&
             Multiplayer.ExecutingCmds &&
             !TickPatch.currentExecutingCmdIssuedBySelf;
 
-        static bool Prefix() => !Cancel;
+        private static bool Prefix()
+        {
+            return !Cancel;
+        }
     }
 
-    [HarmonyPatch(typeof(Targeter), nameof(Targeter.BeginTargeting), typeof(TargetingParameters), typeof(Action<LocalTargetInfo>), typeof(Pawn), typeof(Action), typeof(Texture2D))]
-    static class CancelBeginTargeting
+    [HarmonyPatch(typeof(Targeter), nameof(Targeter.BeginTargeting), typeof(TargetingParameters),
+        typeof(Action<LocalTargetInfo>), typeof(Pawn), typeof(Action), typeof(Texture2D))]
+    internal static class CancelBeginTargeting
     {
-        static bool Prefix()
+        private static bool Prefix()
         {
             if (TickPatch.currentExecutingCmdIssuedBySelf && MapAsyncTimeComp.executingCmdMap != null)
                 MapAsyncTimeComp.keepTheMap = true;
@@ -870,11 +954,13 @@ namespace Multiplayer.Client
         }
     }
 
-    [MpPatch(typeof(MoteMaker), nameof(MoteMaker.MakeStaticMote), new[] { typeof(IntVec3), typeof(Map), typeof(ThingDef), typeof(float) })]
-    [MpPatch(typeof(MoteMaker), nameof(MoteMaker.MakeStaticMote), new[] { typeof(Vector3), typeof(Map), typeof(ThingDef), typeof(float) })]
-    static class CancelMotesNotTargetedAtMe
+    [MpPatch(typeof(MoteMaker), nameof(MoteMaker.MakeStaticMote),
+        new[] {typeof(IntVec3), typeof(Map), typeof(ThingDef), typeof(float)})]
+    [MpPatch(typeof(MoteMaker), nameof(MoteMaker.MakeStaticMote),
+        new[] {typeof(Vector3), typeof(Map), typeof(ThingDef), typeof(float)})]
+    internal static class CancelMotesNotTargetedAtMe
     {
-        static bool Prefix(ThingDef moteDef)
+        private static bool Prefix(ThingDef moteDef)
         {
             if (moteDef == ThingDefOf.Mote_FeedbackGoto)
                 return true;
@@ -883,34 +969,46 @@ namespace Multiplayer.Client
         }
     }
 
-    [HarmonyPatch(typeof(Messages), nameof(Messages.Message), new[] { typeof(Message), typeof(bool) })]
-    static class SilenceMessagesNotTargetedAtMe
+    [HarmonyPatch(typeof(Messages), nameof(Messages.Message), typeof(Message), typeof(bool))]
+    internal static class SilenceMessagesNotTargetedAtMe
     {
-        static bool Prefix(bool historical)
+        private static bool Prefix(bool historical)
         {
-            bool cancel = Multiplayer.Client != null && !historical && Multiplayer.ExecutingCmds && !TickPatch.currentExecutingCmdIssuedBySelf;
+            bool cancel = Multiplayer.Client != null && !historical && Multiplayer.ExecutingCmds &&
+                          !TickPatch.currentExecutingCmdIssuedBySelf;
             return !cancel;
         }
     }
 
-    [MpPatch(typeof(Messages), nameof(Messages.Message), new[] { typeof(string), typeof(MessageTypeDef), typeof(bool) })]
-    [MpPatch(typeof(Messages), nameof(Messages.Message), new[] { typeof(string), typeof(LookTargets), typeof(MessageTypeDef), typeof(bool) })]
-    static class MessagesMarker
+    [MpPatch(typeof(Messages), nameof(Messages.Message), new[] {typeof(string), typeof(MessageTypeDef), typeof(bool)})]
+    [MpPatch(typeof(Messages), nameof(Messages.Message),
+        new[] {typeof(string), typeof(LookTargets), typeof(MessageTypeDef), typeof(bool)})]
+    internal static class MessagesMarker
     {
         public static bool? historical;
 
-        static void Prefix(bool historical) => MessagesMarker.historical = historical;
-        static void Postfix() => historical = null;
+        private static void Prefix(bool historical)
+        {
+            MessagesMarker.historical = historical;
+        }
+
+        private static void Postfix()
+        {
+            historical = null;
+        }
     }
 
     [HarmonyPatch(typeof(UniqueIDsManager), nameof(UniqueIDsManager.GetNextMessageID))]
-    static class NextMessageIdPatch
+    internal static class NextMessageIdPatch
     {
-        static int nextUniqueUnhistoricalMessageId = -1;
+        private static int nextUniqueUnhistoricalMessageId = -1;
 
-        static bool Prefix() => !MessagesMarker.historical.HasValue || MessagesMarker.historical.Value;
+        private static bool Prefix()
+        {
+            return !MessagesMarker.historical.HasValue || MessagesMarker.historical.Value;
+        }
 
-        static void Postfix(ref int __result)
+        private static void Postfix(ref int __result)
         {
             if (MessagesMarker.historical.HasValue && !MessagesMarker.historical.Value)
                 __result = nextUniqueUnhistoricalMessageId--;
@@ -918,20 +1016,28 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Root_Play), nameof(Root_Play.Start))]
-    static class RootPlayStartMarker
+    internal static class RootPlayStartMarker
     {
         public static bool starting;
 
-        static void Prefix() => starting = true;
-        static void Postfix() => starting = false;
+        private static void Prefix()
+        {
+            starting = true;
+        }
+
+        private static void Postfix()
+        {
+            starting = false;
+        }
     }
 
-    [HarmonyPatch(typeof(LongEventHandler), nameof(LongEventHandler.QueueLongEvent), new[] { typeof(Action), typeof(string), typeof(bool), typeof(Action<Exception>) })]
-    static class CancelRootPlayStartLongEvents
+    [HarmonyPatch(typeof(LongEventHandler), nameof(LongEventHandler.QueueLongEvent), typeof(Action), typeof(string),
+        typeof(bool), typeof(Action<Exception>))]
+    internal static class CancelRootPlayStartLongEvents
     {
         public static bool cancel;
 
-        static bool Prefix()
+        private static bool Prefix()
         {
             if (RootPlayStartMarker.starting && cancel) return false;
             return true;
@@ -939,50 +1045,60 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(ScreenFader), nameof(ScreenFader.SetColor))]
-    static class DisableScreenFade1
+    internal static class DisableScreenFade1
     {
-        static bool Prefix() => !LongEventHandler.eventQueue.Any(e => e.eventTextKey == "MpLoading");
+        private static bool Prefix()
+        {
+            return !LongEventHandler.eventQueue.Any(e => e.eventTextKey == "MpLoading");
+        }
     }
 
     [HarmonyPatch(typeof(ScreenFader), nameof(ScreenFader.StartFade))]
-    static class DisableScreenFade2
+    internal static class DisableScreenFade2
     {
-        static bool Prefix() => !LongEventHandler.eventQueue.Any(e => e.eventTextKey == "MpLoading");
+        private static bool Prefix()
+        {
+            return !LongEventHandler.eventQueue.Any(e => e.eventTextKey == "MpLoading");
+        }
     }
 
     [HarmonyPatch(typeof(Pawn_MeleeVerbs), nameof(Pawn_MeleeVerbs.TryGetMeleeVerb))]
-    static class TryGetMeleeVerbPatch
+    internal static class TryGetMeleeVerbPatch
     {
-        static bool Cancel => Multiplayer.Client != null && Multiplayer.InInterface;
+        private static bool Cancel => Multiplayer.Client != null && Multiplayer.InInterface;
 
-        static bool Prefix()
+        private static bool Prefix()
         {
             // Namely FloatMenuUtility.GetMeleeAttackAction
             return !Cancel;
         }
 
-        static void Postfix(Pawn_MeleeVerbs __instance, Thing target, ref Verb __result)
+        private static void Postfix(Pawn_MeleeVerbs __instance, Thing target, ref Verb __result)
         {
             if (Cancel)
-                __result = __instance.GetUpdatedAvailableVerbsList(false).FirstOrDefault(ve => ve.GetSelectionWeight(target) != 0).verb;
+                __result = __instance.GetUpdatedAvailableVerbsList(false)
+                    .FirstOrDefault(ve => ve.GetSelectionWeight(target) != 0).verb;
         }
     }
 
     [HarmonyPatch(typeof(ThingGrid), nameof(ThingGrid.Register))]
-    static class DontEnlistNonSaveableThings
+    internal static class DontEnlistNonSaveableThings
     {
-        static bool Prefix(Thing t) => t.def.isSaveable;
+        private static bool Prefix(Thing t)
+        {
+            return t.def.isSaveable;
+        }
     }
 
     [HarmonyPatch(typeof(ThingWithComps))]
     [HarmonyPatch(nameof(ThingWithComps.InitializeComps))]
-    static class InitializeCompsPatch
+    internal static class InitializeCompsPatch
     {
-        static void Postfix(ThingWithComps __instance)
+        private static void Postfix(ThingWithComps __instance)
         {
             if (__instance is Pawn)
             {
-                MultiplayerPawnComp comp = new MultiplayerPawnComp() { parent = __instance };
+                MultiplayerPawnComp comp = new MultiplayerPawnComp {parent = __instance};
                 __instance.AllComps.Add(comp);
             }
         }
@@ -994,22 +1110,27 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Prefs), nameof(Prefs.RandomPreferredName))]
-    static class PreferredNamePatch
+    internal static class PreferredNamePatch
     {
-        static bool Prefix() => Multiplayer.Client == null;
+        private static bool Prefix()
+        {
+            return Multiplayer.Client == null;
+        }
     }
 
     [HarmonyPatch(typeof(PawnBioAndNameGenerator), nameof(PawnBioAndNameGenerator.TryGetRandomUnusedSolidName))]
-    static class GenerateNewPawnInternalPatch
+    internal static class GenerateNewPawnInternalPatch
     {
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> e)
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> e)
         {
             List<CodeInstruction> insts = new List<CodeInstruction>(e);
 
             insts.Insert(
                 insts.Count - 1,
                 new CodeInstruction(OpCodes.Ldloc_2),
-                new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(GenerateNewPawnInternalPatch), nameof(Unshuffle)).MakeGenericMethod(typeof(NameTriple)))
+                new CodeInstruction(OpCodes.Call,
+                    AccessTools.Method(typeof(GenerateNewPawnInternalPatch), nameof(Unshuffle))
+                        .MakeGenericMethod(typeof(NameTriple)))
             );
 
             return insts;
@@ -1031,31 +1152,38 @@ namespace Multiplayer.Client
         }
     }
 
-    [HarmonyPatch(typeof(GlowGrid), MethodType.Constructor, new[] { typeof(Map) })]
-    static class GlowGridCtorPatch
+    [HarmonyPatch(typeof(GlowGrid), MethodType.Constructor, typeof(Map))]
+    internal static class GlowGridCtorPatch
     {
-        static void Postfix(GlowGrid __instance)
+        private static void Postfix(GlowGrid __instance)
         {
             __instance.litGlowers = new HashSet<CompGlower>(new CompGlowerEquality());
         }
 
-        class CompGlowerEquality : IEqualityComparer<CompGlower>
+        private class CompGlowerEquality : IEqualityComparer<CompGlower>
         {
-            public bool Equals(CompGlower x, CompGlower y) => x == y;
-            public int GetHashCode(CompGlower obj) => obj.parent.thingIDNumber;
+            public bool Equals(CompGlower x, CompGlower y)
+            {
+                return x == y;
+            }
+
+            public int GetHashCode(CompGlower obj)
+            {
+                return obj.parent.thingIDNumber;
+            }
         }
     }
 
     [HarmonyPatch(typeof(MapGenerator), nameof(MapGenerator.GenerateMap))]
-    static class BeforeMapGeneration
+    internal static class BeforeMapGeneration
     {
-        static void Prefix(ref Action<Map> extraInitBeforeContentGen)
+        private static void Prefix(ref Action<Map> extraInitBeforeContentGen)
         {
             if (Multiplayer.Client == null) return;
             extraInitBeforeContentGen += SetupMap;
         }
 
-        static void Postfix()
+        private static void Postfix()
         {
             if (Multiplayer.Client == null) return;
 
@@ -1069,10 +1197,10 @@ namespace Multiplayer.Client
             Log.Message("Uniq ids " + Multiplayer.GlobalIdBlock.current);
             Log.Message("Rand " + Rand.StateCompressed);
 
-            var async = new MapAsyncTimeComp(map);
+            MapAsyncTimeComp async = new MapAsyncTimeComp(map);
             Multiplayer.game.asyncTimeComps.Add(async);
 
-            var mapComp = new MultiplayerMapComp(map);
+            MultiplayerMapComp mapComp = new MultiplayerMapComp(map);
             Multiplayer.game.mapComps.Add(mapComp);
 
             mapComp.factionMapData[Faction.OfPlayer.loadID] = FactionMapData.FromMap(map, Faction.OfPlayer.loadID);
@@ -1081,7 +1209,8 @@ namespace Multiplayer.Client
             mapComp.factionMapData[dummyFaction.loadID] = FactionMapData.New(dummyFaction.loadID, map);
             mapComp.factionMapData[dummyFaction.loadID].areaManager.AddStartingAreas();
 
-            async.mapTicks = Find.Maps.Where(m => m != map).Select(m => m.AsyncTime()?.mapTicks).Max() ?? Find.TickManager.TicksGame;
+            async.mapTicks = Find.Maps.Where(m => m != map).Select(m => m.AsyncTime()?.mapTicks).Max() ??
+                             Find.TickManager.TicksGame;
             async.storyteller = new Storyteller(Find.Storyteller.def, Find.Storyteller.difficulty);
             async.storyWatcher = new StoryWatcher();
 
@@ -1091,9 +1220,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(WorldObjectSelectionUtility), nameof(WorldObjectSelectionUtility.VisibleToCameraNow))]
-    static class CaravanVisibleToCameraPatch
+    internal static class CaravanVisibleToCameraPatch
     {
-        static void Postfix(ref bool __result)
+        private static void Postfix(ref bool __result)
         {
             if (!Multiplayer.InInterface)
                 __result = false;
@@ -1101,9 +1230,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(WindowStack), nameof(WindowStack.Add))]
-    static class DisableCaravanSplit
+    internal static class DisableCaravanSplit
     {
-        static bool Prefix(Window window)
+        private static bool Prefix(Window window)
         {
             if (Multiplayer.Client == null) return true;
 
@@ -1123,9 +1252,9 @@ namespace Multiplayer.Client
     [MpPatch(typeof(IncidentWorker_CaravanMeeting), nameof(IncidentWorker_CaravanMeeting.CanFireNowSub))]
     [MpPatch(typeof(IncidentWorker_CaravanDemand), nameof(IncidentWorker_CaravanDemand.CanFireNowSub))]
     [MpPatch(typeof(IncidentWorker_RansomDemand), nameof(IncidentWorker_RansomDemand.CanFireNowSub))]
-    static class CancelIncidents
+    internal static class CancelIncidents
     {
-        static void Postfix(ref bool __result)
+        private static void Postfix(ref bool __result)
         {
             if (Multiplayer.Client != null)
                 __result = false;
@@ -1133,21 +1262,22 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(IncidentDef), nameof(IncidentDef.TargetAllowed))]
-    static class GameConditionIncidentTargetPatch
+    internal static class GameConditionIncidentTargetPatch
     {
-        static void Postfix(IncidentDef __instance, IIncidentTarget target, ref bool __result)
+        private static void Postfix(IncidentDef __instance, IIncidentTarget target, ref bool __result)
         {
             if (Multiplayer.Client == null) return;
 
-            if (__instance.workerClass == typeof(IncidentWorker_MakeGameCondition) || __instance.workerClass == typeof(IncidentWorker_Aurora))
+            if (__instance.workerClass == typeof(IncidentWorker_MakeGameCondition) ||
+                __instance.workerClass == typeof(IncidentWorker_Aurora))
                 __result = target.IncidentTargetTags().Contains(IncidentTargetTagDefOf.Map_PlayerHome);
         }
     }
 
     [HarmonyPatch(typeof(IncidentWorker_Aurora), nameof(IncidentWorker_Aurora.AuroraWillEndSoon))]
-    static class IncidentWorkerAuroraPatch
+    internal static class IncidentWorkerAuroraPatch
     {
-        static void Postfix(Map map, ref bool __result)
+        private static void Postfix(Map map, ref bool __result)
         {
             if (Multiplayer.Client == null) return;
 
@@ -1156,31 +1286,41 @@ namespace Multiplayer.Client
         }
     }
 
-    [HarmonyPatch(typeof(NamePlayerFactionAndSettlementUtility), nameof(NamePlayerFactionAndSettlementUtility.CanNameAnythingNow))]
-    static class NoNamingInMultiplayer
+    [HarmonyPatch(typeof(NamePlayerFactionAndSettlementUtility),
+        nameof(NamePlayerFactionAndSettlementUtility.CanNameAnythingNow))]
+    internal static class NoNamingInMultiplayer
     {
-        static bool Prefix() => Multiplayer.Client == null;
+        private static bool Prefix()
+        {
+            return Multiplayer.Client == null;
+        }
     }
 
     [MpPatch(typeof(CameraJumper), nameof(CameraJumper.TrySelect))]
     [MpPatch(typeof(CameraJumper), nameof(CameraJumper.TryJumpAndSelect))]
-    [MpPatch(typeof(CameraJumper), nameof(CameraJumper.TryJump), new[] { typeof(GlobalTargetInfo) })]
-    static class NoCameraJumpingDuringSkipping
+    [MpPatch(typeof(CameraJumper), nameof(CameraJumper.TryJump), new[] {typeof(GlobalTargetInfo)})]
+    internal static class NoCameraJumpingDuringSkipping
     {
-        static bool Prefix() => !TickPatch.Skipping;
+        private static bool Prefix()
+        {
+            return !TickPatch.Skipping;
+        }
     }
 
     [HarmonyPatch(typeof(WealthWatcher), nameof(WealthWatcher.ForceRecount))]
-    static class WealthWatcherRecalc
+    internal static class WealthWatcherRecalc
     {
-        static bool Prefix() => Multiplayer.Client == null || !Multiplayer.ShouldSync;
+        private static bool Prefix()
+        {
+            return Multiplayer.Client == null || !Multiplayer.ShouldSync;
+        }
     }
 
-    static class CaptureThingSetMakers
+    internal static class CaptureThingSetMakers
     {
         public static List<ThingSetMaker> captured = new List<ThingSetMaker>();
 
-        static void Prefix(ThingSetMaker __instance)
+        private static void Prefix(ThingSetMaker __instance)
         {
             if (Current.ProgramState == ProgramState.Entry)
                 captured.Add(__instance);
@@ -1188,9 +1328,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(FloodFillerFog), nameof(FloodFillerFog.FloodUnfog))]
-    static class FloodUnfogPatch
+    internal static class FloodUnfogPatch
     {
-        static void Postfix(ref FloodUnfogResult __result)
+        private static void Postfix(ref FloodUnfogResult __result)
         {
             if (Multiplayer.Client != null)
                 __result.allOnScreen = false;
@@ -1198,13 +1338,14 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Pawn_DrawTracker), nameof(Pawn_DrawTracker.DrawTrackerTick))]
-    static class DrawTrackerTickPatch
+    internal static class DrawTrackerTickPatch
     {
-        static MethodInfo CellRectContains = AccessTools.Method(typeof(CellRect), nameof(CellRect.Contains));
+        private static readonly MethodInfo CellRectContains =
+            AccessTools.Method(typeof(CellRect), nameof(CellRect.Contains));
 
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
         {
-            foreach (var inst in insts)
+            foreach (CodeInstruction inst in insts)
             {
                 yield return inst;
 
@@ -1218,15 +1359,15 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Archive), nameof(Archive.Add))]
-    static class ArchiveAddPatch
+    internal static class ArchiveAddPatch
     {
-        static bool Prefix(IArchivable archivable)
+        private static bool Prefix(IArchivable archivable)
         {
             if (Multiplayer.Client == null) return true;
 
             if (archivable is Message msg && msg.ID < 0)
                 return false;
-            else if (archivable is Letter letter && letter.ID < 0)
+            if (archivable is Letter letter && letter.ID < 0)
                 return false;
 
             return true;
@@ -1235,73 +1376,77 @@ namespace Multiplayer.Client
 
     // todo does this cause issues?
     [HarmonyPatch(typeof(Tradeable), nameof(Tradeable.GetHashCode))]
-    static class TradeableHashCode
+    internal static class TradeableHashCode
     {
-        static bool Prefix() => false;
+        private static bool Prefix()
+        {
+            return false;
+        }
 
-        static void Postfix(Tradeable __instance, ref int __result)
+        private static void Postfix(Tradeable __instance, ref int __result)
         {
             __result = RuntimeHelpers.GetHashCode(__instance);
         }
     }
 
-    [HarmonyPatch(typeof(LongEventHandler), nameof(LongEventHandler.QueueLongEvent), new[] { typeof(Action), typeof(string), typeof(bool), typeof(Action<Exception>) })]
-    static class MarkLongEvents
+    [HarmonyPatch(typeof(LongEventHandler), nameof(LongEventHandler.QueueLongEvent), typeof(Action), typeof(string),
+        typeof(bool), typeof(Action<Exception>))]
+    internal static class MarkLongEvents
     {
-        private static MethodInfo MarkerMethod = AccessTools.Method(typeof(MarkLongEvents), nameof(Marker));
+        private static readonly MethodInfo MarkerMethod = AccessTools.Method(typeof(MarkLongEvents), nameof(Marker));
 
-        static void Prefix(ref Action action)
+        private static void Prefix(ref Action action)
         {
-            if (Multiplayer.Client != null && (Multiplayer.Ticking || Multiplayer.ExecutingCmds))
-            {
-                action += Marker;
-            }
+            if (Multiplayer.Client != null && (Multiplayer.Ticking || Multiplayer.ExecutingCmds)) action += Marker;
         }
 
-        private static void Marker() { }
+        private static void Marker()
+        {
+        }
 
         public static bool IsTickMarked(Action action)
         {
-            return (action as MulticastDelegate)?.GetInvocationList()?.Any(d => d.Method == MarkerMethod) ?? false;
+            return action?.GetInvocationList()?.Any(d => d.Method == MarkerMethod) ?? false;
         }
     }
 
     [HarmonyPatch(typeof(LongEventHandler), nameof(LongEventHandler.LongEventsUpdate))]
-    static class NewLongEvent
+    internal static class NewLongEvent
     {
         public static bool currentEventWasMarked;
 
-        static void Prefix(ref bool __state)
+        private static void Prefix(ref bool __state)
         {
             __state = LongEventHandler.currentEvent == null;
             currentEventWasMarked = MarkLongEvents.IsTickMarked(LongEventHandler.currentEvent?.eventAction);
         }
 
-        static void Postfix(bool __state)
+        private static void Postfix(bool __state)
         {
             currentEventWasMarked = false;
 
             if (Multiplayer.Client == null) return;
 
             if (__state && MarkLongEvents.IsTickMarked(LongEventHandler.currentEvent?.eventAction))
-                Multiplayer.Client.Send(Packets.Client_Pause, new object[] { true });
+                Multiplayer.Client.Send(Packets.ClientPause, true);
         }
     }
 
     [HarmonyPatch(typeof(LongEventHandler), nameof(LongEventHandler.ExecuteToExecuteWhenFinished))]
-    static class LongEventEnd
+    internal static class LongEventEnd
     {
-        static void Postfix()
+        private static void Postfix()
         {
             if (Multiplayer.Client != null && NewLongEvent.currentEventWasMarked)
-                Multiplayer.Client.Send(Packets.Client_Pause, new object[] { false });
+                Multiplayer.Client.Send(Packets.ClientPause, false);
         }
     }
 
-    [HarmonyPatch(typeof(LongEventHandler), nameof(LongEventHandler.QueueLongEvent), new[] { typeof(Action), typeof(string), typeof(bool), typeof(Action<Exception>) })]
-    static class LongEventAlwaysSync
+    [HarmonyPatch(typeof(LongEventHandler), nameof(LongEventHandler.QueueLongEvent), typeof(Action), typeof(string),
+        typeof(bool), typeof(Action<Exception>))]
+    internal static class LongEventAlwaysSync
     {
-        static void Prefix(ref bool doAsynchronously)
+        private static void Prefix(ref bool doAsynchronously)
         {
             if (Multiplayer.ExecutingCmds)
                 doAsynchronously = false;
@@ -1309,18 +1454,25 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(StoreUtility), nameof(StoreUtility.TryFindBestBetterStoreCellForWorker))]
-    static class FindBestStorageCellMarker
+    internal static class FindBestStorageCellMarker
     {
         public static bool executing;
 
-        static void Prefix() => executing = true;
-        static void Postfix() => executing = false;
+        private static void Prefix()
+        {
+            executing = true;
+        }
+
+        private static void Postfix()
+        {
+            executing = false;
+        }
     }
 
     [HarmonyPatch(typeof(RandomNumberGenerator_BasicHash), nameof(RandomNumberGenerator_BasicHash.GetHash))]
-    static class RandGetHashPatch
+    internal static class RandGetHashPatch
     {
-        static void Postfix()
+        private static void Postfix()
         {
             if (!MpVersion.IsDebug) return;
 
@@ -1340,21 +1492,22 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Zone), nameof(Zone.Cells), MethodType.Getter)]
-    static class ZoneCellsShufflePatch
+    internal static class ZoneCellsShufflePatch
     {
-        static FieldInfo CellsShuffled = AccessTools.Field(typeof(Zone), nameof(Zone.cellsShuffled));
+        private static readonly FieldInfo CellsShuffled = AccessTools.Field(typeof(Zone), nameof(Zone.cellsShuffled));
 
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
         {
             bool found = false;
 
-            foreach (var inst in insts)
+            foreach (CodeInstruction inst in insts)
             {
                 yield return inst;
 
                 if (!found && inst.operand == CellsShuffled)
                 {
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ZoneCellsShufflePatch), nameof(ShouldShuffle)));
+                    yield return new CodeInstruction(OpCodes.Call,
+                        AccessTools.Method(typeof(ZoneCellsShufflePatch), nameof(ShouldShuffle)));
                     yield return new CodeInstruction(OpCodes.Not);
                     yield return new CodeInstruction(OpCodes.Or);
                     found = true;
@@ -1362,20 +1515,21 @@ namespace Multiplayer.Client
             }
         }
 
-        static bool ShouldShuffle()
+        private static bool ShouldShuffle()
         {
             return Multiplayer.Client == null || Multiplayer.Ticking;
         }
     }
 
     [HarmonyPatch(typeof(WorkGiver_DoBill), nameof(WorkGiver_DoBill.StartOrResumeBillJob))]
-    static class StartOrResumeBillPatch
+    internal static class StartOrResumeBillPatch
     {
-        static FieldInfo LastFailTicks = AccessTools.Field(typeof(Bill), nameof(Bill.lastIngredientSearchFailTicks));
+        private static readonly FieldInfo LastFailTicks =
+            AccessTools.Field(typeof(Bill), nameof(Bill.lastIngredientSearchFailTicks));
 
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts, MethodBase original)
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts, MethodBase original)
         {
-            var list = new List<CodeInstruction>(insts);
+            List<CodeInstruction> list = new List<CodeInstruction>(insts);
 
             int index = new CodeFinder(original, list).Forward(OpCodes.Stfld, LastFailTicks).Advance(-1);
             if (list[index].opcode != OpCodes.Ldc_I4_0)
@@ -1393,16 +1547,16 @@ namespace Multiplayer.Client
             return list;
         }
 
-        static int Value(Bill bill, Pawn pawn)
+        private static int Value(Bill bill, Pawn pawn)
         {
             return FloatMenuMakerMap.makingFor == pawn ? bill.lastIngredientSearchFailTicks : 0;
         }
     }
 
     [HarmonyPatch(typeof(Archive), "<Add>m__2")]
-    static class SortArchivablesById
+    internal static class SortArchivablesById
     {
-        static void Postfix(IArchivable x, ref int __result)
+        private static void Postfix(IArchivable x, ref int __result)
         {
             if (x is ArchivedDialog dialog)
                 __result = dialog.ID;
@@ -1414,11 +1568,14 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(DangerWatcher), nameof(DangerWatcher.DangerRating), MethodType.Getter)]
-    static class DangerRatingPatch
+    internal static class DangerRatingPatch
     {
-        static bool Prefix() => !Multiplayer.InInterface;
+        private static bool Prefix()
+        {
+            return !Multiplayer.InInterface;
+        }
 
-        static void Postfix(DangerWatcher __instance, ref StoryDanger __result)
+        private static void Postfix(DangerWatcher __instance, ref StoryDanger __result)
         {
             if (Multiplayer.InInterface)
                 __result = __instance.dangerRatingInt;
@@ -1426,32 +1583,35 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Selector), nameof(Selector.Deselect))]
-    static class SelectorDeselectPatch
+    internal static class SelectorDeselectPatch
     {
         public static List<object> deselected;
 
-        static void Prefix(object obj)
+        private static void Prefix(object obj)
         {
             if (deselected != null)
                 deselected.Add(obj);
         }
     }
 
-    [HarmonyPatch(typeof(DirectXmlSaver), nameof(DirectXmlSaver.XElementFromObject), typeof(object), typeof(Type), typeof(string), typeof(FieldInfo), typeof(bool))]
-    static class ExtendDirectXmlSaver
+    [HarmonyPatch(typeof(DirectXmlSaver), nameof(DirectXmlSaver.XElementFromObject), typeof(object), typeof(Type),
+        typeof(string), typeof(FieldInfo), typeof(bool))]
+    internal static class ExtendDirectXmlSaver
     {
         public static bool extend;
 
-        static bool Prefix(object obj, Type expectedType, string nodeName, FieldInfo owningField, ref XElement __result)
+        private static bool Prefix(object obj, Type expectedType, string nodeName, FieldInfo owningField,
+            ref XElement __result)
         {
             if (!extend) return true;
             if (obj == null) return true;
 
             if (obj is Array arr)
             {
-                var elementType = arr.GetType().GetElementType();
-                var listType = typeof(List<>).MakeGenericType(elementType);
-                __result = DirectXmlSaver.XElementFromObject(Activator.CreateInstance(listType, arr), listType, nodeName, owningField);
+                Type elementType = arr.GetType().GetElementType();
+                Type listType = typeof(List<>).MakeGenericType(elementType);
+                __result = DirectXmlSaver.XElementFromObject(Activator.CreateInstance(listType, arr), listType,
+                    nodeName, owningField);
                 return false;
             }
 
@@ -1475,15 +1635,18 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(TickManager), nameof(TickManager.Pause))]
-    static class TickManagerPausePatch
+    internal static class TickManagerPausePatch
     {
-        static bool Prefix() => Multiplayer.Client == null;
+        private static bool Prefix()
+        {
+            return Multiplayer.Client == null;
+        }
     }
 
     [HarmonyPatch(typeof(WorldRoutePlanner), nameof(WorldRoutePlanner.ShouldStop), MethodType.Getter)]
-    static class RoutePlanner_ShouldStop_Patch
+    internal static class RoutePlanner_ShouldStop_Patch
     {
-        static void Postfix(WorldRoutePlanner __instance, ref bool __result)
+        private static void Postfix(WorldRoutePlanner __instance, ref bool __result)
         {
             if (Multiplayer.Client == null) return;
 
@@ -1494,15 +1657,18 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Caravan), nameof(Caravan.ImmobilizedByMass), MethodType.Getter)]
-    static class ImmobilizedByMass_Patch
+    internal static class ImmobilizedByMass_Patch
     {
-        static bool Prefix() => !Multiplayer.InInterface;
+        private static bool Prefix()
+        {
+            return !Multiplayer.InInterface;
+        }
     }
 
     [HarmonyPatch(typeof(Building_CommsConsole), nameof(Building_CommsConsole.GetFloatMenuOptions))]
-    static class FactionCallNotice
+    internal static class FactionCallNotice
     {
-        static void Postfix(ref IEnumerable<FloatMenuOption> __result)
+        private static void Postfix(ref IEnumerable<FloatMenuOption> __result)
         {
             if (Multiplayer.Client != null)
                 __result = __result.Concat(new FloatMenuOption("MpCallingFactionNotAvailable".Translate(), null));
@@ -1510,47 +1676,67 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(PawnGenerator), nameof(PawnGenerator.GeneratePawn), typeof(PawnGenerationRequest))]
-    static class CancelSyncDuringPawnGeneration
+    internal static class CancelSyncDuringPawnGeneration
     {
-        static void Prefix() => Multiplayer.dontSync = true;
-        static void Postfix() => Multiplayer.dontSync = false;
+        private static void Prefix()
+        {
+            Multiplayer.dontSync = true;
+        }
+
+        private static void Postfix()
+        {
+            Multiplayer.dontSync = false;
+        }
     }
 
     [HarmonyPatch(typeof(StoryWatcher_PopAdaptation), nameof(StoryWatcher_PopAdaptation.Notify_PawnEvent))]
-    static class CancelStoryWatcherEventInInterface
+    internal static class CancelStoryWatcherEventInInterface
     {
-        static bool Prefix() => !Multiplayer.InInterface;
+        private static bool Prefix()
+        {
+            return !Multiplayer.InInterface;
+        }
     }
 
     [HarmonyPatch(typeof(DesignationDragger), nameof(DesignationDragger.UpdateDragCellsIfNeeded))]
-    static class CancelUpdateDragCellsIfNeeded
+    internal static class CancelUpdateDragCellsIfNeeded
     {
-        static bool Prefix() => !Multiplayer.ExecutingCmds;
+        private static bool Prefix()
+        {
+            return !Multiplayer.ExecutingCmds;
+        }
     }
 
     [HarmonyPatch(typeof(Pawn_WorkSettings), nameof(Pawn_WorkSettings.SetPriority))]
-    static class WorkPrioritySameValue
+    internal static class WorkPrioritySameValue
     {
         [HarmonyPriority(MpPriority.MpFirst + 1)]
-        static bool Prefix(Pawn_WorkSettings __instance, WorkTypeDef w, int priority) => __instance.GetPriority(w) != priority;
+        private static bool Prefix(Pawn_WorkSettings __instance, WorkTypeDef w, int priority)
+        {
+            return __instance.GetPriority(w) != priority;
+        }
     }
 
     [HarmonyPatch(typeof(Pawn_PlayerSettings), nameof(Pawn_PlayerSettings.AreaRestriction), MethodType.Setter)]
-    static class AreaRestrictionSameValue
+    internal static class AreaRestrictionSameValue
     {
         [HarmonyPriority(MpPriority.MpFirst + 1)]
-        static bool Prefix(Pawn_PlayerSettings __instance, Area value) => __instance.AreaRestriction != value;
+        private static bool Prefix(Pawn_PlayerSettings __instance, Area value)
+        {
+            return __instance.AreaRestriction != value;
+        }
     }
 
     [MpPatch(typeof(GlobalTargetInfo), nameof(GlobalTargetInfo.GetHashCode))]
     [MpPatch(typeof(TargetInfo), nameof(TargetInfo.GetHashCode))]
-    static class PatchTargetInfoHashCodes
+    internal static class PatchTargetInfoHashCodes
     {
-        static MethodInfo Combine = AccessTools.Method(typeof(Gen), nameof(Gen.HashCombine)).MakeGenericMethod(typeof(Map));
+        private static readonly MethodInfo Combine =
+            AccessTools.Method(typeof(Gen), nameof(Gen.HashCombine)).MakeGenericMethod(typeof(Map));
 
-        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
+        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
         {
-            foreach (var inst in insts)
+            foreach (CodeInstruction inst in insts)
             {
                 if (inst.operand == Combine)
                     inst.operand = AccessTools.Method(typeof(PatchTargetInfoHashCodes), nameof(CombineHashes));
@@ -1559,7 +1745,9 @@ namespace Multiplayer.Client
             }
         }
 
-        static int CombineHashes(int seed, Map map) => Gen.HashCombineInt(seed, map.uniqueID);
+        private static int CombineHashes(int seed, Map map)
+        {
+            return Gen.HashCombineInt(seed, map.uniqueID);
+        }
     }
-
 }

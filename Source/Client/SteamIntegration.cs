@@ -1,17 +1,19 @@
-﻿using Multiplayer.Common;
-using Steamworks;
-using System;
+﻿#region
+
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
+using Multiplayer.Common;
+using Steamworks;
 using UnityEngine;
-using Verse;
+
+#endregion
 
 namespace Multiplayer.Client
 {
     public static class SteamIntegration
     {
+        public const string SteamConnectStart = " -mpserver=";
         private static Callback<P2PSessionRequest_t> sessionReq;
         private static Callback<P2PSessionConnectFail_t> p2pFail;
         private static Callback<FriendRichPresenceUpdate_t> friendRchpUpdate;
@@ -20,7 +22,8 @@ namespace Multiplayer.Client
 
         public static AppId_t RimWorldAppId;
 
-        public const string SteamConnectStart = " -mpserver=";
+        private static readonly Stopwatch lastSteamUpdate = Stopwatch.StartNew();
+        private static bool lastSteam;
 
         public static void InitCallbacks()
         {
@@ -28,8 +31,9 @@ namespace Multiplayer.Client
 
             sessionReq = Callback<P2PSessionRequest_t>.Create(req =>
             {
-                var session = Multiplayer.session;
-                if (session?.localSettings != null && session.localSettings.steam && !session.pendingSteam.Contains(req.m_steamIDRemote))
+                MultiplayerSession session = Multiplayer.session;
+                if (session?.localSettings != null && session.localSettings.steam &&
+                    !session.pendingSteam.Contains(req.m_steamIDRemote))
                 {
                     if (MultiplayerMod.settings.autoAcceptSteam)
                         SteamNetworking.AcceptP2PSessionWithUser(req.m_steamIDRemote);
@@ -43,35 +47,30 @@ namespace Multiplayer.Client
                 }
             });
 
-            friendRchpUpdate = Callback<FriendRichPresenceUpdate_t>.Create(update =>
-            {
-            });
+            friendRchpUpdate = Callback<FriendRichPresenceUpdate_t>.Create(update => { });
 
-            gameJoinReq = Callback<GameRichPresenceJoinRequested_t>.Create(req =>
-            {
-            });
+            gameJoinReq = Callback<GameRichPresenceJoinRequested_t>.Create(req => { });
 
-            personaChange = Callback<PersonaStateChange_t>.Create(change =>
-            {
-            });
+            personaChange = Callback<PersonaStateChange_t>.Create(change => { });
 
             p2pFail = Callback<P2PSessionConnectFail_t>.Create(fail =>
             {
-                var session = Multiplayer.session;
+                MultiplayerSession session = Multiplayer.session;
                 if (session == null) return;
 
-                var remoteId = fail.m_steamIDRemote;
-                var error = (EP2PSessionError)fail.m_eP2PSessionError;
+                CSteamID remoteId = fail.m_steamIDRemote;
+                EP2PSessionError error = (EP2PSessionError) fail.m_eP2PSessionError;
 
                 if (Multiplayer.Client is SteamBaseConn clientConn && clientConn.remoteId == remoteId)
                     clientConn.OnError(error);
 
-                var server = Multiplayer.LocalServer;
+                MultiplayerServer server = Multiplayer.LocalServer;
                 if (server == null) return;
 
                 server.Enqueue(() =>
                 {
-                    var conn = server.players.Select(p => p.conn).OfType<SteamBaseConn>().FirstOrDefault(c => c.remoteId == remoteId);
+                    SteamBaseConn conn = server.players.Select(p => p.conn).OfType<SteamBaseConn>()
+                        .FirstOrDefault(c => c.remoteId == remoteId);
                     if (conn != null)
                         conn.OnError(error);
                 });
@@ -80,19 +79,20 @@ namespace Multiplayer.Client
 
         public static IEnumerable<SteamPacket> ReadPackets()
         {
-            while (SteamNetworking.IsP2PPacketAvailable(out uint size, 0))
+            while (SteamNetworking.IsP2PPacketAvailable(out uint size))
             {
                 byte[] data = new byte[size];
 
-                if (!SteamNetworking.ReadP2PPacket(data, size, out uint sizeRead, out CSteamID remote, 0)) continue;
+                if (!SteamNetworking.ReadP2PPacket(data, size, out uint sizeRead, out CSteamID remote)) continue;
                 if (data.Length <= 0) continue;
 
-                var reader = new ByteReader(data);
+                ByteReader reader = new ByteReader(data);
                 byte info = reader.ReadByte();
                 bool joinPacket = (info & 1) > 0;
                 bool reliable = (info & 2) > 0;
 
-                yield return new SteamPacket() { remote = remote, data = reader, joinPacket = joinPacket, reliable = reliable };
+                yield return new SteamPacket
+                    {remote = remote, data = reader, joinPacket = joinPacket, reliable = reliable};
             }
         }
 
@@ -104,12 +104,13 @@ namespace Multiplayer.Client
 
         public static void ServerSteamNetTick(MultiplayerServer server)
         {
-            foreach (var packet in ReadPackets())
+            foreach (SteamPacket packet in ReadPackets())
             {
                 if (packet.joinPacket)
                     ClearChannel(0);
 
-                var player = server.players.FirstOrDefault(p => p.conn is SteamBaseConn conn && conn.remoteId == packet.remote);
+                ServerPlayer player =
+                    server.players.FirstOrDefault(p => p.conn is SteamBaseConn conn && conn.remoteId == packet.remote);
 
                 if (packet.joinPacket && player == null)
                 {
@@ -118,23 +119,17 @@ namespace Multiplayer.Client
                     player = server.OnConnected(conn);
                     player.type = PlayerType.Steam;
 
-                    player.steamId = (ulong)packet.remote;
+                    player.steamId = (ulong) packet.remote;
                     player.steamPersonaName = SteamFriends.GetFriendPersonaName(packet.remote);
                     if (player.steamPersonaName.Length == 0)
                         player.steamPersonaName = "[unknown]";
 
-                    conn.Send(Packets.Server_SteamAccept);
+                    conn.Send(Packets.ServerSteamAccept);
                 }
 
-                if (!packet.joinPacket && player != null)
-                {
-                    player.HandleReceive(packet.data, packet.reliable);
-                }
+                if (!packet.joinPacket && player != null) player.HandleReceive(packet.data, packet.reliable);
             }
         }
-
-        private static Stopwatch lastSteamUpdate = Stopwatch.StartNew();
-        private static bool lastSteam;
 
         public static void UpdateRichPresence()
         {
@@ -183,13 +178,13 @@ namespace Multiplayer.Client
             uint sizeInBytes = width * height * 4;
             byte[] data = new byte[sizeInBytes];
 
-            if (!SteamUtils.GetImageRGBA(id, data, (int)sizeInBytes))
+            if (!SteamUtils.GetImageRGBA(id, data, (int) sizeInBytes))
             {
                 cache[id] = null;
                 return null;
             }
 
-            tex = new Texture2D((int)width, (int)height, TextureFormat.RGBA32, false);
+            tex = new Texture2D((int) width, (int) height, TextureFormat.RGBA32, false);
             tex.LoadRawTextureData(data);
             tex.Apply();
 
@@ -198,5 +193,4 @@ namespace Multiplayer.Client
             return tex;
         }
     }
-
 }

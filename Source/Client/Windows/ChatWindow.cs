@@ -1,13 +1,16 @@
-﻿using Multiplayer.Common;
-using RimWorld;
-using Steamworks;
+﻿#region
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
+using LiteNetLib;
+using Multiplayer.Common;
+using RimWorld;
+using Steamworks;
 using UnityEngine;
 using Verse;
-using Verse.Steam;
+
+#endregion
 
 namespace Multiplayer.Client
 {
@@ -15,20 +18,15 @@ namespace Multiplayer.Client
     [HotSwappable]
     public class ChatWindow : Window
     {
-        public static ChatWindow Opened => Find.WindowStack?.WindowOfType<ChatWindow>();
-
-        public override Vector2 InitialSize => new Vector2(640f, 460f);
-
-        private static readonly Texture2D SelectedMsg = SolidColorMaterials.NewSolidColorTexture(new Color(0.17f, 0.17f, 0.17f, 0.85f));
+        private static readonly Texture2D SelectedMsg =
+            SolidColorMaterials.NewSolidColorTexture(new Color(0.17f, 0.17f, 0.17f, 0.85f));
 
         private Vector2 chatScroll;
-        private Vector2 playerListScroll;
-        private Vector2 steamScroll;
-        private float messagesHeight;
         private string currentMsg = "";
         private bool hasBeenFocused;
-
-        public override float Margin => 0f;
+        private float messagesHeight;
+        private Vector2 playerListScroll;
+        private Vector2 steamScroll;
 
         public ChatWindow()
         {
@@ -51,6 +49,12 @@ namespace Multiplayer.Client
             }
         }
 
+        public static ChatWindow Opened => Find.WindowStack?.WindowOfType<ChatWindow>();
+
+        public override Vector2 InitialSize => new Vector2(640f, 460f);
+
+        public override float Margin => 0f;
+
         public override void DoWindowContents(Rect inRect)
         {
             if (MultiplayerMod.settings.transparentChat && !Mouse.IsOver(inRect))
@@ -72,13 +76,11 @@ namespace Multiplayer.Client
             Text.Font = GameFont.Small;
 
             if (Event.current.type == EventType.KeyDown)
-            {
                 if (Event.current.keyCode == KeyCode.Return)
                 {
                     SendMsg();
                     Event.current.Use();
                 }
-            }
 
             const float infoWidth = 140f;
             Rect chat = new Rect(inRect.x, inRect.y, inRect.width - infoWidth - 10f, inRect.height);
@@ -111,7 +113,7 @@ namespace Multiplayer.Client
                 {
                     if (p.type == PlayerType.Steam)
                     {
-                        var steamIcon = new Rect(rect.xMax - 24f, 0, 24f, 24f);
+                        Rect steamIcon = new Rect(rect.xMax - 24f, 0, 24f, 24f);
                         rect.width -= 24f;
                         GUI.DrawTexture(steamIcon, ContentSourceUtility.ContentSourceIcon_SteamWorkshop);
                         TooltipHandler.TipRegion(steamIcon, new TipSignal($"{p.steamPersonaName}\n{p.steamId}", p.id));
@@ -143,12 +145,11 @@ namespace Multiplayer.Client
         private void ClickPlayer(PlayerInfo p)
         {
             if (p.id == 0 && Event.current.button == 1)
-            {
-                Find.WindowStack.Add(new FloatMenu(new List<FloatMenuOption>()
+                Find.WindowStack.Add(new FloatMenu(new List<FloatMenuOption>
                 {
-                    new FloatMenuOption("MpSeeModList".Translate(), () => DefMismatchWindow.ShowModList(Multiplayer.session.mods))
+                    new FloatMenuOption("MpSeeModList".Translate(),
+                        () => DefMismatchWindow.ShowModList(Multiplayer.session.mods))
                 }));
-            }
         }
 
         private void AcceptSteamPlayer(CSteamID id)
@@ -169,7 +170,9 @@ namespace Multiplayer.Client
             }
         }
 
-        private void DrawList<T>(string label, IList<T> entries, Func<T, string> entryString, ref Rect inRect, ref Vector2 scroll, Action<T> click = null, bool hideEmpty = false, string tooltip = null, Action<T, Rect> extra = null, Func<T, Color?> entryLabelColor = null)
+        private void DrawList<T>(string label, IList<T> entries, Func<T, string> entryString, ref Rect inRect,
+            ref Vector2 scroll, Action<T> click = null, bool hideEmpty = false, string tooltip = null,
+            Action<T, Rect> extra = null, Func<T, Color?> entryLabelColor = null)
         {
             if (hideEmpty && entries.Count == 0) return;
 
@@ -196,7 +199,7 @@ namespace Multiplayer.Client
                 T entry = entries[i];
                 string entryLabel = entryString(entry);
 
-                var entryRect = new Rect(0, y, viewRect.width, entryHeight);
+                Rect entryRect = new Rect(0, y, viewRect.width, entryHeight);
                 GUI.BeginGroup(entryRect);
                 entryRect = entryRect.AtZero();
 
@@ -216,8 +219,8 @@ namespace Multiplayer.Client
                 if (tooltip != null)
                     TooltipHandler.TipRegion(entryRect, tooltip);
 
-                var prevColor = GUI.color;
-                var labelColor = entryLabelColor?.Invoke(entry);
+                Color prevColor = GUI.color;
+                Color? labelColor = entryLabelColor?.Invoke(entry);
                 if (labelColor != null)
                     GUI.color = labelColor.Value;
 
@@ -241,7 +244,8 @@ namespace Multiplayer.Client
 
         private void DrawChat(Rect inRect)
         {
-            if ((Event.current.type == EventType.mouseDown || KeyBindingDefOf.Cancel.KeyDownEvent) && !GUI.GetNameOfFocusedControl().NullOrEmpty())
+            if ((Event.current.type == EventType.mouseDown || KeyBindingDefOf.Cancel.KeyDownEvent) &&
+                !GUI.GetNameOfFocusedControl().NullOrEmpty())
             {
                 Event.current.Use();
                 UI.UnfocusCurrentControl();
@@ -310,7 +314,8 @@ namespace Multiplayer.Client
 
             Widgets.EndScrollView();
 
-            if (Widgets.ButtonText(new Rect(textField.xMax + 5f, textField.y, 55f, textField.height), "MpSend".Translate()))
+            if (Widgets.ButtonText(new Rect(textField.xMax + 5f, textField.y, 55f, textField.height),
+                "MpSend".Translate()))
                 SendMsg();
 
             GUI.EndGroup();
@@ -320,7 +325,8 @@ namespace Multiplayer.Client
                 chatScroll.y = messagesHeight;
 
                 GUI.FocusControl("chat_input");
-                TextEditor editor = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
+                TextEditor editor =
+                    (TextEditor) GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
                 editor.OnFocus();
                 editor.MoveTextEnd();
                 hasBeenFocused = true;
@@ -341,10 +347,10 @@ namespace Multiplayer.Client
 
             if (MpVersion.IsDebug && currentMsg == "/netinfo")
                 Find.WindowStack.Add(new DebugTextWindow(NetInfoText()));
-            else if (Multiplayer.Client == null)
+            if (Multiplayer.Client == null)
                 Multiplayer.session.AddMsg(Multiplayer.username + ": " + currentMsg);
             else
-                Multiplayer.Client.Send(Packets.Client_Chat, currentMsg);
+                Multiplayer.Client.Send(Packets.ClientChat, currentMsg);
 
             currentMsg = "";
         }
@@ -353,9 +359,9 @@ namespace Multiplayer.Client
         {
             if (Multiplayer.session == null) return "";
 
-            var text = new StringBuilder();
+            StringBuilder text = new StringBuilder();
 
-            var netClient = Multiplayer.session.netClient;
+            NetManager netClient = Multiplayer.session.netClient;
             if (netClient != null)
             {
                 text.AppendLine($"Bytes received: {netClient.Statistics.BytesReceived}");
@@ -366,7 +372,7 @@ namespace Multiplayer.Client
                 text.AppendLine();
             }
 
-            foreach (var remote in Multiplayer.session.knownUsers)
+            foreach (CSteamID remote in Multiplayer.session.knownUsers)
             {
                 text.AppendLine(SteamFriends.GetFriendPersonaName(remote));
                 text.AppendLine(remote.ToString());
@@ -407,47 +413,45 @@ namespace Multiplayer.Client
 
     public abstract class ChatMsg
     {
-        public virtual bool Clickable => false;
-        public abstract string Msg { get; }
-        public virtual DateTime TimeStamp => timestamp;
-
-        private DateTime timestamp;
-
         public ChatMsg()
         {
-            timestamp = DateTime.Now;
+            TimeStamp = DateTime.Now;
         }
 
-        public virtual void Click() { }
+        public virtual bool Clickable => false;
+        public abstract string Msg { get; }
+        public virtual DateTime TimeStamp { get; }
+
+        public virtual void Click()
+        {
+        }
     }
 
     public class ChatMsg_Text : ChatMsg
     {
-        private string msg;
-        public override string Msg => msg;
-
         public ChatMsg_Text(string msg)
         {
-            this.msg = msg;
+            Msg = msg;
         }
+
+        public override string Msg { get; }
     }
 
     public class ChatMsg_Url : ChatMsg
     {
-        public override string Msg => url;
-        public override bool Clickable => true;
-
-        private string url;
+        private readonly string url;
 
         public ChatMsg_Url(string url)
         {
             this.url = url;
         }
 
+        public override string Msg => url;
+        public override bool Clickable => true;
+
         public override void Click()
         {
             Application.OpenURL(url);
         }
     }
-
 }
