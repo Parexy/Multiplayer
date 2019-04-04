@@ -53,7 +53,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp_public">
-      <HintPath>..\..\..\RimWorldWin64_Data\Managed\Assembly-CSharp_public.dll</HintPath>
+      <HintPath>..\Publicise\Assembly-CSharp_public.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="System" />
@@ -142,6 +142,10 @@ powershell -executionpolicy bypass -file release.ps1
 echo "Release"
 ) ELSE (
 echo "Debug"
-)</PostBuildEvent>
+)
+</PostBuildEvent>
+  </PropertyGroup>
+  <PropertyGroup>
+    <PreBuildEvent>$(ProjectDir)..\Publicise\Publicise.exe "$(ProjectDir)\..\..\..\RimWorldWin64_Data\Managed\Assembly-CSharp.dll" "$(ProjectDir)\..\Publicise"</PreBuildEvent>
   </PropertyGroup>
 </Project>
