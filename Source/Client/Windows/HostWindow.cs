@@ -1,33 +1,33 @@
-﻿#region
-
-using System.Net;
-using Multiplayer.Common;
+﻿using Multiplayer.Common;
 using RimWorld;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
+using System.Reflection;
+using System.Text;
+using System.Threading;
 using UnityEngine;
 using Verse;
 using Verse.Profile;
 using Verse.Sound;
 using Verse.Steam;
 
-#endregion
-
 namespace Multiplayer.Client
 {
     [HotSwappable]
     public class HostWindow : Window
     {
-        private readonly SaveFile file;
+        public override Vector2 InitialSize => new Vector2(450f, height + 45f);
 
-        private readonly ServerSettings settings = new ServerSettings();
-        private readonly bool withSimulation;
+        private SaveFile file;
+        public bool returnToServerBrowser;
+        private bool withSimulation;
         private bool asyncTime;
         private bool debugMode;
 
         private float height;
-        private bool lan, direct;
-
-        private string maxPlayersBuffer, autosaveBuffer, addressBuffer;
-        public bool returnToServerBrowser;
 
         public HostWindow(SaveFile file = null, bool withSimulation = false)
         {
@@ -38,7 +38,7 @@ namespace Multiplayer.Client
             this.file = file;
             settings.gameName = file?.gameName ?? Multiplayer.session?.gameName ?? $"{Multiplayer.username}'s game";
 
-            string localAddr = MpUtil.GetLocalIpAddress() ?? "127.0.0.1";
+            var localAddr = MpUtil.GetLocalIpAddress() ?? "127.0.0.1";
             settings.lanAddress = localAddr;
             addressBuffer = localAddr;
 
@@ -49,7 +49,10 @@ namespace Multiplayer.Client
                 debugMode = true;
         }
 
-        public override Vector2 InitialSize => new Vector2(450f, height + 45f);
+        private ServerSettings settings = new ServerSettings();
+
+        private string maxPlayersBuffer, autosaveBuffer, addressBuffer;
+        private bool lan, direct;
 
         public override void DoWindowContents(Rect inRect)
         {
@@ -68,19 +71,16 @@ namespace Multiplayer.Client
             Text.Anchor = TextAnchor.UpperLeft;
             Text.Font = GameFont.Small;
 
-            Rect entry = new Rect(0, 45, inRect.width, 30f);
+            var entry = new Rect(0, 45, inRect.width, 30f);
 
-            float labelWidth = 110f;
+            var labelWidth = 110f;
 
-            settings.gameName =
-                TextEntryLabeled(entry, $"{"MpGameName".Translate()}:  ", settings.gameName, labelWidth);
+            settings.gameName = TextEntryLabeled(entry, $"{"MpGameName".Translate()}:  ", settings.gameName, labelWidth);
             entry = entry.Down(40);
 
-            TextFieldNumericLabeled(entry.Width(labelWidth + 30f), $"{"MpMaxPlayers".Translate()}:  ",
-                ref settings.maxPlayers, ref maxPlayersBuffer, labelWidth, 0, 999);
+            TextFieldNumericLabeled(entry.Width(labelWidth + 30f), $"{"MpMaxPlayers".Translate()}:  ", ref settings.maxPlayers, ref maxPlayersBuffer, labelWidth, 0, 999);
 
-            TextFieldNumericLabeled(entry.Right(150f).Width(labelWidth + 85f), $"{"MpAutosaveEvery".Translate()} ",
-                ref settings.autosaveInterval, ref autosaveBuffer, labelWidth + 50f, 0, 999);
+            TextFieldNumericLabeled(entry.Right(150f).Width(labelWidth + 85f), $"{"MpAutosaveEvery".Translate()} ", ref settings.autosaveInterval, ref autosaveBuffer, labelWidth + 50f, 0, 999);
             Text.Anchor = TextAnchor.MiddleLeft;
             Widgets.Label(entry.Right(200f).Right(labelWidth + 35f), $" {"MpAutosaveMinutes".Translate()}");
             Text.Anchor = TextAnchor.UpperLeft;
@@ -93,34 +93,30 @@ namespace Multiplayer.Client
                 password = TextEntryLabeled(entry.Width(200), "Password:  ", password, labelWidth);
             entry = entry.Down(40);*/
 
-            float checkboxWidth = labelWidth + 30f;
+            var checkboxWidth = labelWidth + 30f;
 
-            string directLabel = $"{"MpDirect".Translate()}:  ";
-            float directLabelWidth = Text.CalcSize(directLabel).x;
+            var directLabel = $"{"MpDirect".Translate()}:  ";
+            var directLabelWidth = Text.CalcSize(directLabel).x;
             CheckboxLabeled(entry.Width(checkboxWidth), directLabel, ref direct, placeTextNearCheckbox: true);
             if (direct)
-                addressBuffer = Widgets.TextField(entry.Width(checkboxWidth + 10).Right(checkboxWidth + 10),
-                    addressBuffer);
+                addressBuffer = Widgets.TextField(entry.Width(checkboxWidth + 10).Right(checkboxWidth + 10), addressBuffer);
 
             entry = entry.Down(30);
 
-            Rect lanRect = entry.Width(checkboxWidth);
+            var lanRect = entry.Width(checkboxWidth);
             CheckboxLabeled(lanRect, $"{"MpLan".Translate()}:  ", ref lan, placeTextNearCheckbox: true);
-            TooltipHandler.TipRegion(lanRect,
-                $"{"MpLanDesc1".Translate()}\n\n{"MpLanDesc2".Translate(settings.lanAddress)}");
+            TooltipHandler.TipRegion(lanRect, $"{"MpLanDesc1".Translate()}\n\n{"MpLanDesc2".Translate(settings.lanAddress)}");
 
             entry = entry.Down(30);
 
             if (SteamManager.Initialized)
             {
-                CheckboxLabeled(entry.Width(checkboxWidth), $"{"MpSteam".Translate()}:  ", ref settings.steam,
-                    placeTextNearCheckbox: true);
+                CheckboxLabeled(entry.Width(checkboxWidth), $"{"MpSteam".Translate()}:  ", ref settings.steam, placeTextNearCheckbox: true);
                 entry = entry.Down(30);
             }
 
             TooltipHandler.TipRegion(entry.Width(checkboxWidth), "MpArbiterDesc".Translate());
-            CheckboxLabeled(entry.Width(checkboxWidth), "The Arbiter:  ", ref settings.arbiter,
-                placeTextNearCheckbox: true);
+            CheckboxLabeled(entry.Width(checkboxWidth), "The Arbiter:  ", ref settings.arbiter, placeTextNearCheckbox: true);
             entry = entry.Down(30);
 
             /*if (MpVersion.IsDebug)
@@ -132,8 +128,7 @@ namespace Multiplayer.Client
 
             if (Prefs.DevMode)
             {
-                CheckboxLabeled(entry.Width(checkboxWidth), "Debug mode:  ", ref debugMode,
-                    placeTextNearCheckbox: true);
+                CheckboxLabeled(entry.Width(checkboxWidth), "Debug mode:  ", ref debugMode, placeTextNearCheckbox: true);
                 entry = entry.Down(30);
             }
 
@@ -143,7 +138,7 @@ namespace Multiplayer.Client
                 SetInitialSizeAndPosition();
             }
 
-            Rect buttonRect = new Rect((inRect.width - 100f) / 2f, inRect.height - 35f, 100f, 35f);
+            var buttonRect = new Rect((inRect.width - 100f) / 2f, inRect.height - 35f, 100f, 35f);
 
             if (Widgets.ButtonText(buttonRect, "MpHostButton".Translate()))
                 TryHost();
@@ -200,8 +195,7 @@ namespace Multiplayer.Client
             return true;
         }
 
-        public static void CheckboxLabeled(Rect rect, string label, ref bool checkOn, bool disabled = false,
-            Texture2D texChecked = null, Texture2D texUnchecked = null, bool placeTextNearCheckbox = false)
+        public static void CheckboxLabeled(Rect rect, string label, ref bool checkOn, bool disabled = false, Texture2D texChecked = null, Texture2D texUnchecked = null, bool placeTextNearCheckbox = false)
         {
             TextAnchor anchor = Text.Anchor;
             Text.Anchor = TextAnchor.MiddleLeft;
@@ -241,8 +235,7 @@ namespace Multiplayer.Client
             return Widgets.TextField(fieldRect, text);
         }
 
-        public static void TextFieldNumericLabeled(Rect rect, string label, ref int val, ref string buffer,
-            float labelWidth, float min = 0, float max = float.MaxValue)
+        public static void TextFieldNumericLabeled(Rect rect, string label, ref int val, ref string buffer, float labelWidth, float min = 0, float max = float.MaxValue)
         {
             Rect labelRect = rect;
             labelRect.width = labelWidth;
@@ -272,30 +265,29 @@ namespace Multiplayer.Client
 
                 LongEventHandler.ExecuteWhenFinished(() =>
                 {
-                    LongEventHandler.QueueLongEvent(
-                        () => ClientUtil.HostServer(settings, false, debugMode: debugMode), "MpLoading", false,
-                        null);
+                    LongEventHandler.QueueLongEvent(() => ClientUtil.HostServer(settings, false, debugMode: debugMode), "MpLoading", false, null);
                 });
             }, "Play", "LoadingLongEvent", true, null);
         }
 
         private void HostFromReplay(ServerSettings settings)
         {
-            void ReplayLoaded()
-            {
-                ClientUtil.HostServer(settings, true, withSimulation, debugMode);
-            }
+            void ReplayLoaded() => ClientUtil.HostServer(settings, true, withSimulation, debugMode: debugMode);
 
             if (file != null)
+            {
                 Replay.LoadReplay(
-                    file.file,
-                    true,
-                    ReplayLoaded,
-                    GenScene.GoToMainMenu,
-                    "MpSimulatingServer"
+                    file.file, 
+                    true, 
+                    ReplayLoaded, 
+                    cancel: GenScene.GoToMainMenu, 
+                    simTextKey: "MpSimulatingServer"
                 );
+            }
             else
+            {
                 ReplayLoaded();
+            }
         }
     }
 }

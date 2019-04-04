@@ -1,18 +1,18 @@
-﻿#region
-
-using Harmony;
+﻿using Harmony;
 using RimWorld.Planet;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using Verse;
-
-#endregion
 
 namespace Multiplayer.Client
 {
     [HarmonyPatch(typeof(TileTemperaturesComp.CachedTileTemperatureData))]
     [HarmonyPatch(nameof(TileTemperaturesComp.CachedTileTemperatureData.CheckCache))]
-    internal static class CachedTileTemperatureData_CheckCache
+    static class CachedTileTemperatureData_CheckCache
     {
-        private static void Prefix(int ___tile, ref TimeSnapshot? __state)
+        static void Prefix(int ___tile, ref TimeSnapshot? __state)
         {
             if (Multiplayer.Client == null) return;
 
@@ -22,17 +22,13 @@ namespace Multiplayer.Client
             __state = TimeSnapshot.GetAndSetFromMap(map);
         }
 
-        private static void Postfix(TimeSnapshot? __state)
-        {
-            __state?.Set();
-        }
+        static void Postfix(TimeSnapshot? __state) => __state?.Set();
     }
 
     [HarmonyPatch(typeof(TileTemperaturesComp), nameof(TileTemperaturesComp.RetrieveCachedData))]
-    internal static class RetrieveCachedData_Patch
+    static class RetrieveCachedData_Patch
     {
-        private static bool Prefix(TileTemperaturesComp __instance, int tile,
-            ref TileTemperaturesComp.CachedTileTemperatureData __result)
+        static bool Prefix(TileTemperaturesComp __instance, int tile, ref TileTemperaturesComp.CachedTileTemperatureData __result)
         {
             if (Multiplayer.InInterface && __instance != Multiplayer.WorldComp.uiTemperatures)
             {
@@ -45,12 +41,13 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(TileTemperaturesComp), nameof(TileTemperaturesComp.WorldComponentTick))]
-    internal static class TileTemperaturesTick_Patch
+    static class TileTemperaturesTick_Patch
     {
-        private static void Prefix(TileTemperaturesComp __instance)
+        static void Prefix(TileTemperaturesComp __instance)
         {
             if (Multiplayer.InInterface && __instance != Multiplayer.WorldComp.uiTemperatures)
                 Multiplayer.WorldComp.uiTemperatures.WorldComponentTick();
         }
     }
+
 }

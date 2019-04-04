@@ -1,30 +1,31 @@
-﻿#region
-
-using System;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Xml;
-using Harmony;
+﻿using Harmony;
+using Harmony.ILCopying;
 using Multiplayer.Common;
 using RimWorld;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Xml;
 using UnityEngine;
 using Verse;
-
-#endregion
 
 namespace Multiplayer.Client
 {
     [HotSwappable]
     public class MultiplayerMod : Mod
     {
-        private const string UsernameField = "UsernameField";
         public static HarmonyInstance harmony = HarmonyInstance.Create("multiplayer");
         public static MpSettings settings;
 
         public static bool arbiterInstance;
-
-        private string slotsBuffer;
 
         public MultiplayerMod(ModContentPack pack) : base(pack)
         {
@@ -39,14 +40,14 @@ namespace Multiplayer.Client
 
         public static void EarlyMarkNoInline(Assembly asm)
         {
-            foreach (Type type in asm.GetTypes())
+            foreach (var type in asm.GetTypes())
             {
                 MpPatchExtensions.DoMpPatches(null, type)?.ForEach(m => MpUtil.MarkNoInlining(m));
 
-                List<HarmonyMethod> harmonyMethods = type.GetHarmonyMethods();
+                var harmonyMethods = type.GetHarmonyMethods();
                 if (harmonyMethods?.Count > 0)
                 {
-                    MethodBase original = MpUtil.GetOriginalMethod(HarmonyMethod.Merge(harmonyMethods));
+                    var original = MpUtil.GetOriginalMethod(HarmonyMethod.Merge(harmonyMethods));
                     if (original != null)
                         MpUtil.MarkNoInlining(original);
                 }
@@ -58,28 +59,21 @@ namespace Multiplayer.Client
             // special case?
             MpUtil.MarkNoInlining(AccessTools.Method(typeof(OutfitForcedHandler), nameof(OutfitForcedHandler.Reset)));
 
-            foreach (Assembly asm in AppDomain.CurrentDomain.GetAssemblies())
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
-                MethodInfo firstMethod = asm.GetType("Harmony.AccessTools")?.GetMethod("FirstMethod");
+                var firstMethod = asm.GetType("Harmony.AccessTools")?.GetMethod("FirstMethod");
                 if (firstMethod != null)
-                    harmony.Patch(firstMethod,
-                        new HarmonyMethod(typeof(AccessTools_FirstMethod_Patch),
-                            nameof(AccessTools_FirstMethod_Patch.Prefix)));
+                    harmony.Patch(firstMethod, new HarmonyMethod(typeof(AccessTools_FirstMethod_Patch), nameof(AccessTools_FirstMethod_Patch.Prefix)));
 
                 if (asm == typeof(HarmonyPatch).Assembly) continue;
 
-                MethodInfo emitCallParameter = asm.GetType("Harmony.MethodPatcher")
-                    ?.GetMethod("EmitCallParameter", AccessTools.all);
+                var emitCallParameter = asm.GetType("Harmony.MethodPatcher")?.GetMethod("EmitCallParameter", AccessTools.all);
                 if (emitCallParameter != null)
-                    harmony.Patch(emitCallParameter,
-                        new HarmonyMethod(typeof(PatchHarmony),
-                            emitCallParameter.GetParameters().Length == 4
-                                ? nameof(PatchHarmony.EmitCallParamsPrefix4)
-                                : nameof(PatchHarmony.EmitCallParamsPrefix5)));
+                    harmony.Patch(emitCallParameter, new HarmonyMethod(typeof(PatchHarmony), emitCallParameter.GetParameters().Length == 4 ? nameof(PatchHarmony.EmitCallParamsPrefix4) : nameof(PatchHarmony.EmitCallParamsPrefix5)));
             }
 
             {
-                HarmonyMethod prefix = new HarmonyMethod(AccessTools.Method(typeof(CaptureThingSetMakers), "Prefix"));
+                var prefix = new HarmonyMethod(AccessTools.Method(typeof(CaptureThingSetMakers), "Prefix"));
                 harmony.Patch(AccessTools.Constructor(typeof(ThingSetMaker_MarketValue)), prefix);
                 harmony.Patch(AccessTools.Constructor(typeof(ThingSetMaker_Nutrition)), prefix);
             }
@@ -109,8 +103,7 @@ namespace Multiplayer.Client
 
             harmony.Patch(
                 AccessTools.Method(typeof(XmlNode), "get_ChildNodes"),
-                postfix: new HarmonyMethod(typeof(XmlNodeListPatch),
-                    nameof(XmlNodeListPatch.XmlNode_ChildNodes_Postfix))
+                postfix: new HarmonyMethod(typeof(XmlNodeListPatch), nameof(XmlNodeListPatch.XmlNode_ChildNodes_Postfix))
             );
 
             harmony.Patch(
@@ -120,8 +113,7 @@ namespace Multiplayer.Client
             );
 
             harmony.Patch(
-                AccessTools.Constructor(typeof(LoadableXmlAsset),
-                    new[] {typeof(string), typeof(string), typeof(string)}),
+                AccessTools.Constructor(typeof(LoadableXmlAsset), new[] { typeof(string), typeof(string), typeof(string) }),
                 new HarmonyMethod(typeof(LoadableXmlAssetCtorPatch), "Prefix")
             );
 
@@ -138,28 +130,29 @@ namespace Multiplayer.Client
             );
         }
 
+        private string slotsBuffer;
+
         public override void DoSettingsWindowContents(Rect inRect)
         {
-            Listing_Standard listing = new Listing_Standard();
+            var listing = new Listing_Standard();
             listing.Begin(inRect);
             listing.ColumnWidth = 220f;
 
             DoUsernameField(listing);
-            listing.TextFieldNumericLabeled("MpAutosaveSlots".Translate() + ":  ", ref settings.autosaveSlots,
-                ref slotsBuffer, 1f, 99f);
+            listing.TextFieldNumericLabeled("MpAutosaveSlots".Translate() + ":  ", ref settings.autosaveSlots, ref slotsBuffer, 1f, 99f);
 
             listing.CheckboxLabeled("MpShowPlayerCursors".Translate(), ref settings.showCursors);
-            listing.CheckboxLabeled("MpAutoAcceptSteam".Translate(), ref settings.autoAcceptSteam,
-                "MpAutoAcceptSteamDesc".Translate());
+            listing.CheckboxLabeled("MpAutoAcceptSteam".Translate(), ref settings.autoAcceptSteam, "MpAutoAcceptSteamDesc".Translate());
             listing.CheckboxLabeled("MpTransparentChat".Translate(), ref settings.transparentChat);
-            listing.CheckboxLabeled("MpAggressiveTicking".Translate(), ref settings.aggressiveTicking,
-                "MpAggressiveTickingDesc".Translate());
+            listing.CheckboxLabeled("MpAggressiveTicking".Translate(), ref settings.aggressiveTicking, "MpAggressiveTickingDesc".Translate());
 
             if (Prefs.DevMode)
                 listing.CheckboxLabeled("Show debug info", ref settings.showDevInfo);
 
             listing.End();
         }
+
+        const string UsernameField = "UsernameField";
 
         private void DoUsernameField(Listing_Standard listing)
         {
@@ -176,60 +169,51 @@ namespace Multiplayer.Client
                 UI.UnfocusCurrentControl();
         }
 
-        public override string SettingsCategory()
-        {
-            return "Multiplayer";
-        }
+        public override string SettingsCategory() => "Multiplayer";
     }
 
-    internal static class LoadableXmlAssetCtorPatch
+    static class LoadableXmlAssetCtorPatch
     {
         public static List<Pair<LoadableXmlAsset, int>> xmlAssetHashes = new List<Pair<LoadableXmlAsset, int>>();
 
-        private static void Prefix(LoadableXmlAsset __instance, string contents)
+        static void Prefix(LoadableXmlAsset __instance, string contents)
         {
             xmlAssetHashes.Add(new Pair<LoadableXmlAsset, int>(__instance, GenText.StableStringHash(contents)));
         }
     }
 
-    internal static class ModPreviewImagePatch
+    static class ModPreviewImagePatch
     {
-        private static bool Prefix()
-        {
-            return !MpVersion.IsDebug && !MultiplayerMod.arbiterInstance;
-        }
+        static bool Prefix() => !MpVersion.IsDebug && !MultiplayerMod.arbiterInstance;
     }
 
-    internal static class PatchHarmony
+    static class PatchHarmony
     {
-        private static readonly MethodInfo mpEmitCallParam =
-            AccessTools.Method(typeof(MethodPatcher), "EmitCallParameter");
+        static MethodInfo mpEmitCallParam = AccessTools.Method(typeof(MethodPatcher), "EmitCallParameter");
 
-        public static bool EmitCallParamsPrefix4(ILGenerator il, MethodBase original, MethodInfo patch,
-            Dictionary<string, LocalBuilder> variables)
+        public static bool EmitCallParamsPrefix4(ILGenerator il, MethodBase original, MethodInfo patch, Dictionary<string, LocalBuilder> variables)
         {
-            mpEmitCallParam.Invoke(null, new object[] {il, original, patch, variables, false});
+            mpEmitCallParam.Invoke(null, new object[] { il, original, patch, variables, false });
             return false;
         }
 
-        public static bool EmitCallParamsPrefix5(ILGenerator il, MethodBase original, MethodInfo patch,
-            Dictionary<string, LocalBuilder> variables, bool allowFirsParamPassthrough)
+        public static bool EmitCallParamsPrefix5(ILGenerator il, MethodBase original, MethodInfo patch, Dictionary<string, LocalBuilder> variables, bool allowFirsParamPassthrough)
         {
-            mpEmitCallParam.Invoke(null, new object[] {il, original, patch, variables, allowFirsParamPassthrough});
+            mpEmitCallParam.Invoke(null, new object[] { il, original, patch, variables, allowFirsParamPassthrough });
             return false;
         }
     }
 
     public class MpSettings : ModSettings
     {
-        public bool aggressiveTicking;
-        public bool autoAcceptSteam;
-        public int autosaveSlots = 5;
-        public string serverAddress;
-        public bool showCursors = true;
-        public bool showDevInfo;
-        public bool transparentChat;
         public string username;
+        public bool showCursors = true;
+        public bool autoAcceptSteam;
+        public bool transparentChat;
+        public int autosaveSlots = 5;
+        public bool aggressiveTicking;
+        public bool showDevInfo;
+        public string serverAddress;
 
         public override void ExposeData()
         {

@@ -1,49 +1,45 @@
-﻿#region
+﻿extern alias zip;
 
-extern alias zip;
+using Multiplayer.Common;
+using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Xml;
-using Multiplayer.Common;
-using RimWorld;
+using System.Text;
 using UnityEngine;
 using Verse;
 using zip::Ionic.Zip;
-
-#endregion
 
 namespace Multiplayer.Client
 {
     public class Replay
     {
+        private FileInfo file;
         public ReplayInfo info;
 
         private Replay(FileInfo file)
         {
-            File = file;
+            this.file = file;
         }
 
-        public FileInfo File { get; }
-
-        public ZipFile ZipFile => new ZipFile(File.FullName);
+        public FileInfo File => file;
+        public ZipFile ZipFile => new ZipFile(file.FullName);
 
         public void WriteCurrentData()
         {
             string sectionId = info.sections.Count.ToString("D3");
 
-            using (ZipFile zip = ZipFile)
+            using (var zip = ZipFile)
             {
-                foreach (KeyValuePair<int, byte[]> kv in OnMainThread.cachedMapData)
+                foreach (var kv in OnMainThread.cachedMapData)
                     zip.AddEntry($"maps/{sectionId}_{kv.Key}_save", kv.Value);
 
-                foreach (KeyValuePair<int, List<ScheduledCommand>> kv in OnMainThread.cachedMapCmds)
+                foreach (var kv in OnMainThread.cachedMapCmds)
                     if (kv.Key >= 0)
                         zip.AddEntry($"maps/{sectionId}_{kv.Key}_cmds", SerializeCmds(kv.Value));
 
-                if (OnMainThread.cachedMapCmds.TryGetValue(ScheduledCommand.Global,
-                    out List<ScheduledCommand> worldCmds))
+                if (OnMainThread.cachedMapCmds.TryGetValue(ScheduledCommand.Global, out var worldCmds))
                     zip.AddEntry($"world/{sectionId}_cmds", SerializeCmds(worldCmds));
 
                 zip.AddEntry($"world/{sectionId}_save", OnMainThread.cachedGameData);
@@ -59,7 +55,7 @@ namespace Multiplayer.Client
             ByteWriter writer = new ByteWriter();
 
             writer.WriteInt32(cmds.Count);
-            foreach (ScheduledCommand cmd in cmds)
+            foreach (var cmd in cmds)
                 writer.WritePrefixedBytes(cmd.Serialize());
 
             return writer.ToArray();
@@ -67,10 +63,10 @@ namespace Multiplayer.Client
 
         public static List<ScheduledCommand> DeserializeCmds(byte[] data)
         {
-            ByteReader reader = new ByteReader(data);
+            var reader = new ByteReader(data);
 
             int count = reader.ReadInt32();
-            List<ScheduledCommand> result = new List<ScheduledCommand>(count);
+            var result = new List<ScheduledCommand>(count);
             for (int i = 0; i < count; i++)
                 result.Add(ScheduledCommand.Deserialize(new ByteReader(reader.ReadPrefixedBytes())));
 
@@ -79,7 +75,7 @@ namespace Multiplayer.Client
 
         public void WriteInfo()
         {
-            using (ZipFile zip = ZipFile)
+            using (var zip = ZipFile)
             {
                 zip.UpdateEntry("info", DirectXmlSaver.XElementFromObject(info, typeof(ReplayInfo)).ToString());
                 zip.Save();
@@ -88,12 +84,12 @@ namespace Multiplayer.Client
 
         public bool LoadInfo()
         {
-            using (ZipFile zip = ZipFile)
+            using (var zip = ZipFile)
             {
-                ZipEntry infoFile = zip["info"];
+                var infoFile = zip["info"];
                 if (infoFile == null) return false;
 
-                XmlDocument doc = ScribeUtil.LoadDocument(infoFile.GetBytes());
+                var doc = ScribeUtil.LoadDocument(infoFile.GetBytes());
                 info = DirectXmlToObject.ObjectFromXml<ReplayInfo>(doc.DocumentElement, true);
             }
 
@@ -104,21 +100,21 @@ namespace Multiplayer.Client
         {
             string sectionIdStr = sectionId.ToString("D3");
 
-            using (ZipFile zip = ZipFile)
+            using (var zip = ZipFile)
             {
-                foreach (ZipEntry mapCmds in zip.SelectEntries($"name = maps/{sectionIdStr}_*_cmds"))
+                foreach (var mapCmds in zip.SelectEntries($"name = maps/{sectionIdStr}_*_cmds"))
                 {
                     int mapId = int.Parse(mapCmds.FileName.Split('_')[1]);
                     OnMainThread.cachedMapCmds[mapId] = DeserializeCmds(mapCmds.GetBytes());
                 }
 
-                foreach (ZipEntry mapSave in zip.SelectEntries($"name = maps/{sectionIdStr}_*_save"))
+                foreach (var mapSave in zip.SelectEntries($"name = maps/{sectionIdStr}_*_save"))
                 {
                     int mapId = int.Parse(mapSave.FileName.Split('_')[1]);
                     OnMainThread.cachedMapData[mapId] = mapSave.GetBytes();
                 }
 
-                ZipEntry worldCmds = zip[$"world/{sectionIdStr}_cmds"];
+                var worldCmds = zip[$"world/{sectionIdStr}_cmds"];
                 if (worldCmds != null)
                     OnMainThread.cachedMapCmds[ScheduledCommand.Global] = DeserializeCmds(worldCmds.GetBytes());
 
@@ -126,31 +122,17 @@ namespace Multiplayer.Client
             }
         }
 
-        public static FileInfo ReplayFile(string fileName, string folder = null)
-        {
-            return new FileInfo(Path.Combine(folder ?? Multiplayer.ReplaysDir, $"{fileName}.zip"));
-        }
+        public static FileInfo ReplayFile(string fileName, string folder = null) => new FileInfo(Path.Combine(folder ?? Multiplayer.ReplaysDir, $"{fileName}.zip"));
 
-        public static Replay ForLoading(string fileName)
-        {
-            return ForLoading(ReplayFile(fileName));
-        }
+        public static Replay ForLoading(string fileName) => ForLoading(ReplayFile(fileName));
+        public static Replay ForLoading(FileInfo file) => new Replay(file);
 
-        public static Replay ForLoading(FileInfo file)
-        {
-            return new Replay(file);
-        }
-
-        public static Replay ForSaving(string fileName)
-        {
-            return ForSaving(ReplayFile(fileName));
-        }
-
+        public static Replay ForSaving(string fileName) => ForSaving(ReplayFile(fileName));
         public static Replay ForSaving(FileInfo file)
         {
-            Replay replay = new Replay(file)
+            var replay = new Replay(file)
             {
-                info = new ReplayInfo
+                info = new ReplayInfo()
                 {
                     name = Multiplayer.session.gameName,
                     playerFaction = Multiplayer.session.myFactionId,
@@ -158,25 +140,24 @@ namespace Multiplayer.Client
                     rwVersion = VersionControl.CurrentVersionStringWithRev,
                     modIds = LoadedModManager.RunningModsListForReading.Select(m => m.Identifier).ToList(),
                     modNames = LoadedModManager.RunningModsListForReading.Select(m => m.Name).ToList(),
-                    modAssemblyHashes = Multiplayer.enabledModAssemblyHashes.Select(h => h.assemblyHash).ToList()
+                    modAssemblyHashes = Multiplayer.enabledModAssemblyHashes.Select(h => h.assemblyHash).ToList(),
                 }
             };
 
             return replay;
         }
 
-        public static void LoadReplay(FileInfo file, bool toEnd = false, Action after = null, Action cancel = null,
-            string simTextKey = null)
+        public static void LoadReplay(FileInfo file, bool toEnd = false, Action after = null, Action cancel = null, string simTextKey = null)
         {
-            MultiplayerSession session = Multiplayer.session = new MultiplayerSession();
+            var session = Multiplayer.session = new MultiplayerSession();
             session.client = new ReplayConnection();
             session.client.State = ConnectionStateEnum.ClientPlaying;
             session.replay = true;
 
-            Replay replay = ForLoading(file);
+            var replay = ForLoading(file);
             replay.LoadInfo();
 
-            int sectionIndex = toEnd ? replay.info.sections.Count - 1 : 0;
+            var sectionIndex = toEnd ? (replay.info.sections.Count - 1) : 0;
             replay.LoadCurrentData(sectionIndex);
 
             // todo ensure everything is read correctly
@@ -188,8 +169,7 @@ namespace Multiplayer.Client
             session.replayTimerEnd = tickUntil;
             TickPatch.tickUntil = tickUntil;
 
-            TickPatch.SkipTo(toEnd ? tickUntil : session.replayTimerStart, onFinish: after, onCancel: cancel,
-                simTextKey: simTextKey);
+            TickPatch.SkipTo(toEnd ? tickUntil : session.replayTimerStart, onFinish: after, onCancel: cancel, simTextKey: simTextKey);
 
             ClientJoiningState.ReloadGame(OnMainThread.cachedMapData.Keys.ToList());
         }
@@ -197,23 +177,23 @@ namespace Multiplayer.Client
 
     public class ReplayInfo
     {
-        public List<ReplayEvent> events = new List<ReplayEvent>();
-        public List<int> modAssemblyHashes;
-        public List<string> modIds;
-        public List<string> modNames;
         public string name;
-        public int playerFaction;
         public int protocol;
-
-        public string rwVersion;
+        public int playerFaction;
 
         public List<ReplaySection> sections = new List<ReplaySection>();
+        public List<ReplayEvent> events = new List<ReplayEvent>();
+
+        public string rwVersion;
+        public List<string> modIds;
+        public List<string> modNames;
+        public List<int> modAssemblyHashes;
     }
 
     public class ReplaySection
     {
-        public int end;
         public int start;
+        public int end;
 
         public ReplaySection()
         {
@@ -228,9 +208,9 @@ namespace Multiplayer.Client
 
     public class ReplayEvent
     {
-        public Color color;
         public string name;
         public int time;
+        public Color color;
     }
 
     public class ReplayConnection : IConnection
@@ -247,4 +227,5 @@ namespace Multiplayer.Client
         {
         }
     }
+
 }

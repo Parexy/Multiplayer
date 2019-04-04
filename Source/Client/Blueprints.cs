@@ -1,14 +1,12 @@
-﻿#region
-
+﻿using Harmony;
+using RimWorld;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Harmony;
-using RimWorld;
+using System.Text;
 using Verse;
-
-#endregion
 
 namespace Multiplayer.Client
 {
@@ -19,18 +17,13 @@ namespace Multiplayer.Client
     // Don't link graphics of different factions' blueprints
 
     [HarmonyPatch(typeof(GenConstruct), nameof(GenConstruct.CanPlaceBlueprintAt))]
-    internal static class CanPlaceBlueprintAtPatch
+    static class CanPlaceBlueprintAtPatch
     {
-        private static readonly MethodInfo CanPlaceBlueprintOver =
-            AccessTools.Method(typeof(GenConstruct), nameof(GenConstruct.CanPlaceBlueprintOver));
+        static MethodInfo CanPlaceBlueprintOver = AccessTools.Method(typeof(GenConstruct), nameof(GenConstruct.CanPlaceBlueprintOver));
+        public static MethodInfo ShouldIgnore1Method = AccessTools.Method(typeof(CanPlaceBlueprintAtPatch), nameof(ShouldIgnore), new[] { typeof(Thing) });
+        public static MethodInfo ShouldIgnore2Method = AccessTools.Method(typeof(CanPlaceBlueprintAtPatch), nameof(ShouldIgnore), new[] { typeof(ThingDef), typeof(Thing) });
 
-        public static MethodInfo ShouldIgnore1Method = AccessTools.Method(typeof(CanPlaceBlueprintAtPatch),
-            nameof(ShouldIgnore), new[] {typeof(Thing)});
-
-        public static MethodInfo ShouldIgnore2Method = AccessTools.Method(typeof(CanPlaceBlueprintAtPatch),
-            nameof(ShouldIgnore), new[] {typeof(ThingDef), typeof(Thing)});
-
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
         {
             foreach (CodeInstruction inst in insts)
             {
@@ -45,26 +38,21 @@ namespace Multiplayer.Client
             }
         }
 
-        private static bool ShouldIgnore(ThingDef newThing, Thing oldThing)
-        {
-            return newThing.IsBlueprint && ShouldIgnore(oldThing);
-        }
+        static bool ShouldIgnore(ThingDef newThing, Thing oldThing) => newThing.IsBlueprint && ShouldIgnore(oldThing);
 
-        private static bool ShouldIgnore(Thing oldThing)
-        {
-            return oldThing.def.IsBlueprint && oldThing.Faction != Faction.OfPlayer;
-        }
+        static bool ShouldIgnore(Thing oldThing) => oldThing.def.IsBlueprint && oldThing.Faction != Faction.OfPlayer;
     }
 
     [HarmonyPatch(typeof(GenConstruct), nameof(GenConstruct.CanPlaceBlueprintAt))]
-    internal static class CanPlaceBlueprintAtPatch2
+    static class CanPlaceBlueprintAtPatch2
     {
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> e, MethodBase original)
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> e, MethodBase original)
         {
-            List<CodeInstruction> insts = (List<CodeInstruction>) e;
+            List<CodeInstruction> insts = (List<CodeInstruction>)e;
 
-            int loop1 = new CodeFinder(original, insts).Forward(OpCodes.Ldstr, "IdenticalThingExists")
-                .Backward(OpCodes.Ldarg_S, (byte) 5);
+            int loop1 = new CodeFinder(original, insts).
+                Forward(OpCodes.Ldstr, "IdenticalThingExists").
+                Backward(OpCodes.Ldarg_S, (byte)5);
 
             insts.Insert(
                 loop1 - 1,
@@ -73,8 +61,9 @@ namespace Multiplayer.Client
                 new CodeInstruction(OpCodes.Brtrue, insts[loop1 + 2].operand)
             );
 
-            int loop2 = new CodeFinder(original, insts).Forward(OpCodes.Ldstr, "InteractionSpotBlocked")
-                .Backward(OpCodes.Ldarg_S, (byte) 5);
+            int loop2 = new CodeFinder(original, insts).
+                Forward(OpCodes.Ldstr, "InteractionSpotBlocked").
+                Backward(OpCodes.Ldarg_S, (byte)5);
 
             insts.Insert(
                 loop2 - 3,
@@ -85,8 +74,9 @@ namespace Multiplayer.Client
                 new CodeInstruction(OpCodes.Brtrue, insts[loop2 + 2].operand)
             );
 
-            int loop3 = new CodeFinder(original, insts).Forward(OpCodes.Ldstr, "WouldBlockInteractionSpot")
-                .Backward(OpCodes.Ldarg_S, (byte) 5);
+            int loop3 = new CodeFinder(original, insts).
+                Forward(OpCodes.Ldstr, "WouldBlockInteractionSpot").
+                Backward(OpCodes.Ldarg_S, (byte)5);
 
             insts.Insert(
                 loop3 - 1,
@@ -100,15 +90,14 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(PlaceWorker_NeverAdjacentTrap), nameof(PlaceWorker_NeverAdjacentTrap.AllowsPlacing))]
-    internal static class PlaceWorkerTrapPatch
+    static class PlaceWorkerTrapPatch
     {
-        private static IEnumerable<CodeInstruction> Transpiler(ILGenerator gen, IEnumerable<CodeInstruction> e,
-            MethodBase original)
+        static IEnumerable<CodeInstruction> Transpiler(ILGenerator gen, IEnumerable<CodeInstruction> e, MethodBase original)
         {
-            List<CodeInstruction> insts = (List<CodeInstruction>) e;
+            List<CodeInstruction> insts = (List<CodeInstruction>)e;
             Label label = gen.DefineLabel();
 
-            CodeFinder finder = new CodeFinder(original, insts);
+            var finder = new CodeFinder(original, insts);
             int pos = finder.Forward(OpCodes.Stloc_S, 5);
 
             insts.Insert(
@@ -126,12 +115,11 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(GenSpawn), nameof(GenSpawn.WipeExistingThings))]
-    internal static class WipeExistingThingsPatch
+    static class WipeExistingThingsPatch
     {
-        private static readonly MethodInfo SpawningWipes =
-            AccessTools.Method(typeof(GenSpawn), nameof(GenSpawn.SpawningWipes));
+        static MethodInfo SpawningWipes = AccessTools.Method(typeof(GenSpawn), nameof(GenSpawn.SpawningWipes));
 
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
         {
             foreach (CodeInstruction inst in insts)
             {
@@ -150,12 +138,11 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(GenSpawn), nameof(GenSpawn.WipeAndRefundExistingThings))]
-    internal static class WipeAndRefundExistingThingsPatch
+    static class WipeAndRefundExistingThingsPatch
     {
-        private static readonly MethodInfo SpawningWipes =
-            AccessTools.Method(typeof(GenSpawn), nameof(GenSpawn.SpawningWipes));
+        static MethodInfo SpawningWipes = AccessTools.Method(typeof(GenSpawn), nameof(GenSpawn.SpawningWipes));
 
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
         {
             foreach (CodeInstruction inst in insts)
             {
@@ -174,15 +161,13 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(GenSpawn), nameof(GenSpawn.SpawnBuildingAsPossible))]
-    internal static class SpawnBuildingAsPossiblePatch
+    static class SpawnBuildingAsPossiblePatch
     {
-        private static readonly MethodInfo SpawningWipes =
-            AccessTools.Method(typeof(GenSpawn), nameof(GenSpawn.SpawningWipes));
-
+        static MethodInfo SpawningWipes = AccessTools.Method(typeof(GenSpawn), nameof(GenSpawn.SpawningWipes));
         public static MethodInfo ThingListGet = AccessTools.Method(typeof(List<Thing>), "get_Item");
-        private static readonly FieldInfo ThingDefField = AccessTools.Field(typeof(Thing), "def");
+        static FieldInfo ThingDefField = AccessTools.Field(typeof(Thing), "def");
 
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
         {
             foreach (CodeInstruction inst in insts)
             {
@@ -204,12 +189,11 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(GenPlace), nameof(GenPlace.HaulPlaceBlockerIn))]
-    internal static class HaulPlaceBlockerInPatch
+    static class HaulPlaceBlockerInPatch
     {
-        private static IEnumerable<CodeInstruction> Transpiler(ILGenerator gen, IEnumerable<CodeInstruction> e,
-            MethodBase original)
+        static IEnumerable<CodeInstruction> Transpiler(ILGenerator gen, IEnumerable<CodeInstruction> e, MethodBase original)
         {
-            List<CodeInstruction> insts = (List<CodeInstruction>) e;
+            List<CodeInstruction> insts = (List<CodeInstruction>)e;
             Label label = gen.DefineLabel();
 
             CodeFinder finder = new CodeFinder(original, insts);
@@ -230,9 +214,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(GenSpawn), nameof(GenSpawn.SpawningWipes))]
-    internal static class SpawningWipesBlueprintPatch
+    static class SpawningWipesBlueprintPatch
     {
-        private static void Postfix(ref bool __result, BuildableDef newEntDef, BuildableDef oldEntDef)
+        static void Postfix(ref bool __result, BuildableDef newEntDef, BuildableDef oldEntDef)
         {
             ThingDef newDef = newEntDef as ThingDef;
             ThingDef oldDef = oldEntDef as ThingDef;
@@ -245,9 +229,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Thing), nameof(Thing.Print))]
-    internal static class BlueprintPrintPatch
+    static class BlueprintPrintPatch
     {
-        private static bool Prefix(Thing __instance)
+        static bool Prefix(Thing __instance)
         {
             if (Multiplayer.Client == null || !__instance.def.IsBlueprint) return true;
             return __instance.Faction == null || __instance.Faction == Multiplayer.RealPlayerFaction;
@@ -256,9 +240,9 @@ namespace Multiplayer.Client
 
     // LinkGrid is one building per cell, so only the player faction's blueprints are shown and linked
     [HarmonyPatch(typeof(LinkGrid), nameof(LinkGrid.Notify_LinkerCreatedOrDestroyed))]
-    internal static class LinkGridBlueprintPatch
+    static class LinkGridBlueprintPatch
     {
-        private static bool Prefix(Thing linker)
+        static bool Prefix(Thing linker)
         {
             return !linker.def.IsBlueprint || linker.Faction == Multiplayer.RealPlayerFaction;
         }
@@ -266,47 +250,39 @@ namespace Multiplayer.Client
 
     // todo revisit for pvp
     //[HarmonyPatch(typeof(Designator_Build), nameof(Designator_Build.DesignateSingleCell))]
-    internal static class DisableInstaBuild
+    static class DisableInstaBuild
     {
-        private static readonly MethodInfo GetStatValueAbstract =
-            AccessTools.Method(typeof(StatExtension), nameof(StatExtension.GetStatValueAbstract));
+        static MethodInfo GetStatValueAbstract = AccessTools.Method(typeof(StatExtension), nameof(StatExtension.GetStatValueAbstract));
+        static MethodInfo WorkToBuildMethod = AccessTools.Method(typeof(DisableInstaBuild), nameof(WorkToBuild));
 
-        private static readonly MethodInfo WorkToBuildMethod =
-            AccessTools.Method(typeof(DisableInstaBuild), nameof(WorkToBuild));
-
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> e, MethodBase original)
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> e, MethodBase original)
         {
-            List<CodeInstruction> insts = (List<CodeInstruction>) e;
+            List<CodeInstruction> insts = (List<CodeInstruction>)e;
             int pos = new CodeFinder(original, insts).Forward(OpCodes.Call, GetStatValueAbstract);
             insts[pos + 1] = new CodeInstruction(OpCodes.Call, WorkToBuildMethod);
 
             return insts;
         }
 
-        private static float WorkToBuild()
-        {
-            return Multiplayer.Client == null ? 0f : -1f;
-        }
+        static float WorkToBuild() => Multiplayer.Client == null ? 0f : -1f;
     }
 
     [HarmonyPatch(typeof(Frame))]
     [HarmonyPatch(nameof(Frame.WorkToBuild), MethodType.Getter)]
-    internal static class NoZeroWorkFrames
+    static class NoZeroWorkFrames
     {
-        private static void Postfix(ref float __result)
+        static void Postfix(ref float __result)
         {
             __result = Math.Max(5, __result); // >=5 otherwise the game complains about jobs starting too fast
         }
     }
 
-    [HarmonyPatch(typeof(WorkGiver_ConstructDeliverResourcesToBlueprints),
-        nameof(WorkGiver_ConstructDeliverResourcesToBlueprints.NoCostFrameMakeJobFor))]
-    internal static class OnlyConstructorsPlaceNoCostFrames
+    [HarmonyPatch(typeof(WorkGiver_ConstructDeliverResourcesToBlueprints), nameof(WorkGiver_ConstructDeliverResourcesToBlueprints.NoCostFrameMakeJobFor))]
+    static class OnlyConstructorsPlaceNoCostFrames
     {
-        private static readonly MethodInfo IsConstructionMethod =
-            AccessTools.Method(typeof(OnlyConstructorsPlaceNoCostFrames), nameof(IsConstruction));
+        static MethodInfo IsConstructionMethod = AccessTools.Method(typeof(OnlyConstructorsPlaceNoCostFrames), nameof(IsConstruction));
 
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
         {
             foreach (CodeInstruction inst in insts)
             {
@@ -325,9 +301,7 @@ namespace Multiplayer.Client
             }
         }
 
-        private static bool IsConstruction(WorkGiver w)
-        {
-            return w.def.workType == WorkTypeDefOf.Construction;
-        }
+        static bool IsConstruction(WorkGiver w) => w.def.workType == WorkTypeDefOf.Construction;
     }
+
 }

@@ -1,13 +1,10 @@
-﻿#region
-
+﻿using Harmony;
+using RimWorld.Planet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Harmony;
-using RimWorld.Planet;
+using System.Text;
 using Verse;
-
-#endregion
 
 namespace Multiplayer.Client
 {
@@ -16,7 +13,7 @@ namespace Multiplayer.Client
     {
         public static Dictionary<int, MapDrawer> copyFrom = new Dictionary<int, MapDrawer>();
 
-        private static bool Prefix(MapDrawer __instance)
+        static bool Prefix(MapDrawer __instance)
         {
             Map map = __instance.map;
             if (!copyFrom.TryGetValue(map.uniqueID, out MapDrawer keepDrawer)) return true;
@@ -33,7 +30,7 @@ namespace Multiplayer.Client
                     SectionLayer layer = section.layers[i];
 
                     if (!ShouldKeep(layer))
-                        section.layers[i] = (SectionLayer) Activator.CreateInstance(layer.GetType(), section);
+                        section.layers[i] = (SectionLayer)Activator.CreateInstance(layer.GetType(), section);
                     else if (layer is SectionLayer_LightingOverlay lighting)
                         lighting.glowGrid = map.glowGrid.glowGrid;
                     else if (layer is SectionLayer_TerrainScatter scatter)
@@ -42,16 +39,16 @@ namespace Multiplayer.Client
             }
 
             foreach (Section s in keepDrawer.sections)
-            foreach (SectionLayer layer in s.layers)
-                if (!ShouldKeep(layer))
-                    layer.Regenerate();
+                foreach (SectionLayer layer in s.layers)
+                    if (!ShouldKeep(layer))
+                        layer.Regenerate();
 
             copyFrom.Remove(map.uniqueID);
 
             return false;
         }
 
-        private static bool ShouldKeep(SectionLayer layer)
+        static bool ShouldKeep(SectionLayer layer)
         {
             return layer.GetType().Assembly == typeof(Game).Assembly;
         }
@@ -62,7 +59,7 @@ namespace Multiplayer.Client
     {
         public static Dictionary<int, RegionGrid> copyFrom = new Dictionary<int, RegionGrid>();
 
-        private static bool Prefix(RegionAndRoomUpdater __instance)
+        static bool Prefix(RegionAndRoomUpdater __instance)
         {
             Map map = __instance.map;
             if (!copyFrom.TryGetValue(map.uniqueID, out RegionGrid oldRegions)) return true;
@@ -80,7 +77,7 @@ namespace Multiplayer.Client
                 r.reachedIndex = 0;
                 r.closedIndex = new uint[RegionTraverser.NumWorkers];
                 r.cachedCellCount = -1;
-                r.mapIndex = (sbyte) map.Index;
+                r.mapIndex = (sbyte)map.Index;
 
                 if (r.door != null)
                     r.door = map.ThingReplacement(r.door);
@@ -94,7 +91,7 @@ namespace Multiplayer.Client
                 Room rm = r.Room;
                 if (rm == null) continue;
 
-                rm.mapIndex = (sbyte) map.Index;
+                rm.mapIndex = (sbyte)map.Index;
                 rm.cachedCellCount = -1;
                 rm.cachedOpenRoofCount = -1;
                 rm.statsAndRoleDirty = true;
@@ -121,8 +118,7 @@ namespace Multiplayer.Client
     {
         public static WorldGrid copyFrom;
 
-        private static bool Prefix(WorldGrid __instance, int ___cachedTraversalDistance,
-            int ___cachedTraversalDistanceForStart, int ___cachedTraversalDistanceForEnd)
+        static bool Prefix(WorldGrid __instance, int ___cachedTraversalDistance, int ___cachedTraversalDistanceForStart, int ___cachedTraversalDistanceForEnd)
         {
             if (copyFrom == null) return true;
 
@@ -152,7 +148,7 @@ namespace Multiplayer.Client
     {
         public static WorldRenderer copyFrom;
 
-        private static bool Prefix(WorldRenderer __instance)
+        static bool Prefix(WorldRenderer __instance)
         {
             if (copyFrom == null) return true;
 

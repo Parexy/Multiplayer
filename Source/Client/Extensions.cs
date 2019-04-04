@@ -1,6 +1,9 @@
-﻿#region
+﻿extern alias zip;
 
-extern alias zip;
+using Harmony;
+using Ionic.Crc;
+using Multiplayer.Common;
+using RimWorld;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,15 +14,9 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml;
-using Harmony;
-using Ionic.Crc;
-using Multiplayer.Common;
-using RimWorld;
 using UnityEngine;
 using Verse;
 using zip::Ionic.Zip;
-
-#endregion
 
 namespace Multiplayer.Client
 {
@@ -116,7 +113,7 @@ namespace Multiplayer.Client
         {
             foreach (Thing t in map.thingGrid.ThingsListAtFast(thing.positionInt))
                 if (t.thingIDNumber == thing.thingIDNumber)
-                    return (T) t;
+                    return (T)t;
 
             return null;
         }
@@ -138,7 +135,7 @@ namespace Multiplayer.Client
             return elem;
         }
 
-        private static bool ArraysEqual<T>(T[] a1, T[] a2)
+        static bool ArraysEqual<T>(T[] a1, T[] a2)
         {
             if (ReferenceEquals(a1, a2))
                 return true;
@@ -223,7 +220,7 @@ namespace Multiplayer.Client
             writer.WriteInt32(mapId);
             writer.WritePrefixedBytes(data);
 
-            conn.Send(Packets.ClientCommand, writer.ToArray());
+            conn.Send(Packets.Client_Command, writer.ToArray());
         }
 
         public static void SendCommand(this IConnection conn, CommandType type, int mapId, params object[] data)
@@ -288,7 +285,7 @@ namespace Multiplayer.Client
 
         public static bool HasAttribute<T>(this ICustomAttributeProvider provider) where T : Attribute
         {
-            object[] attrs = provider.GetCustomAttributes(false);
+            var attrs = provider.GetCustomAttributes(false);
             if (attrs.Length == 0) return false;
             for (int i = 0; i < attrs.Length; i++)
                 if (attrs[i] is T)
@@ -299,20 +296,20 @@ namespace Multiplayer.Client
         public static void RemoveNulls(this IList list)
         {
             for (int i = list.Count - 1; i > 0; i--)
+            {
                 if (list[i] == null)
                     list.RemoveAt(i);
+            }
         }
 
         public static MethodInfo[] GetDeclaredMethods(this Type type)
         {
-            return type.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Static |
-                                   BindingFlags.NonPublic | BindingFlags.Public);
+            return type.GetMethods(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
         }
 
         public static FieldInfo[] GetDeclaredInstanceFields(this Type type)
         {
-            return type.GetFields(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.NonPublic |
-                                  BindingFlags.Public);
+            return type.GetFields(BindingFlags.DeclaredOnly | BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
         }
 
         public static XmlTextReader ReadToNextElement(this XmlTextReader reader, string name = null)
@@ -346,9 +343,9 @@ namespace Multiplayer.Client
 
             yield return root;
 
-            foreach (DiaOption opt in root.options)
+            foreach (var opt in root.options)
                 if (opt.link != null)
-                    foreach (DiaNode node in TraverseNodes(opt.link, processed))
+                    foreach (var node in TraverseNodes(opt.link, processed))
                         yield return node;
         }
 
@@ -358,29 +355,26 @@ namespace Multiplayer.Client
             {
                 process.Kill();
             }
-            catch
-            {
-            }
+            catch { }
         }
 
         public static string MethodDesc(this MethodBase method)
         {
-            return
-                $"{method.DeclaringType.Namespace}.{method.DeclaringType.Name}::{method.Name}({method.GetParameters().Join(p => $"{p.ParameterType.Namespace}.{p.ParameterType.Name}")})";
+            return $"{method.DeclaringType.Namespace}.{method.DeclaringType.Name}::{method.Name}({method.GetParameters().Join(p => $"{p.ParameterType.Namespace}.{p.ParameterType.Name}")})";
         }
 
         public static void Add_KeepRect(this WindowStack windows, Window window)
         {
-            Rect rect = window.windowRect;
+            var rect = window.windowRect;
             windows.Add(window);
             window.windowRect = rect;
         }
 
         public static string[] ReadStrings(this XmlReader reader)
         {
-            XmlReader sub = reader.ReadSubtree();
+            var sub = reader.ReadSubtree();
 
-            List<string> names = new List<string>();
+            var names = new List<string>();
             while (sub.ReadToFollowing("li"))
                 names.Add(reader.ReadString());
 
@@ -389,33 +383,23 @@ namespace Multiplayer.Client
             return names.ToArray();
         }
 
-        public static FileInfo[] ModAssemblies(this ModMetaData mod)
-        {
-            return ModAssemblies(mod.RootDir.FullName);
-        }
-
-        public static FileInfo[] ModAssemblies(this ModContentPack mod)
-        {
-            return ModAssemblies(mod.RootDir);
-        }
+        public static FileInfo[] ModAssemblies(this ModMetaData mod) => ModAssemblies(mod.RootDir.FullName);
+        public static FileInfo[] ModAssemblies(this ModContentPack mod) => ModAssemblies(mod.RootDir);
 
         private static FileInfo[] ModAssemblies(string modRoot)
         {
-            DirectoryInfo assemblies = new DirectoryInfo(Path.Combine(modRoot, "Assemblies"));
+            var assemblies = new DirectoryInfo(Path.Combine(modRoot, "Assemblies"));
             if (!assemblies.Exists)
                 return new FileInfo[0];
-            return assemblies.GetFiles("*.*", SearchOption.AllDirectories).Where(f => f.Extension.ToLower() == ".dll")
-                .ToArray();
+            return assemblies.GetFiles("*.*", SearchOption.AllDirectories).Where(f => f.Extension.ToLower() == ".dll").ToArray();
         }
 
         public static int CRC32(this FileInfo[] files)
         {
             return files.Select(f =>
             {
-                using (FileStream stream = f.OpenRead())
-                {
+                using (var stream = f.OpenRead())
                     return new CRC32().GetCrc32(stream);
-                }
             }).AggregateHash();
         }
 
@@ -442,8 +426,9 @@ namespace Multiplayer.Client
 
         public static void WriteVectorXZ(this ByteWriter data, Vector3 vec)
         {
-            data.WriteShort((short) (vec.x * 10f));
-            data.WriteShort((short) (vec.z * 10f));
+            data.WriteShort((short)(vec.x * 10f));
+            data.WriteShort((short)(vec.z * 10f));
         }
     }
+
 }

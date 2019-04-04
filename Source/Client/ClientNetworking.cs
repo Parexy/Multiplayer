@@ -1,5 +1,9 @@
-﻿#region
-
+﻿using Harmony;
+using Ionic.Zlib;
+using LiteNetLib;
+using Multiplayer.Common;
+using RimWorld;
+using Steamworks;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,15 +11,11 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using System.Threading;
-using Ionic.Zlib;
-using LiteNetLib;
-using Multiplayer.Common;
-using RimWorld;
-using Steamworks;
+using System.Xml;
 using Verse;
-
-#endregion
+using Verse.Sound;
 
 namespace Multiplayer.Client
 {
@@ -34,25 +34,22 @@ namespace Multiplayer.Client
             netClient.Connect(address, port, "");
         }
 
-        public static void HostServer(ServerSettings settings, bool fromReplay, bool withSimulation = false,
-            bool debugMode = false)
+        public static void HostServer(ServerSettings settings, bool fromReplay, bool withSimulation = false, bool debugMode = false)
         {
-            Log.Message("Starting the server");
+            Log.Message($"Starting the server");
 
-            MultiplayerSession session = Multiplayer.session = new MultiplayerSession();
+            var session = Multiplayer.session = new MultiplayerSession();
             session.myFactionId = Faction.OfPlayer.loadID;
             session.localSettings = settings;
             session.gameName = settings.gameName;
 
-            MultiplayerServer localServer = new MultiplayerServer(settings);
+            var localServer = new MultiplayerServer(settings);
 
             if (withSimulation)
             {
                 localServer.savedGame = GZipStream.CompressBuffer(OnMainThread.cachedGameData);
-                localServer.mapData =
-                    OnMainThread.cachedMapData.ToDictionary(kv => kv.Key, kv => GZipStream.CompressBuffer(kv.Value));
-                localServer.mapCmds = OnMainThread.cachedMapCmds.ToDictionary(kv => kv.Key,
-                    kv => kv.Value.Select(c => c.Serialize()).ToList());
+                localServer.mapData = OnMainThread.cachedMapData.ToDictionary(kv => kv.Key, kv => GZipStream.CompressBuffer(kv.Value));
+                localServer.mapCmds = OnMainThread.cachedMapCmds.ToDictionary(kv => kv.Key, kv => kv.Value.Select(c => c.Serialize()).ToList());
             }
             else
             {
@@ -60,15 +57,13 @@ namespace Multiplayer.Client
             }
 
             localServer.debugMode = debugMode;
-            localServer.debugOnlySyncCmds =
-                new HashSet<int>(Sync.handlers.Where(h => h.debugOnly).Select(h => h.syncId));
+            localServer.debugOnlySyncCmds = new HashSet<int>(Sync.handlers.Where(h => h.debugOnly).Select(h => h.syncId));
             localServer.hostOnlySyncCmds = new HashSet<int>(Sync.handlers.Where(h => h.hostOnly).Select(h => h.syncId));
             localServer.hostUsername = Multiplayer.username;
             localServer.coopFactionId = Faction.OfPlayer.loadID;
 
             localServer.rwVersion = session.mods.remoteRwVersion = VersionControl.CurrentVersionString;
-            localServer.modNames = session.mods.remoteModNames =
-                LoadedModManager.RunningModsListForReading.Select(m => m.Name).ToArray();
+            localServer.modNames = session.mods.remoteModNames = LoadedModManager.RunningModsListForReading.Select(m => m.Name).ToArray();
             localServer.defInfos = session.mods.defInfo = Multiplayer.localDefInfos;
 
             if (settings.steam)
@@ -83,7 +78,7 @@ namespace Multiplayer.Client
             if (!fromReplay)
                 SetupGame();
 
-            foreach (ITickable tickable in TickPatch.AllTickables)
+            foreach (var tickable in TickPatch.AllTickables)
                 tickable.Cmds.Clear();
 
             Find.PlaySettings.usePlanetDayNightSystem = false;
@@ -104,10 +99,10 @@ namespace Multiplayer.Client
             }
             else
             {
-                TimeSpeed timeSpeed = Prefs.data.pauseOnLoad ? TimeSpeed.Paused : TimeSpeed.Normal;
+                var timeSpeed = Prefs.data.pauseOnLoad ? TimeSpeed.Paused : TimeSpeed.Normal;
 
                 Multiplayer.WorldComp.TimeSpeed = timeSpeed;
-                foreach (Map map in Find.Maps)
+                foreach (var map in Find.Maps)
                     map.AsyncTime().TimeSpeed = timeSpeed;
 
                 Multiplayer.WorldComp.debugMode = debugMode;
@@ -123,20 +118,16 @@ namespace Multiplayer.Client
 
             void StartServerThread()
             {
-                bool? netStarted = localServer.StartListeningNet();
-                bool? lanStarted = localServer.StartListeningLan();
+                var netStarted = localServer.StartListeningNet();
+                var lanStarted = localServer.StartListeningLan();
 
                 string text = "Server started.";
 
                 if (netStarted != null)
-                    text += netStarted.Value
-                        ? $" Direct at {settings.bindAddress}:{localServer.NetPort}."
-                        : " Couldn't bind direct.";
+                    text += (netStarted.Value ? $" Direct at {settings.bindAddress}:{localServer.NetPort}." : " Couldn't bind direct.");
 
                 if (lanStarted != null)
-                    text += lanStarted.Value
-                        ? $" LAN at {settings.lanAddress}:{localServer.LanPort}."
-                        : " Couldn't bind LAN.";
+                    text += (lanStarted.Value ? $" LAN at {settings.lanAddress}:{localServer.LanPort}." : " Couldn't bind LAN.");
 
                 session.serverThread = new Thread(localServer.Run)
                 {
@@ -156,7 +147,7 @@ namespace Multiplayer.Client
 
             if (dummyFaction == null)
             {
-                dummyFaction = new Faction {loadID = -1, def = Multiplayer.DummyFactionDef};
+                dummyFaction = new Faction() { loadID = -1, def = Multiplayer.DummyFactionDef };
 
                 foreach (Faction other in Find.FactionManager.AllFactionsListForReading)
                     dummyFaction.TryMakeInitialRelationsWith(other);
@@ -218,7 +209,7 @@ namespace Multiplayer.Client
             localClient.State = ConnectionStateEnum.ClientPlaying;
             localServerConn.State = ConnectionStateEnum.ServerPlaying;
 
-            ServerPlayer serverPlayer = Multiplayer.LocalServer.OnConnected(localServerConn);
+            var serverPlayer = Multiplayer.LocalServer.OnConnected(localServerConn);
             serverPlayer.status = PlayerStatus.Playing;
             serverPlayer.SendPlayerList();
 
@@ -243,7 +234,7 @@ namespace Multiplayer.Client
             return typeof(UniqueIDsManager)
                 .GetFields(BindingFlags.NonPublic | BindingFlags.Instance)
                 .Where(f => f.FieldType == typeof(int))
-                .Select(f => (int) f.GetValue(Find.UniqueIDsManager))
+                .Select(f => (int)f.GetValue(Find.UniqueIDsManager))
                 .Max();
         }
     }
@@ -275,27 +266,13 @@ namespace Multiplayer.Client
 
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo info)
         {
-            ByteReader reader = new ByteReader(info.AdditionalData.GetRemainingBytes());
-            Multiplayer.session.HandleDisconnectReason((MpDisconnectReason) reader.ReadByte(),
-                reader.ReadPrefixedBytes());
+            var reader = new ByteReader(info.AdditionalData.GetRemainingBytes());
+            Multiplayer.session.HandleDisconnectReason((MpDisconnectReason)reader.ReadByte(), reader.ReadPrefixedBytes());
 
             ConnectionStatusListeners.TryNotifyAll_Disconnected();
 
             OnMainThread.StopMultiplayer();
             MpLog.Log("Net client disconnected");
-        }
-
-        public void OnConnectionRequest(ConnectionRequest request)
-        {
-        }
-
-        public void OnNetworkLatencyUpdate(NetPeer peer, int latency)
-        {
-        }
-
-        public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader,
-            UnconnectedMessageType messageType)
-        {
         }
 
         private static string DisconnectReasonString(DisconnectReason reason)
@@ -310,21 +287,21 @@ namespace Multiplayer.Client
                 default: return "Disconnected";
             }
         }
+
+        public void OnConnectionRequest(ConnectionRequest request) { }
+        public void OnNetworkLatencyUpdate(NetPeer peer, int latency) { }
+        public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType) { }
     }
 
     public class LocalClientConnection : IConnection
     {
         public LocalServerConnection serverSide;
 
+        public override int Latency { get => 0; set { } }
+
         public LocalClientConnection(string username)
         {
             this.username = username;
-        }
-
-        public override int Latency
-        {
-            get => 0;
-            set { }
         }
 
         protected override void SendRaw(byte[] raw, bool reliable)
@@ -356,15 +333,11 @@ namespace Multiplayer.Client
     {
         public LocalClientConnection clientSide;
 
+        public override int Latency { get => 0; set { } }
+
         public LocalServerConnection(string username)
         {
             this.username = username;
-        }
-
-        public override int Latency
-        {
-            get => 0;
-            set { }
         }
 
         protected override void SendRaw(byte[] raw, bool reliable)
@@ -404,24 +377,27 @@ namespace Multiplayer.Client
         protected override void SendRaw(byte[] raw, bool reliable)
         {
             byte[] full = new byte[1 + raw.Length];
-            full[0] = reliable ? (byte) 2 : (byte) 0;
+            full[0] = reliable ? (byte)2 : (byte)0;
             raw.CopyTo(full, 1);
 
-            SteamNetworking.SendP2PPacket(remoteId, full, (uint) full.Length,
-                reliable ? EP2PSend.k_EP2PSendReliable : EP2PSend.k_EP2PSendUnreliable);
+            SteamNetworking.SendP2PPacket(remoteId, full, (uint)full.Length, reliable ? EP2PSend.k_EP2PSendReliable : EP2PSend.k_EP2PSendUnreliable, 0);
         }
 
         public override void Close(MpDisconnectReason reason, byte[] data)
         {
-            Send(Packets.SpecialSteamDisconnect, GetDisconnectBytes(reason, data));
+            Send(Packets.Special_Steam_Disconnect, GetDisconnectBytes(reason, data));
         }
 
         protected override void HandleReceive(int msgId, int fragState, ByteReader reader, bool reliable)
         {
-            if (msgId == (int) Packets.SpecialSteamDisconnect)
+            if (msgId == (int)Packets.Special_Steam_Disconnect)
+            {
                 OnDisconnect();
+            }
             else
+            {
                 base.HandleReceive(msgId, fragState, reader, reliable);
+            }
         }
 
         public virtual void OnError(EP2PSessionError error)
@@ -443,23 +419,20 @@ namespace Multiplayer.Client
         {
             SteamIntegration.ClearChannel(0);
 
-            SteamNetworking.SendP2PPacket(remoteId, new byte[] {1}, 1, EP2PSend.k_EP2PSendReliable);
+            SteamNetworking.SendP2PPacket(remoteId, new byte[] { 1 }, 1, EP2PSend.k_EP2PSendReliable, 0);
         }
 
         protected override void HandleReceive(int msgId, int fragState, ByteReader reader, bool reliable)
         {
-            if (msgId == (int) Packets.SpecialSteamDisconnect)
-                Multiplayer.session.HandleDisconnectReason((MpDisconnectReason) reader.ReadByte(),
-                    reader.ReadPrefixedBytes());
+            if (msgId == (int)Packets.Special_Steam_Disconnect)
+                Multiplayer.session.HandleDisconnectReason((MpDisconnectReason)reader.ReadByte(), reader.ReadPrefixedBytes());
 
             base.HandleReceive(msgId, fragState, reader, reliable);
         }
 
         public override void OnError(EP2PSessionError error)
         {
-            Multiplayer.session.disconnectReasonKey = error == EP2PSessionError.k_EP2PSessionErrorTimeout
-                ? "Connection timed out"
-                : "Connection error";
+            Multiplayer.session.disconnectReasonKey = error == EP2PSessionError.k_EP2PSessionErrorTimeout ? "Connection timed out" : "Connection error";
             base.OnError(error);
         }
 
@@ -481,4 +454,5 @@ namespace Multiplayer.Client
             serverPlayer.Server.OnDisconnected(this, MpDisconnectReason.ClientLeft);
         }
     }
+
 }

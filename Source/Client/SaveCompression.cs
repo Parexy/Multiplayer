@@ -1,50 +1,29 @@
-﻿#region
-
+﻿using Harmony;
+using RimWorld;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
-using Harmony;
-using RimWorld;
+using System.Linq;
+using System.Reflection;
+using UnityEngine;
 using Verse;
 using Verse.Profile;
-
-#endregion
 
 namespace Multiplayer.Client
 {
     public static class SaveCompression
     {
-        private const string CompressedRocks = "compressedRocks";
-        private const string CompressedPlants = "compressedPlants";
-        private const string CompressedRockRubble = "compressedRockRubble";
         public static bool doSaveCompression;
         private static Dictionary<ushort, ThingDef> thingDefsByShortHash;
 
-        private static readonly HashSet<string> savePlants = new HashSet<string>
-        {
-            "Plant_Grass",
-            "Plant_TallGrass",
-            "Plant_TreeOak",
-            "Plant_TreePoplar",
-            "Plant_TreeBirch",
-            "Plant_TreePine",
-            "Plant_Bush",
-            "Plant_Brambles",
-            "Plant_Dandelion",
-            "Plant_Berry",
-            "Plant_Moss",
-            "Plant_SaguaroCactus",
-            "Plant_ShrubLow",
-            "Plant_TreeWillow",
-            "Plant_TreeCypress",
-            "Plant_TreeMaple",
-            "Plant_Chokevine",
-            "Plant_HealrootWild"
-        };
+        const string CompressedRocks = "compressedRocks";
+        const string CompressedPlants = "compressedPlants";
+        const string CompressedRockRubble = "compressedRockRubble";
 
         public static void Save(Map map)
         {
-            CompressibilityDecider decider = new CompressibilityDecider(map);
+            var decider = new CompressibilityDecider(map);
             map.compressor.compressibilityDecider = decider;
             decider.DetermineReferences();
 
@@ -77,30 +56,30 @@ namespace Multiplayer.Client
             }
             else
             {
-                writer.Write((ushort) 0);
+                writer.Write((ushort)0);
             }
         }
 
         private static void SaveRockRubble(Map map, BinaryWriter writer, IntVec3 cell)
         {
-            Filth thing = (Filth) map.thingGrid.ThingsListAt(cell).Find(IsSaveRockRubble);
+            Filth thing = (Filth)map.thingGrid.ThingsListAt(cell).Find(IsSaveRockRubble);
 
             if (thing != null && thing.IsSaveCompressible())
             {
                 writer.Write(thing.def.shortHash);
                 writer.Write(thing.thingIDNumber);
-                writer.Write((byte) thing.thickness);
+                writer.Write((byte)thing.thickness);
                 writer.Write(thing.growTick);
             }
             else
             {
-                writer.Write((ushort) 0);
+                writer.Write((ushort)0);
             }
         }
 
         private static void SavePlant(Map map, BinaryWriter writer, IntVec3 cell)
         {
-            Plant thing = (Plant) map.thingGrid.ThingsListAt(cell).Find(IsSavePlant);
+            Plant thing = (Plant)map.thingGrid.ThingsListAt(cell).Find(IsSavePlant);
 
             if (thing != null && thing.IsSaveCompressible())
             {
@@ -108,16 +87,16 @@ namespace Multiplayer.Client
                 writer.Write(thing.thingIDNumber);
                 writer.Write(thing.HitPoints);
 
-                byte growth = (byte) Math.Ceiling(thing.Growth * 255);
+                byte growth = (byte)Math.Ceiling(thing.Growth * 255);
                 writer.Write(growth);
                 writer.Write(thing.Age);
 
                 bool hasUnlit = thing.unlitTicks != 0;
                 bool hasLeaflessTick = thing.madeLeaflessTick != -99999;
 
-                byte field = (byte) (thing.sown ? 1 : 0);
-                field |= (byte) (hasUnlit ? 2 : 0);
-                field |= (byte) (hasLeaflessTick ? 4 : 0);
+                byte field = (byte)(thing.sown ? 1 : 0);
+                field |= (byte)(hasUnlit ? 2 : 0);
+                field |= (byte)(hasLeaflessTick ? 4 : 0);
                 writer.Write(field);
 
                 if (hasUnlit)
@@ -128,7 +107,7 @@ namespace Multiplayer.Client
             }
             else
             {
-                writer.Write((ushort) 0);
+                writer.Write((ushort)0);
             }
         }
 
@@ -157,7 +136,7 @@ namespace Multiplayer.Client
 
             for (int i = 0; i < loadedThings.Count; i++)
             {
-                Thing thing = loadedThings[i];
+                var thing = loadedThings[i];
                 Scribe.loader.crossRefs.loadedObjectDirectory.RegisterLoaded(thing);
             }
 
@@ -173,7 +152,7 @@ namespace Multiplayer.Client
             int id = reader.ReadInt32();
             ThingDef def = thingDefsByShortHash[defId];
 
-            Thing thing = (Thing) Activator.CreateInstance(def.thingClass);
+            Thing thing = (Thing)Activator.CreateInstance(def.thingClass);
             thing.def = def;
             thing.HitPoints = thing.MaxHitPoints;
 
@@ -194,7 +173,7 @@ namespace Multiplayer.Client
             int growTick = reader.ReadInt32();
             ThingDef def = thingDefsByShortHash[defId];
 
-            Filth thing = (Filth) Activator.CreateInstance(def.thingClass);
+            Filth thing = (Filth)Activator.CreateInstance(def.thingClass);
             thing.def = def;
 
             thing.thingIDNumber = id;
@@ -234,7 +213,7 @@ namespace Multiplayer.Client
 
             ThingDef def = thingDefsByShortHash[defId];
 
-            Plant thing = (Plant) Activator.CreateInstance(def.thingClass);
+            Plant thing = (Plant)Activator.CreateInstance(def.thingClass);
             thing.def = def;
             thing.thingIDNumber = id;
             thing.HitPoints = hitPoints;
@@ -255,6 +234,28 @@ namespace Multiplayer.Client
         {
             return t.def.saveCompressible && (!t.def.useHitPoints || t.HitPoints == t.MaxHitPoints);
         }
+
+        private static readonly HashSet<string> savePlants = new HashSet<string>()
+        {
+            "Plant_Grass",
+            "Plant_TallGrass",
+            "Plant_TreeOak",
+            "Plant_TreePoplar",
+            "Plant_TreeBirch",
+            "Plant_TreePine",
+            "Plant_Bush",
+            "Plant_Brambles",
+            "Plant_Dandelion",
+            "Plant_Berry",
+            "Plant_Moss",
+            "Plant_SaguaroCactus",
+            "Plant_ShrubLow",
+            "Plant_TreeWillow",
+            "Plant_TreeCypress",
+            "Plant_TreeMaple",
+            "Plant_Chokevine",
+            "Plant_HealrootWild"
+        };
 
         public static bool IsSavePlant(Thing t)
         {
@@ -286,17 +287,14 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(MapFileCompressor.BuildCompressedString))]
     public static class SaveCompressPatch
     {
-        private static bool Prefix(MapFileCompressor __instance)
-        {
-            return !SaveCompression.doSaveCompression;
-        }
+        static bool Prefix(MapFileCompressor __instance) => !SaveCompression.doSaveCompression;
     }
 
     [HarmonyPatch(typeof(MapFileCompressor))]
     [HarmonyPatch(nameof(MapFileCompressor.ExposeData))]
     public static class SaveDecompressPatch
     {
-        private static bool Prefix(MapFileCompressor __instance)
+        static bool Prefix(MapFileCompressor __instance)
         {
             if (!SaveCompression.doSaveCompression) return true;
 
@@ -314,7 +312,7 @@ namespace Multiplayer.Client
     {
         public static Dictionary<int, List<Thing>> thingsToSpawn = new Dictionary<int, List<Thing>>();
 
-        private static void Postfix(MapFileCompressor __instance, ref IEnumerable<Thing> __result)
+        static void Postfix(MapFileCompressor __instance, ref IEnumerable<Thing> __result)
         {
             if (!SaveCompression.doSaveCompression) return;
             __result = thingsToSpawn[__instance.map.uniqueID];
@@ -322,18 +320,18 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Map), nameof(Map.FinalizeLoading))]
-    internal static class ClearThingsToSpawn
+    static class ClearThingsToSpawn
     {
-        private static void Postfix(Map __instance)
+        static void Postfix(Map __instance)
         {
             DecompressedThingsPatch.thingsToSpawn.Remove(__instance.uniqueID);
         }
     }
 
     [HarmonyPatch(typeof(MemoryUtility), nameof(MemoryUtility.ClearAllMapsAndWorld))]
-    internal static class ClearAllThingsToSpawn
+    static class ClearAllThingsToSpawn
     {
-        private static void Postfix()
+        static void Postfix()
         {
             DecompressedThingsPatch.thingsToSpawn.Clear();
         }
@@ -343,12 +341,9 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(CompressibilityDeciderUtility.IsSaveCompressible))]
     public static class SaveCompressiblePatch
     {
-        private static bool Prefix()
-        {
-            return !SaveCompression.doSaveCompression;
-        }
+        static bool Prefix() => !SaveCompression.doSaveCompression;
 
-        private static void Postfix(Thing t, ref bool __result)
+        static void Postfix(Thing t, ref bool __result)
         {
             if (!SaveCompression.doSaveCompression)
             {
@@ -360,12 +355,11 @@ namespace Multiplayer.Client
 
             if (!t.Spawned) return;
 
-            bool mpCompressible = SaveCompression.IsSavePlant(t) || SaveCompression.IsSaveRock(t) ||
-                                  SaveCompression.IsSaveRockRubble(t);
+            var mpCompressible = SaveCompression.IsSavePlant(t) || SaveCompression.IsSaveRock(t) || SaveCompression.IsSaveRockRubble(t);
             __result = mpCompressible && !Referenced(t);
         }
 
-        private static bool Referenced(Thing t)
+        static bool Referenced(Thing t)
         {
             return t.Map?.compressor?.compressibilityDecider.IsReferenced(t) ?? false;
         }

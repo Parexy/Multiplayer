@@ -1,52 +1,44 @@
-﻿#region
-
-using Harmony;
+﻿using Harmony;
 using RimWorld;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using UnityEngine;
 using Verse;
-
-#endregion
 
 namespace Multiplayer.Client
 {
     [HarmonyPatch(typeof(TutorSystem), nameof(TutorSystem.AdaptiveTrainingEnabled), MethodType.Getter)]
-    internal static class DisableAdaptiveLearningPatch
+    static class DisableAdaptiveLearningPatch
     {
-        private static bool Prefix()
-        {
-            return Multiplayer.Client == null;
-        }
+        static bool Prefix() => Multiplayer.Client == null;
     }
 
-    internal static class AdaptiveLearning_PrefsPatch
+    static class AdaptiveLearning_PrefsPatch
     {
         [MpPostfix(typeof(Prefs), "get_" + nameof(Prefs.AdaptiveTrainingEnabled))]
-        private static void Getter_Postfix(ref bool __result)
+        static void Getter_Postfix(ref bool __result)
         {
             if (Multiplayer.Client != null)
                 __result = true;
         }
 
         [MpPrefix(typeof(Prefs), "set_" + nameof(Prefs.AdaptiveTrainingEnabled))]
-        private static bool Setter_Prefix()
-        {
-            return Multiplayer.Client == null;
-        }
+        static bool Setter_Prefix() => Multiplayer.Client == null;
     }
 
     [MpPatch(typeof(Prefs), "get_" + nameof(Prefs.VolumeGame))]
     [MpPatch(typeof(Prefs), nameof(Prefs.Save))]
-    internal static class CancelDuringSkipping
+    static class CancelDuringSkipping
     {
-        private static bool Prefix()
-        {
-            return !TickPatch.Skipping;
-        }
+        static bool Prefix() => !TickPatch.Skipping;
     }
 
     [HarmonyPatch(typeof(Prefs), nameof(Prefs.MaxNumberOfPlayerSettlements), MethodType.Getter)]
-    internal static class MaxColoniesPatch
+    static class MaxColoniesPatch
     {
-        private static void Postfix(ref int __result)
+        static void Postfix(ref int __result)
         {
             if (Multiplayer.Client != null)
                 __result = 5;
@@ -54,9 +46,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Prefs), nameof(Prefs.RunInBackground), MethodType.Getter)]
-    internal static class RunInBackgroundPatch
+    static class RunInBackgroundPatch
     {
-        private static void Postfix(ref bool __result)
+        static void Postfix(ref bool __result)
         {
             if (Multiplayer.Client != null)
                 __result = true;
@@ -66,12 +58,9 @@ namespace Multiplayer.Client
     [MpPatch(typeof(Prefs), "get_" + nameof(Prefs.PauseOnLoad))]
     [MpPatch(typeof(Prefs), "get_" + nameof(Prefs.PauseOnError))]
     [MpPatch(typeof(Prefs), "get_" + nameof(Prefs.PauseOnUrgentLetter))]
-    internal static class PrefGettersInMultiplayer
+    static class PrefGettersInMultiplayer
     {
-        private static bool Prefix()
-        {
-            return Multiplayer.Client == null;
-        }
+        static bool Prefix() => Multiplayer.Client == null;
     }
 
     [MpPatch(typeof(Prefs), "set_" + nameof(Prefs.PauseOnLoad))]
@@ -79,11 +68,9 @@ namespace Multiplayer.Client
     [MpPatch(typeof(Prefs), "set_" + nameof(Prefs.PauseOnUrgentLetter))]
     [MpPatch(typeof(Prefs), "set_" + nameof(Prefs.MaxNumberOfPlayerSettlements))]
     [MpPatch(typeof(Prefs), "set_" + nameof(Prefs.RunInBackground))]
-    internal static class PrefSettersInMultiplayer
+    static class PrefSettersInMultiplayer
     {
-        private static bool Prefix()
-        {
-            return Multiplayer.Client == null;
-        }
+        static bool Prefix() => Multiplayer.Client == null;
     }
+
 }

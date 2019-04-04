@@ -1,20 +1,18 @@
-﻿#region
-
+﻿using Harmony;
+using Multiplayer.Common;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Text;
 using System.Xml;
-using Harmony;
 using Verse;
-
-#endregion
 
 namespace Multiplayer.Client
 {
-    internal static class XmlNodeListPatch
+    static class XmlNodeListPatch
     {
         public static bool optimizeXml;
         public static XmlNode node;
@@ -27,7 +25,7 @@ namespace Multiplayer.Client
             if (node != __instance)
             {
                 node = __instance;
-                list = new StaticXmlNodeList {nodes = new List<XmlNode>(__result.Cast<XmlNode>())};
+                list = new StaticXmlNodeList() { nodes = new List<XmlNode>(__result.Cast<XmlNode>()) };
             }
 
             __result = list;
@@ -51,17 +49,16 @@ namespace Multiplayer.Client
         }
     }
 
-    internal static class ThingCategoryDef_DescendantThingDefsPatch
+    static class ThingCategoryDef_DescendantThingDefsPatch
     {
-        private static readonly Dictionary<ThingCategoryDef, HashSet<ThingDef>> values =
-            new Dictionary<ThingCategoryDef, HashSet<ThingDef>>(DefaultComparer<ThingCategoryDef>.Instance);
+        static Dictionary<ThingCategoryDef, HashSet<ThingDef>> values = new Dictionary<ThingCategoryDef, HashSet<ThingDef>>(DefaultComparer<ThingCategoryDef>.Instance);
 
-        private static bool Prefix(ThingCategoryDef __instance)
+        static bool Prefix(ThingCategoryDef __instance)
         {
             return !values.ContainsKey(__instance);
         }
 
-        private static void Postfix(ThingCategoryDef __instance, ref IEnumerable<ThingDef> __result)
+        static void Postfix(ThingCategoryDef __instance, ref IEnumerable<ThingDef> __result)
         {
             if (values.TryGetValue(__instance, out HashSet<ThingDef> set))
             {
@@ -75,17 +72,16 @@ namespace Multiplayer.Client
         }
     }
 
-    internal static class ThingCategoryDef_ThisAndChildCategoryDefsPatch
+    static class ThingCategoryDef_ThisAndChildCategoryDefsPatch
     {
-        private static readonly Dictionary<ThingCategoryDef, HashSet<ThingCategoryDef>> values =
-            new Dictionary<ThingCategoryDef, HashSet<ThingCategoryDef>>(DefaultComparer<ThingCategoryDef>.Instance);
+        static Dictionary<ThingCategoryDef, HashSet<ThingCategoryDef>> values = new Dictionary<ThingCategoryDef, HashSet<ThingCategoryDef>>(DefaultComparer<ThingCategoryDef>.Instance);
 
-        private static bool Prefix(ThingCategoryDef __instance)
+        static bool Prefix(ThingCategoryDef __instance)
         {
             return !values.ContainsKey(__instance);
         }
 
-        private static void Postfix(ThingCategoryDef __instance, ref IEnumerable<ThingCategoryDef> __result)
+        static void Postfix(ThingCategoryDef __instance, ref IEnumerable<ThingCategoryDef> __result)
         {
             if (values.TryGetValue(__instance, out HashSet<ThingCategoryDef> set))
             {
@@ -99,16 +95,16 @@ namespace Multiplayer.Client
         }
     }
 
-    internal static class GetTypeInAnyAssemblyPatch
+    static class GetTypeInAnyAssemblyPatch
     {
         public static Dictionary<string, Type> results = new Dictionary<string, Type>();
 
-        private static bool Prefix(string typeName, ref Type __state)
+        static bool Prefix(string typeName, ref Type __state)
         {
             return !results.TryGetValue(typeName, out __state);
         }
 
-        private static void Postfix(string typeName, ref Type __result, Type __state)
+        static void Postfix(string typeName, ref Type __result, Type __state)
         {
             if (__state == null)
                 results[typeName] = __result;
@@ -117,21 +113,21 @@ namespace Multiplayer.Client
         }
     }
 
-    internal static class ParseAndProcessXml_Patch
+    static class ParseAndProcessXml_Patch
     {
-        private static readonly MethodInfo XmlCount = AccessTools.Method(typeof(XmlNodeList), "get_Count");
-        private static readonly MethodInfo XmlItem = AccessTools.Method(typeof(XmlNodeList), "get_ItemOf");
+        static MethodInfo XmlCount = AccessTools.Method(typeof(XmlNodeList), "get_Count");
+        static MethodInfo XmlItem = AccessTools.Method(typeof(XmlNodeList), "get_ItemOf");
 
-        private static IEnumerable<CodeInstruction> Transpiler(ILGenerator gen, IEnumerable<CodeInstruction> insts)
+        static IEnumerable<CodeInstruction> Transpiler(ILGenerator gen, IEnumerable<CodeInstruction> insts)
         {
-            LocalBuilder local = gen.DeclareLocal(typeof(List<XmlNode>));
+            var local = gen.DeclareLocal(typeof(List<XmlNode>));
 
             yield return new CodeInstruction(OpCodes.Ldarg_0);
-            yield return new CodeInstruction(OpCodes.Call,
-                AccessTools.Method(typeof(ParseAndProcessXml_Patch), nameof(XmlNodes)));
+            yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ParseAndProcessXml_Patch), nameof(XmlNodes)));
             yield return new CodeInstruction(OpCodes.Stloc_S, local);
 
-            foreach (CodeInstruction inst in insts)
+            foreach (var inst in insts)
+            {
                 if (inst.operand == XmlCount)
                 {
                     yield return new CodeInstruction(OpCodes.Pop);
@@ -150,17 +146,15 @@ namespace Multiplayer.Client
                 {
                     yield return inst;
                 }
+            }
         }
 
-        private static List<XmlNode> XmlNodes(XmlDocument xmlDoc)
-        {
-            return new List<XmlNode>(xmlDoc.DocumentElement.ChildNodes.Cast<XmlNode>());
-        }
+        static List<XmlNode> XmlNodes(XmlDocument xmlDoc) => new List<XmlNode>(xmlDoc.DocumentElement.ChildNodes.Cast<XmlNode>());
     }
 
-    internal static class AccessTools_FirstMethod_Patch
+    static class AccessTools_FirstMethod_Patch
     {
-        private static readonly Dictionary<Type, MethodInfo[]> typeMethods = new Dictionary<Type, MethodInfo[]>();
+        static Dictionary<Type, MethodInfo[]> typeMethods = new Dictionary<Type, MethodInfo[]>();
 
         public static bool Prefix(Type type, Func<MethodInfo, bool> predicate, ref MethodInfo __result)
         {
@@ -175,16 +169,10 @@ namespace Multiplayer.Client
         }
     }
 
-    internal static class XmlInheritance_Patch
+    static class XmlInheritance_Patch
     {
-        private static void Prefix()
-        {
-            XmlNodeListPatch.optimizeXml = true;
-        }
-
-        private static void Postfix()
-        {
-            XmlNodeListPatch.optimizeXml = false;
-        }
+        static void Prefix() => XmlNodeListPatch.optimizeXml = true;
+        static void Postfix() => XmlNodeListPatch.optimizeXml = false;
     }
+
 }

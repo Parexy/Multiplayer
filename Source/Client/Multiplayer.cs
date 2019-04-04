@@ -1,24 +1,34 @@
-﻿#region
+﻿extern alias zip;
 
-extern alias zip;
+using Harmony;
+using Harmony.ILCopying;
+using Ionic.Crc;
+using Ionic.Zlib;
+using LiteNetLib;
+using Multiplayer.Common;
+using RimWorld;
+using RimWorld.Planet;
+using Steamworks;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
+using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.RegularExpressions;
-using Harmony;
-using Multiplayer.Common;
-using RimWorld;
+using System.Threading;
+using System.Xml;
 using UnityEngine;
 using Verse;
+using Verse.Profile;
 using Verse.Sound;
 using Verse.Steam;
-using Object = UnityEngine.Object;
-
-#endregion
 
 namespace Multiplayer.Client
 {
@@ -28,7 +38,13 @@ namespace Multiplayer.Client
         public static MultiplayerSession session;
         public static MultiplayerGame game;
 
+        public static IConnection Client => session?.client;
+        public static MultiplayerServer LocalServer => session?.localServer;
+        public static PacketLogWindow PacketLog => session?.packetLog;
+        public static bool IsReplay => session?.replay ?? false;
+
         public static string username;
+        public static HarmonyInstance harmony => MultiplayerMod.harmony;
 
         public static bool reloading;
 
@@ -36,29 +52,34 @@ namespace Multiplayer.Client
         public static FactionDef DummyFactionDef = FactionDef.Named("MultiplayerDummy");
         public static KeyBindingDef ToggleChatDef = KeyBindingDef.Named("MpToggleChat");
 
+        public static IdBlock GlobalIdBlock => game.worldComp.globalIdBlock;
+        public static Faction DummyFaction => game.dummyFaction;
+        public static MultiplayerWorldComp WorldComp => game.worldComp;
+
+        public static bool ShowDevInfo => MpVersion.IsDebug || (Prefs.DevMode && MultiplayerMod.settings.showDevInfo);
+
+        public static Faction RealPlayerFaction
+        {
+            get => Client != null ? game.RealPlayerFaction : Faction.OfPlayer;
+            set => game.RealPlayerFaction = value;
+        }
+
+        public static bool ExecutingCmds => MultiplayerWorldComp.executingCmdWorld || MapAsyncTimeComp.executingCmdMap != null;
+        public static bool Ticking => MultiplayerWorldComp.tickingWorld || MapAsyncTimeComp.tickingMap != null || ConstantTicker.ticking;
+        public static Map MapContext => MapAsyncTimeComp.tickingMap ?? MapAsyncTimeComp.executingCmdMap;
+
         public static bool dontSync;
+        public static bool ShouldSync => InInterface && !dontSync;
+        public static bool InInterface => Client != null && !Ticking && !ExecutingCmds && !reloading && Current.ProgramState == ProgramState.Playing && LongEventHandler.currentEvent == null;
+
+        public static string ReplaysDir => GenFilePaths.FolderUnderSaveData("MpReplays");
+        public static string DesyncsDir => GenFilePaths.FolderUnderSaveData("MpDesyncs");
 
         public static Stopwatch Clock = Stopwatch.StartNew();
 
         public static HashSet<string> xmlMods = new HashSet<string>();
         public static List<ModHashes> enabledModAssemblyHashes = new List<ModHashes>();
         public static Dictionary<string, DefInfo> localDefInfos;
-
-        public static UniqueList<Texture2D> icons = new UniqueList<Texture2D>();
-        public static UniqueList<IconInfo> iconInfos = new UniqueList<IconInfo>();
-
-        private static readonly HashSet<Type> IgnoredVanillaDefTypes = new HashSet<Type>
-        {
-            typeof(FeatureDef), typeof(HairDef),
-            typeof(MainButtonDef), typeof(PawnTableDef),
-            typeof(TransferableSorterDef), typeof(ConceptDef),
-            typeof(InstructionDef), typeof(EffecterDef),
-            typeof(ImpactSoundTypeDef), typeof(KeyBindingCategoryDef),
-            typeof(KeyBindingDef), typeof(RulePackDef),
-            typeof(ScatterableDef), typeof(ShaderTypeDef),
-            typeof(SongDef), typeof(SoundDef),
-            typeof(SubcameraDef), typeof(PawnColumnDef)
-        };
 
         static Multiplayer()
         {
@@ -70,9 +91,11 @@ namespace Multiplayer.Client
 
             SetUsername();
 
-            foreach (ModMetaData mod in ModLister.AllInstalledMods)
+            foreach (var mod in ModLister.AllInstalledMods)
+            {
                 if (!mod.ModAssemblies().Any())
                     xmlMods.Add(mod.RootDir.FullName);
+            }
 
             SimpleProfiler.Init(username);
 
@@ -85,9 +108,9 @@ namespace Multiplayer.Client
 
             PlantWindSwayPatch.Init();
 
-            GameObject gameobject = new GameObject();
+            var gameobject = new GameObject();
             gameobject.AddComponent<OnMainThread>();
-            Object.DontDestroyOnLoad(gameobject);
+            UnityEngine.Object.DontDestroyOnLoad(gameobject);
 
             MpConnectionState.SetImplementation(ConnectionStateEnum.ClientSteam, typeof(ClientSteamState));
             MpConnectionState.SetImplementation(ConnectionStateEnum.ClientJoining, typeof(ClientJoiningState));
@@ -141,40 +164,6 @@ namespace Multiplayer.Client
                 RuntimeHelpers.RunClassConstructor(typeof(Text).TypeHandle);
         }
 
-        public static IConnection Client => session?.client;
-        public static MultiplayerServer LocalServer => session?.localServer;
-        public static PacketLogWindow PacketLog => session?.packetLog;
-        public static bool IsReplay => session?.replay ?? false;
-        public static HarmonyInstance harmony => MultiplayerMod.harmony;
-
-        public static IdBlock GlobalIdBlock => game.worldComp.globalIdBlock;
-        public static Faction DummyFaction => game.dummyFaction;
-        public static MultiplayerWorldComp WorldComp => game.worldComp;
-
-        public static bool ShowDevInfo => MpVersion.IsDebug || Prefs.DevMode && MultiplayerMod.settings.showDevInfo;
-
-        public static Faction RealPlayerFaction
-        {
-            get => Client != null ? game.RealPlayerFaction : Faction.OfPlayer;
-            set => game.RealPlayerFaction = value;
-        }
-
-        public static bool ExecutingCmds =>
-            MultiplayerWorldComp.executingCmdWorld || MapAsyncTimeComp.executingCmdMap != null;
-
-        public static bool Ticking => MultiplayerWorldComp.tickingWorld || MapAsyncTimeComp.tickingMap != null ||
-                                      ConstantTicker.ticking;
-
-        public static Map MapContext => MapAsyncTimeComp.tickingMap ?? MapAsyncTimeComp.executingCmdMap;
-        public static bool ShouldSync => InInterface && !dontSync;
-
-        public static bool InInterface => Client != null && !Ticking && !ExecutingCmds && !reloading &&
-                                          Current.ProgramState == ProgramState.Playing &&
-                                          LongEventHandler.currentEvent == null;
-
-        public static string ReplaysDir => GenFilePaths.FolderUnderSaveData("MpReplays");
-        public static string DesyncsDir => GenFilePaths.FolderUnderSaveData("MpDesyncs");
-
         private static void SetUsername()
         {
             Multiplayer.username = MultiplayerMod.settings.username;
@@ -197,8 +186,7 @@ namespace Multiplayer.Client
 
         private static void DoubleLongEvent(Action action, string textKey)
         {
-            LongEventHandler.QueueLongEvent(() => LongEventHandler.QueueLongEvent(action, textKey, false, null),
-                textKey, false, null);
+            LongEventHandler.QueueLongEvent(() => LongEventHandler.QueueLongEvent(action, textKey, false, null), textKey, false, null);
         }
 
         private static void HandleCommandLine()
@@ -207,7 +195,7 @@ namespace Multiplayer.Client
             {
                 int port = MultiplayerServer.DefaultPort;
 
-                string[] split = ip.Split(':');
+                var split = ip.Split(':');
                 if (split.Length == 0)
                     ip = "127.0.0.1";
                 else if (split.Length >= 1)
@@ -226,22 +214,21 @@ namespace Multiplayer.Client
             }
 
             if (GenCommandLine.TryGetCommandLineArg("replay", out string replay))
+            {
                 DoubleLongEvent(() =>
                 {
                     Replay.LoadReplay(Replay.ReplayFile(replay), true, () =>
                     {
-                        IEnumerable<string> rand = Find.Maps.Select(m => m.AsyncTime().randState)
-                            .Select(s => $"{s} {(uint) s} {s >> 32}");
+                        var rand = Find.Maps.Select(m => m.AsyncTime().randState).Select(s => $"{s} {(uint)s} {s >> 32}");
 
                         Log.Message($"timer {TickPatch.Timer}");
-                        Log.Message(
-                            $"world rand {WorldComp.randState} {(uint) WorldComp.randState} {WorldComp.randState >> 32}");
-                        Log.Message(
-                            $"map rand {rand.ToStringSafeEnumerable()} | {Find.Maps.Select(m => m.AsyncTime().mapTicks).ToStringSafeEnumerable()}");
+                        Log.Message($"world rand {WorldComp.randState} {(uint)WorldComp.randState} {WorldComp.randState >> 32}");
+                        Log.Message($"map rand {rand.ToStringSafeEnumerable()} | {Find.Maps.Select(m => m.AsyncTime().mapTicks).ToStringSafeEnumerable()}");
 
                         Application.Quit();
                     });
                 }, "Replay");
+            }
 
             if (GenCommandLine.CommandLineArgPassed("printsync"))
             {
@@ -251,47 +238,49 @@ namespace Multiplayer.Client
             }
         }
 
+        public class SyncContainer
+        {
+            public List<SyncHandler> handlers = Sync.handlers;
+        }
+
         private static void DoPatches()
         {
             harmony.PatchAll();
 
             // General designation handling
             {
-                string[] designatorMethods = {"DesignateSingleCell", "DesignateMultiCell", "DesignateThing"};
+                var designatorMethods = new[] { "DesignateSingleCell", "DesignateMultiCell", "DesignateThing" };
 
                 foreach (Type t in typeof(Designator).AllSubtypesAndSelf())
-                foreach (string m in designatorMethods)
                 {
-                    MethodInfo method = t.GetMethod(m,
-                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
-                    if (method == null) continue;
+                    foreach (string m in designatorMethods)
+                    {
+                        MethodInfo method = t.GetMethod(m, BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
+                        if (method == null) continue;
 
-                    MethodInfo prefix = AccessTools.Method(typeof(DesignatorPatches), m);
-                    harmony.Patch(method, new HarmonyMethod(prefix));
+                        MethodInfo prefix = AccessTools.Method(typeof(DesignatorPatches), m);
+                        harmony.Patch(method, new HarmonyMethod(prefix), null, null);
+                    }
                 }
             }
 
             // Remove side effects from methods which are non-deterministic during ticking (e.g. camera dependent motes and sound effects)
             {
-                HarmonyMethod randPatchPrefix = new HarmonyMethod(typeof(RandPatches), "Prefix");
-                HarmonyMethod randPatchPostfix = new HarmonyMethod(typeof(RandPatches), "Postfix");
+                var randPatchPrefix = new HarmonyMethod(typeof(RandPatches), "Prefix");
+                var randPatchPostfix = new HarmonyMethod(typeof(RandPatches), "Postfix");
 
-                MethodInfo subSustainerStart = AccessTools.Method(typeof(SubSustainer), "<SubSustainer>m__0");
-                ConstructorInfo sampleCtor = typeof(Sample).GetConstructor(new[] {typeof(SubSoundDef)});
-                MethodInfo subSoundPlay = typeof(SubSoundDef).GetMethod("TryPlay");
-                MethodInfo effecterTick = typeof(Effecter).GetMethod("EffectTick");
-                MethodInfo effecterTrigger = typeof(Effecter).GetMethod("Trigger");
-                MethodInfo effecterCleanup = typeof(Effecter).GetMethod("Cleanup");
-                MethodInfo randomBoltMesh = typeof(LightningBoltMeshPool).GetProperty("RandomBoltMesh").GetGetMethod();
-                ConstructorInfo drawTrackerCtor = typeof(Pawn_DrawTracker).GetConstructor(new[] {typeof(Pawn)});
-                MethodInfo randomHair = typeof(PawnHairChooser).GetMethod("RandomHairDefFor");
+                var subSustainerStart = AccessTools.Method(typeof(SubSustainer), "<SubSustainer>m__0");
+                var sampleCtor = typeof(Sample).GetConstructor(new[] { typeof(SubSoundDef) });
+                var subSoundPlay = typeof(SubSoundDef).GetMethod("TryPlay");
+                var effecterTick = typeof(Effecter).GetMethod("EffectTick");
+                var effecterTrigger = typeof(Effecter).GetMethod("Trigger");
+                var effecterCleanup = typeof(Effecter).GetMethod("Cleanup");
+                var randomBoltMesh = typeof(LightningBoltMeshPool).GetProperty("RandomBoltMesh").GetGetMethod();
+                var drawTrackerCtor = typeof(Pawn_DrawTracker).GetConstructor(new[] { typeof(Pawn) });
+                var randomHair = typeof(PawnHairChooser).GetMethod("RandomHairDefFor");
 
-                MethodBase[] effectMethods =
-                {
-                    subSustainerStart, sampleCtor, subSoundPlay, effecterTick, effecterTrigger, effecterCleanup,
-                    randomBoltMesh, drawTrackerCtor, randomHair
-                };
-                MethodInfo[] moteMethods = typeof(MoteMaker).GetMethods(BindingFlags.Static | BindingFlags.Public);
+                var effectMethods = new MethodBase[] { subSustainerStart, sampleCtor, subSoundPlay, effecterTick, effecterTrigger, effecterCleanup, randomBoltMesh, drawTrackerCtor, randomHair };
+                var moteMethods = typeof(MoteMaker).GetMethods(BindingFlags.Static | BindingFlags.Public);
 
                 foreach (MethodBase m in effectMethods.Concat(moteMethods))
                     harmony.Patch(m, randPatchPrefix, randPatchPostfix);
@@ -299,47 +288,43 @@ namespace Multiplayer.Client
 
             // Set ThingContext and FactionContext (for pawns and buildings) in common Thing methods
             {
-                HarmonyMethod thingMethodPrefix = new HarmonyMethod(typeof(PatchThingMethods).GetMethod("Prefix"));
-                HarmonyMethod thingMethodPostfix = new HarmonyMethod(typeof(PatchThingMethods).GetMethod("Postfix"));
-                string[] thingMethods = {"Tick", "TickRare", "TickLong", "SpawnSetup", "TakeDamage", "Kill"};
+                var thingMethodPrefix = new HarmonyMethod(typeof(PatchThingMethods).GetMethod("Prefix"));
+                var thingMethodPostfix = new HarmonyMethod(typeof(PatchThingMethods).GetMethod("Postfix"));
+                var thingMethods = new[] { "Tick", "TickRare", "TickLong", "SpawnSetup", "TakeDamage", "Kill" };
 
                 foreach (Type t in typeof(Thing).AllSubtypesAndSelf())
-                foreach (string m in thingMethods)
                 {
-                    MethodInfo method = t.GetMethod(m,
-                        BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
-                    if (method != null)
-                        harmony.Patch(method, thingMethodPrefix, thingMethodPostfix);
+                    foreach (string m in thingMethods)
+                    {
+                        MethodInfo method = t.GetMethod(m, BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
+                        if (method != null)
+                            harmony.Patch(method, thingMethodPrefix, thingMethodPostfix);
+                    }
                 }
             }
 
             // Full precision floating point saving
             {
-                HarmonyMethod doubleSavePrefix =
-                    new HarmonyMethod(typeof(ValueSavePatch).GetMethod(nameof(ValueSavePatch.DoubleSave_Prefix)));
-                HarmonyMethod floatSavePrefix =
-                    new HarmonyMethod(typeof(ValueSavePatch).GetMethod(nameof(ValueSavePatch.FloatSave_Prefix)));
-                MethodInfo valueSaveMethod = typeof(Scribe_Values).GetMethod(nameof(Scribe_Values.Look));
+                var doubleSavePrefix = new HarmonyMethod(typeof(ValueSavePatch).GetMethod(nameof(ValueSavePatch.DoubleSave_Prefix)));
+                var floatSavePrefix = new HarmonyMethod(typeof(ValueSavePatch).GetMethod(nameof(ValueSavePatch.FloatSave_Prefix)));
+                var valueSaveMethod = typeof(Scribe_Values).GetMethod(nameof(Scribe_Values.Look));
 
-                harmony.Patch(valueSaveMethod?.MakeGenericMethod(typeof(double)), doubleSavePrefix);
-                harmony.Patch(valueSaveMethod?.MakeGenericMethod(typeof(float)), floatSavePrefix);
+                harmony.Patch(valueSaveMethod.MakeGenericMethod(typeof(double)), doubleSavePrefix, null);
+                harmony.Patch(valueSaveMethod.MakeGenericMethod(typeof(float)), floatSavePrefix, null);
             }
 
             // Set the map time for GUI methods depending on it
             {
-                HarmonyMethod setMapTimePrefix =
-                    new HarmonyMethod(AccessTools.Method(typeof(SetMapTimeForUI), "Prefix"));
-                HarmonyMethod setMapTimePostfix =
-                    new HarmonyMethod(AccessTools.Method(typeof(SetMapTimeForUI), "Postfix"));
+                var setMapTimePrefix = new HarmonyMethod(AccessTools.Method(typeof(SetMapTimeForUI), "Prefix"));
+                var setMapTimePostfix = new HarmonyMethod(AccessTools.Method(typeof(SetMapTimeForUI), "Postfix"));
 
-                string[] windowMethods = {"DoWindowContents", "WindowUpdate"};
+                var windowMethods = new[] { "DoWindowContents", "WindowUpdate" };
                 foreach (string m in windowMethods)
                     harmony.Patch(typeof(MainTabWindow_Inspect).GetMethod(m), setMapTimePrefix, setMapTimePostfix);
 
-                foreach (Type t in typeof(InspectTabBase).AllSubtypesAndSelf())
+                foreach (var t in typeof(InspectTabBase).AllSubtypesAndSelf())
                 {
-                    MethodInfo method = t.GetMethod("FillTab",
-                        BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
+                    var method = t.GetMethod("FillTab", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
                     if (method != null && !method.IsAbstract)
                         harmony.Patch(method, setMapTimePrefix, setMapTimePostfix);
                 }
@@ -348,18 +333,25 @@ namespace Multiplayer.Client
             ModPatches.Init();
         }
 
+        public static UniqueList<Texture2D> icons = new UniqueList<Texture2D>();
+        public static UniqueList<IconInfo> iconInfos = new UniqueList<IconInfo>();
+
+        public class IconInfo
+        {
+            public bool hasStuff;
+        }
+
         private static void CollectCursorIcons()
         {
             icons.Add(null);
             iconInfos.Add(null);
 
-            foreach (Designator des in DefDatabase<DesignationCategoryDef>.AllDefsListForReading.SelectMany(c =>
-                c.AllResolvedDesignators))
+            foreach (var des in DefDatabase<DesignationCategoryDef>.AllDefsListForReading.SelectMany(c => c.AllResolvedDesignators))
             {
                 if (des.icon == null) continue;
 
                 if (icons.Add(des.icon))
-                    iconInfos.Add(new IconInfo
+                    iconInfos.Add(new IconInfo()
                     {
                         hasStuff = des is Designator_Build build && build.entDef.MadeFromStuff
                     });
@@ -398,14 +390,24 @@ namespace Multiplayer.Client
             }
         }
 
+        private static HashSet<Type> IgnoredVanillaDefTypes = new HashSet<Type>
+        {
+            typeof(FeatureDef), typeof(HairDef),
+            typeof(MainButtonDef), typeof(PawnTableDef),
+            typeof(TransferableSorterDef), typeof(ConceptDef),
+            typeof(InstructionDef), typeof(EffecterDef),
+            typeof(ImpactSoundTypeDef), typeof(KeyBindingCategoryDef),
+            typeof(KeyBindingDef), typeof(RulePackDef),
+            typeof(ScatterableDef), typeof(ShaderTypeDef),
+            typeof(SongDef), typeof(SoundDef),
+            typeof(SubcameraDef), typeof(PawnColumnDef)
+        };
+
         private static void CollectDefInfos()
         {
-            Dictionary<string, DefInfo> dict = new Dictionary<string, DefInfo>();
+            var dict = new Dictionary<string, DefInfo>();
 
-            int TypeHash(Type type)
-            {
-                return GenText.StableStringHash(type.FullName);
-            }
+            int TypeHash(Type type) => GenText.StableStringHash(type.FullName);
 
             dict["ThingComp"] = GetDefInfo(Sync.thingCompTypes, TypeHash);
             dict["Designator"] = GetDefInfo(Sync.designatorTypes, TypeHash);
@@ -420,12 +422,12 @@ namespace Multiplayer.Client
             dict["PawnBio"] = GetDefInfo(SolidBioDatabase.allBios, b => b.name.GetHashCode());
             dict["Backstory"] = GetDefInfo(BackstoryDatabase.allBackstories.Keys, b => b.GetHashCode());
 
-            foreach (Type defType in typeof(Def).AllLeafSubclasses())
+            foreach (var defType in GenTypes.AllLeafSubclasses(typeof(Def)))
             {
                 if (defType.Assembly != typeof(Game).Assembly) continue;
                 if (IgnoredVanillaDefTypes.Contains(defType)) continue;
 
-                IEnumerable<Def> defs = GenDefDatabase.GetAllDefsInDatabaseForDef(defType);
+                var defs = GenDefDatabase.GetAllDefsInDatabaseForDef(defType);
                 dict.Add(defType.Name, GetDefInfo(defs, d => GenText.StableStringHash(d.defName)));
             }
 
@@ -434,13 +436,12 @@ namespace Multiplayer.Client
 
         private static void CollectModHashes()
         {
-            foreach (ModContentPack mod in LoadedModManager.RunningModsListForReading)
+            foreach (var mod in LoadedModManager.RunningModsListForReading)
             {
-                ModHashes hashes = new ModHashes
+                var hashes = new ModHashes()
                 {
                     assemblyHash = mod.ModAssemblies().CRC32(),
-                    xmlHash = LoadableXmlAssetCtorPatch.xmlAssetHashes.Where(p => p.First.mod == mod)
-                        .Select(p => p.Second).AggregateHash(),
+                    xmlHash = LoadableXmlAssetCtorPatch.xmlAssetHashes.Where(p => p.First.mod == mod).Select(p => p.Second).AggregateHash(),
                     aboutHash = new DirectoryInfo(Path.Combine(mod.RootDir, "About")).GetFiles().CRC32()
                 };
                 enabledModAssemblyHashes.Add(hashes);
@@ -451,21 +452,11 @@ namespace Multiplayer.Client
 
         private static DefInfo GetDefInfo<T>(IEnumerable<T> types, Func<T, int> hash)
         {
-            return new DefInfo
+            return new DefInfo()
             {
                 count = types.Count(),
                 hash = types.Select(t => hash(t)).AggregateHash()
             };
-        }
-
-        public class SyncContainer
-        {
-            public List<SyncHandler> handlers = Sync.handlers;
-        }
-
-        public class IconInfo
-        {
-            public bool hasStuff;
         }
     }
 
@@ -476,11 +467,11 @@ namespace Multiplayer.Client
 
     public static class FactionContext
     {
-        private static readonly Stack<Faction> stack = new Stack<Faction>();
+        private static Stack<Faction> stack = new Stack<Faction>();
 
         public static Faction Push(Faction newFaction)
         {
-            if (newFaction == null || newFaction.def != Multiplayer.FactionDef && !newFaction.def.isPlayer)
+            if (newFaction == null || (newFaction.def != Multiplayer.FactionDef && !newFaction.def.isPlayer))
             {
                 stack.Push(null);
                 return null;
@@ -502,11 +493,13 @@ namespace Multiplayer.Client
 
         public static void Set(Faction newFaction)
         {
-            Faction playerFaction = Find.FactionManager.OfPlayer;
-            FactionDef factionDef = playerFaction.def;
+            var playerFaction = Find.FactionManager.OfPlayer;
+            var factionDef = playerFaction.def;
             playerFaction.def = Multiplayer.FactionDef;
             newFaction.def = factionDef;
             Find.FactionManager.ofPlayer = newFaction;
         }
     }
+
 }
+

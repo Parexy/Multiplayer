@@ -1,13 +1,13 @@
-﻿#region
-
+﻿using Harmony;
+using Multiplayer.Common;
+using RimWorld;
+using RimWorld.Planet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Harmony;
-using RimWorld;
+using System.Reflection;
+using System.Text;
 using Verse;
-
-#endregion
 
 namespace Multiplayer.Client
 {
@@ -15,44 +15,21 @@ namespace Multiplayer.Client
     {
         public static bool tickingFactions;
 
-        public CaravanFormingSession caravanForming;
-
-        private int currentFactionId;
+        public Map map;
 
         //public IdBlock mapIdBlock;
         public Dictionary<int, FactionMapData> factionMapData = new Dictionary<int, FactionMapData>();
 
-        public Map map;
+        public CaravanFormingSession caravanForming;
+        public TransporterLoading transporterLoading;
         public List<PersistentDialog> mapDialogs = new List<PersistentDialog>();
 
         // for SaveCompression
         public List<Thing> tempLoadedThings;
-        public TransporterLoading transporterLoading;
 
         public MultiplayerMapComp(Map map)
         {
             this.map = map;
-        }
-
-        public void ExposeData()
-        {
-            // Data marker
-            if (Scribe.mode == LoadSaveMode.Saving)
-            {
-                bool isPlayerHome = map.IsPlayerHome;
-                Scribe_Values.Look(ref isPlayerHome, "isPlayerHome", false, true);
-            }
-
-            Scribe_Deep.Look(ref caravanForming, "caravanFormingSession", map);
-            Scribe_Deep.Look(ref transporterLoading, "transporterLoading", map);
-
-            Scribe_Collections.Look(ref mapDialogs, "mapDialogs", LookMode.Deep, map);
-            if (Scribe.mode == LoadSaveMode.LoadingVars && mapDialogs == null)
-                mapDialogs = new List<PersistentDialog>();
-
-            //Multiplayer.ExposeIdBlock(ref mapIdBlock, "mapIdBlock");
-
-            ExposeFactionData();
         }
 
         public void CreateCaravanFormingSession(bool reform, Action onClosed, bool mapAboutToBeRemoved)
@@ -73,7 +50,7 @@ namespace Multiplayer.Client
 
             tickingFactions = true;
 
-            foreach (KeyValuePair<int, FactionMapData> data in factionMapData)
+            foreach (var data in factionMapData)
             {
                 map.PushFaction(data.Key);
                 data.Value.listerHaulables.ListerHaulablesTick();
@@ -98,6 +75,29 @@ namespace Multiplayer.Client
             map.listerFilthInHomeArea = data.listerFilthInHomeArea;
         }
 
+        public void ExposeData()
+        {
+            // Data marker
+            if (Scribe.mode == LoadSaveMode.Saving)
+            {
+                bool isPlayerHome = map.IsPlayerHome;
+                Scribe_Values.Look(ref isPlayerHome, "isPlayerHome", false, true);
+            }
+
+            Scribe_Deep.Look(ref caravanForming, "caravanFormingSession", map);
+            Scribe_Deep.Look(ref transporterLoading, "transporterLoading", map);
+
+            Scribe_Collections.Look(ref mapDialogs, "mapDialogs", LookMode.Deep, map);
+            if (Scribe.mode == LoadSaveMode.LoadingVars && mapDialogs == null)
+                mapDialogs = new List<PersistentDialog>();
+
+            //Multiplayer.ExposeIdBlock(ref mapIdBlock, "mapIdBlock");
+
+            ExposeFactionData();
+        }
+
+        private int currentFactionId;
+
         private void ExposeFactionData()
         {
             if (Scribe.mode == LoadSaveMode.Saving)
@@ -105,7 +105,7 @@ namespace Multiplayer.Client
                 int currentFactionId = Faction.OfPlayer.loadID;
                 ScribeUtil.LookValue(currentFactionId, "currentFactionId");
 
-                Dictionary<int, FactionMapData> data = new Dictionary<int, FactionMapData>(factionMapData);
+                var data = new Dictionary<int, FactionMapData>(factionMapData);
                 data.Remove(currentFactionId);
                 ScribeUtil.LookWithValueKey(ref data, "factionMapData", LookMode.Deep, map);
             }
@@ -120,27 +120,29 @@ namespace Multiplayer.Client
             }
 
             if (Scribe.mode == LoadSaveMode.PostLoadInit)
+            {
                 factionMapData[currentFactionId] = FactionMapData.FromMap(map, currentFactionId);
+            }
         }
     }
 
     public class FactionMapData : IExposable
     {
-        public AreaManager areaManager;
-        public HashSet<Thing> claimed = new HashSet<Thing>();
+        public Map map;
+        public int factionId;
 
         // Saved
         public DesignationManager designationManager;
-        public int factionId;
+        public AreaManager areaManager;
+        public ZoneManager zoneManager;
+        public HashSet<Thing> claimed = new HashSet<Thing>();
         public HashSet<Thing> forbidden = new HashSet<Thing>();
 
         // Not saved
         public HaulDestinationManager haulDestinationManager;
-        public ListerFilthInHomeArea listerFilthInHomeArea;
         public ListerHaulables listerHaulables;
-        public Map map;
         public ResourceCounter resourceCounter;
-        public ZoneManager zoneManager;
+        public ListerFilthInHomeArea listerFilthInHomeArea;
 
         // Loading ctor
         public FactionMapData(Map map)
@@ -188,19 +190,19 @@ namespace Multiplayer.Client
                 haulDestinationManager = map.haulDestinationManager,
                 listerHaulables = map.listerHaulables,
                 resourceCounter = map.resourceCounter,
-                listerFilthInHomeArea = map.listerFilthInHomeArea
+                listerFilthInHomeArea = map.listerFilthInHomeArea,
             };
         }
     }
 
     [HarmonyPatch(typeof(MapDrawer), nameof(MapDrawer.DrawMapMesh))]
-    internal static class ForceShowDialogs
+    static class ForceShowDialogs
     {
-        private static void Prefix(MapDrawer __instance)
+        static void Prefix(MapDrawer __instance)
         {
             if (Multiplayer.Client == null) return;
 
-            MultiplayerMapComp comp = __instance.map.MpComp();
+            var comp = __instance.map.MpComp();
 
             if (comp.mapDialogs.Any())
             {
@@ -217,13 +219,12 @@ namespace Multiplayer.Client
                 if (!Find.WindowStack.IsOpen(typeof(MpLoadTransportersWindow)))
                     comp.transporterLoading.OpenWindow(false);
             }
-            else if (Multiplayer.WorldComp.trading.FirstOrDefault(t => t.playerNegotiator.Map == comp.map) is
-                MpTradeSession trading)
+            else if (Multiplayer.WorldComp.trading.FirstOrDefault(t => t.playerNegotiator.Map == comp.map) is MpTradeSession trading)
             {
                 if (!Find.WindowStack.IsOpen(typeof(TradingWindow)))
-                    Find.WindowStack.Add(new TradingWindow
-                        {selectedTab = Multiplayer.WorldComp.trading.IndexOf(trading)});
+                    Find.WindowStack.Add(new TradingWindow() { selectedTab = Multiplayer.WorldComp.trading.IndexOf(trading) });
             }
         }
     }
+
 }

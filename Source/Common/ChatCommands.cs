@@ -1,4 +1,9 @@
-﻿namespace Multiplayer.Common
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace Multiplayer.Common
 {
     public abstract class ChatCmdHandler
     {
@@ -48,7 +53,7 @@
                 return;
             }
 
-            ServerPlayer toKick = FindPlayer(args[0]);
+            var toKick = FindPlayer(args[0]);
             if (toKick == null)
             {
                 player.SendChat("Couldn't find the player.");

@@ -1,16 +1,16 @@
-﻿#region
-
-using System;
-using System.Collections.Generic;
-using System.Reflection;
-using System.Reflection.Emit;
-using Harmony;
+﻿using Harmony;
+using Multiplayer.Common;
 using RimWorld;
 using RimWorld.Planet;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Reflection.Emit;
+using UnityEngine;
 using Verse;
 using Verse.Grammar;
-
-#endregion
 
 namespace Multiplayer.Client
 {
@@ -18,7 +18,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(Game.LoadGame))]
     public static class SeedGameLoad
     {
-        private static void Prefix()
+        static void Prefix()
         {
             Rand.PushState();
 
@@ -26,7 +26,7 @@ namespace Multiplayer.Client
             Rand.Seed = 1;
         }
 
-        private static void Postfix()
+        static void Postfix()
         {
             Rand.PopState();
         }
@@ -36,21 +36,24 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(Map.ExposeData))]
     public static class SeedMapLoad
     {
-        private static void Prefix(Map __instance, ref bool __state)
+        static void Prefix(Map __instance, ref bool __state)
         {
             if (Multiplayer.Client == null) return;
-            if (Scribe.mode != LoadSaveMode.LoadingVars && Scribe.mode != LoadSaveMode.ResolvingCrossRefs &&
-                Scribe.mode != LoadSaveMode.PostLoadInit) return;
+            if (Scribe.mode != LoadSaveMode.LoadingVars && Scribe.mode != LoadSaveMode.ResolvingCrossRefs && Scribe.mode != LoadSaveMode.PostLoadInit) return;
 
             int seed = __instance.uniqueID;
             Rand.PushState(seed);
 
-            if (Scribe.mode != LoadSaveMode.LoadingVars) UniqueIdsPatch.CurrentBlock = Multiplayer.GlobalIdBlock;
+            if (Scribe.mode != LoadSaveMode.LoadingVars)
+            {
+                //UniqueIdsPatch.CurrentBlock = __instance.MpComp().mapIdBlock;
+                UniqueIdsPatch.CurrentBlock = Multiplayer.GlobalIdBlock;
+            }
 
             __state = true;
         }
 
-        private static void Postfix(bool __state)
+        static void Postfix(bool __state)
         {
             if (__state)
             {
@@ -66,7 +69,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(Map.FinalizeLoading))]
     public static class SeedMapFinalizeLoading
     {
-        private static void Prefix(Map __instance, ref bool __state)
+        static void Prefix(Map __instance, ref bool __state)
         {
             if (Multiplayer.Client == null) return;
 
@@ -79,7 +82,7 @@ namespace Multiplayer.Client
             __state = true;
         }
 
-        private static void Postfix(bool __state)
+        static void Postfix(bool __state)
         {
             if (__state)
             {
@@ -89,11 +92,10 @@ namespace Multiplayer.Client
         }
     }
 
-    [HarmonyPatch(typeof(CaravanEnterMapUtility), nameof(CaravanEnterMapUtility.Enter), typeof(Caravan), typeof(Map),
-        typeof(CaravanEnterMode), typeof(CaravanDropInventoryMode), typeof(bool), typeof(Predicate<IntVec3>))]
-    internal static class SeedCaravanEnter
+    [HarmonyPatch(typeof(CaravanEnterMapUtility), nameof(CaravanEnterMapUtility.Enter), new[] { typeof(Caravan), typeof(Map), typeof(CaravanEnterMode), typeof(CaravanDropInventoryMode), typeof(bool), typeof(Predicate<IntVec3>) })]
+    static class SeedCaravanEnter
     {
-        private static void Prefix(Map map, ref bool __state)
+        static void Prefix(Map map, ref bool __state)
         {
             if (Multiplayer.Client == null) return;
 
@@ -103,55 +105,48 @@ namespace Multiplayer.Client
             __state = true;
         }
 
-        private static void Postfix(Map map, bool __state)
+        static void Postfix(Map map, bool __state)
         {
             if (__state)
                 Rand.PopState();
         }
     }
 
-    [HarmonyPatch(typeof(LongEventHandler), nameof(LongEventHandler.QueueLongEvent), typeof(Action), typeof(string),
-        typeof(bool), typeof(Action<Exception>))]
-    internal static class SeedLongEvents
+    [HarmonyPatch(typeof(LongEventHandler), nameof(LongEventHandler.QueueLongEvent), new[] { typeof(Action), typeof(string), typeof(bool), typeof(Action<Exception>) })]
+    static class SeedLongEvents
     {
-        private static void Prefix(ref Action action)
+        static void Prefix(ref Action action)
         {
             if (Multiplayer.Client != null && (Multiplayer.Ticking || Multiplayer.ExecutingCmds))
+            {
                 action = PushState + action + Rand.PopState;
+            }
         }
 
-        private static void PushState()
-        {
-            Rand.PushState(4);
-        }
+        static void PushState() => Rand.PushState(4);
     }
 
     // Seed the rotation random
-    [HarmonyPatch(typeof(GenSpawn), nameof(GenSpawn.Spawn), typeof(Thing), typeof(IntVec3), typeof(Map), typeof(Rot4),
-        typeof(WipeMode), typeof(bool))]
-    internal static class GenSpawnRotatePatch
+    [HarmonyPatch(typeof(GenSpawn), nameof(GenSpawn.Spawn), new[] { typeof(Thing), typeof(IntVec3), typeof(Map), typeof(Rot4), typeof(WipeMode), typeof(bool) })]
+    static class GenSpawnRotatePatch
     {
-        private static readonly MethodInfo Rot4GetRandom =
-            AccessTools.Property(typeof(Rot4), nameof(Rot4.Random)).GetGetMethod();
+        static MethodInfo Rot4GetRandom = AccessTools.Property(typeof(Rot4), nameof(Rot4.Random)).GetGetMethod();
 
-        private static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
+        static IEnumerable<CodeInstruction> Transpiler(IEnumerable<CodeInstruction> insts)
         {
             foreach (CodeInstruction inst in insts)
             {
                 if (inst.operand == Rot4GetRandom)
                 {
                     yield return new CodeInstruction(OpCodes.Ldarg_0);
-                    yield return new CodeInstruction(OpCodes.Ldfld,
-                        AccessTools.Field(typeof(Thing), nameof(Thing.thingIDNumber)));
-                    yield return new CodeInstruction(OpCodes.Call,
-                        AccessTools.Method(typeof(Rand), nameof(Rand.PushState), new[] {typeof(int)}));
+                    yield return new CodeInstruction(OpCodes.Ldfld, AccessTools.Field(typeof(Thing), nameof(Thing.thingIDNumber)));
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Rand), nameof(Rand.PushState), new[] { typeof(int) }));
                 }
 
                 yield return inst;
 
                 if (inst.operand == Rot4GetRandom)
-                    yield return new CodeInstruction(OpCodes.Call,
-                        AccessTools.Method(typeof(Rand), nameof(Rand.PopState)));
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(Rand), nameof(Rand.PopState)));
             }
         }
     }
@@ -201,12 +196,11 @@ namespace Multiplayer.Client
 
     [MpPatch(typeof(GrammarResolver), nameof(GrammarResolver.Resolve))]
     [MpPatch(typeof(PawnBioAndNameGenerator), nameof(PawnBioAndNameGenerator.GeneratePawnName))]
-    [MpPatch(typeof(NameGenerator), nameof(NameGenerator.GenerateName), new[]
-        {typeof(RulePackDef), typeof(Predicate<string>), typeof(bool), typeof(string), typeof(string)})]
-    internal static class SeedGrammar
+    [MpPatch(typeof(NameGenerator), nameof(NameGenerator.GenerateName), new[] { typeof(RulePackDef), typeof(Predicate<string>), typeof(bool), typeof(string), typeof(string) })]
+    static class SeedGrammar
     {
         [HarmonyPriority(MpPriority.MpFirst)]
-        private static void Prefix(ref bool __state)
+        static void Prefix(ref bool __state)
         {
             Rand.Element(0, 0); // advance the rng
             Rand.PushState();
@@ -214,7 +208,7 @@ namespace Multiplayer.Client
         }
 
         [HarmonyPriority(MpPriority.MpLast)]
-        private static void Postfix(bool __state)
+        static void Postfix(bool __state)
         {
             if (__state)
                 Rand.PopState();
@@ -223,20 +217,21 @@ namespace Multiplayer.Client
 
     [MpPatch(typeof(PawnGraphicSet), nameof(PawnGraphicSet.ResolveAllGraphics))]
     [MpPatch(typeof(PawnGraphicSet), nameof(PawnGraphicSet.ResolveApparelGraphics))]
-    internal static class SeedPawnGraphics
+    static class SeedPawnGraphics
     {
         [HarmonyPriority(MpPriority.MpFirst)]
-        private static void Prefix(PawnGraphicSet __instance, ref bool __state)
+        static void Prefix(PawnGraphicSet __instance, ref bool __state)
         {
             Rand.PushState(__instance.pawn.thingIDNumber);
             __state = true;
         }
 
         [HarmonyPriority(MpPriority.MpLast)]
-        private static void Postfix(bool __state)
+        static void Postfix(bool __state)
         {
             if (__state)
                 Rand.PopState();
         }
     }
+
 }
