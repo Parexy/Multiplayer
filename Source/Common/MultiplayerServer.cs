@@ -120,6 +120,7 @@ namespace Multiplayer.Common
                     lag -= timePerTick;
                 }
 
+                // TODO: Calculate the time we need to sleep in order to time the tick rate better
                 Thread.Sleep(10);
             }
 

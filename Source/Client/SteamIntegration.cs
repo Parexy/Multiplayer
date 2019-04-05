@@ -111,6 +111,19 @@ namespace Multiplayer.Client
 
                 var player = server.players.FirstOrDefault(p => p.conn is SteamBaseConn conn && conn.remoteId == packet.remote);
 
+                // Whenever a new player joins, we need to check if the new player has the required mods to join.
+                // To achieve this, we most likely need to pause the game, and display a message to all clients
+                // that a new client has connected. We then need to request a complete list of mods that are
+                // installed on the new client's machine. A hash of the file name should suffice. This can be achieved
+                // by adding packet identifiers to Packets, and implementing packet handlers to send and receive
+                // related data. Then we need to compare the hashes sent by the client with hashes from the
+                // current active mods. Based on the result of this comparison, we need to build a zip file containing
+                // all the mods that the new client is missing. When the zip file is build and sent to the client,
+                // the client needs to reload to be able to use the mods (is there a mod that allows loading mods
+                // without restarting the game?). Then the user should try to connect to the server again.
+                
+                // TODO: Find where joining clients with a LAN/Direct connection are being handled
+                
                 if (packet.joinPacket && player == null)
                 {
                     IConnection conn = new SteamServerConn(packet.remote);
