@@ -11,21 +11,7 @@ git clone git@github.com:Parexy/Multiplayer.git
 
 If your RimWorld installation is in a non-standard location, cd to that `Mods` directory first before cloning. 
 
-## Building the project
-
-### Publicizing the RimWorld assembly
-
-Before building the project, you need to make a special version of the RimWorld assembly that has all its internal members/classes public. You can either write your own program to do this or use the tool [here](https://github.com/jacobEAdamson/publicize/releases)
-
-Once you've downloaded the tool, simply run this command from git bash:
-
-```bash
-./Publicize "/c/Program Files (x86)/Steam/steamapps/common/RimWorld/RimWorldWin64_Data/Managed/Assembly-CSharp.dll"
-```
-
-This will generate the assembly in the correct location for the Multiplayer mod to use.
-
-### Building the Multiplayer mod
+## Building the Multiplayer mod
 
 Once you've got your assemblies in the correct spots, you can open up the `Source/Multiplayer.sln` file in your IDE of choice and press `ctl-shift-b` to build the assemblies. You should now have a debug version of the Multiplayer mod.
 
