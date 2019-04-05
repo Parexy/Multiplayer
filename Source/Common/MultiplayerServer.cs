@@ -418,6 +418,7 @@ namespace Multiplayer.Common
         public int maxPlayers = 8;
         public int autosaveInterval = 8;
         public bool pauseOnAutosave = false;
+        public bool appendNameToAutosave = false;
         public bool steam;
         public bool arbiter;
     }

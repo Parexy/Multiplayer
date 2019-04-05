@@ -111,6 +111,7 @@
   <MpNotInMultiplayer>Nicht verfügbar im Mehrspieler-Modus</MpNotInMultiplayer>
   
   <MpPauseOnAutosave>Pause on Autosave</MpPauseOnAutosave>
+  <MpAppendNameToAutosave>Append Name to Autosave</MpAppendNameToAutosave>
   <MpLan>LAN</MpLan>
   <MpDirect>Direkt</MpDirect>
   <MpSteam>Steam</MpSteam>
