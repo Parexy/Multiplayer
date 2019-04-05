@@ -1,19 +1,28 @@
-﻿using Harmony;
-using Multiplayer.Common;
+﻿#region
+
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using Harmony;
 using Verse;
+
+#endregion
 
 namespace Multiplayer.Client
 {
     public static class MpReflection
     {
         public delegate object Getter(object instance, object index);
+
         public delegate void Setter(object instance, object value, object index);
+
+        private static readonly Dictionary<string, Type> types = new Dictionary<string, Type>();
+        private static readonly Dictionary<string, Type> pathTypes = new Dictionary<string, Type>();
+        private static readonly Dictionary<string, Type> indexTypes = new Dictionary<string, Type>();
+        private static readonly Dictionary<string, Getter> getters = new Dictionary<string, Getter>();
+        private static readonly Dictionary<string, Setter> setters = new Dictionary<string, Setter>();
 
         public static IEnumerable<Assembly> AllAssemblies
         {
@@ -21,23 +30,17 @@ namespace Multiplayer.Client
             {
                 yield return Assembly.GetAssembly(typeof(Game));
 
-                foreach (ModContentPack mod in LoadedModManager.RunningMods)
-                    foreach (Assembly assembly in mod.assemblies.loadedAssemblies)
-                        yield return assembly;
+                foreach (var mod in LoadedModManager.RunningMods)
+                foreach (var assembly in mod.assemblies.loadedAssemblies)
+                    yield return assembly;
 
                 if (Assembly.GetEntryAssembly() != null)
                     yield return Assembly.GetEntryAssembly();
             }
         }
 
-        private static Dictionary<string, Type> types = new Dictionary<string, Type>();
-        private static Dictionary<string, Type> pathTypes = new Dictionary<string, Type>();
-        private static Dictionary<string, Type> indexTypes = new Dictionary<string, Type>();
-        private static Dictionary<string, Getter> getters = new Dictionary<string, Getter>();
-        private static Dictionary<string, Setter> setters = new Dictionary<string, Setter>();
-
         /// <summary>
-        /// Get the value of a static property/field in type specified by memberPath
+        ///     Get the value of a static property/field in type specified by memberPath
         /// </summary>
         public static object GetValueStatic(Type type, string memberPath, object index = null)
         {
@@ -45,7 +48,7 @@ namespace Multiplayer.Client
         }
 
         /// <summary>
-        /// Get the value of a static property/field specified by memberPath
+        ///     Get the value of a static property/field specified by memberPath
         /// </summary>
         public static object GetValueStatic(string memberPath, object index = null)
         {
@@ -53,8 +56,8 @@ namespace Multiplayer.Client
         }
 
         /// <summary>
-        /// Get the value of a property/field specified by memberPath
-        /// Type specification in path is not required if instance is provided
+        ///     Get the value of a property/field specified by memberPath
+        ///     Type specification in path is not required if instance is provided
         /// </summary>
         public static object GetValue(object instance, string memberPath, object index = null)
         {
@@ -91,15 +94,15 @@ namespace Multiplayer.Client
         public static Type IndexType(string memberPath)
         {
             InitPropertyOrField(memberPath);
-            return indexTypes.TryGetValue(memberPath, out Type indexType) ? indexType : null;
+            return indexTypes.TryGetValue(memberPath, out var indexType) ? indexType : null;
         }
 
         /// <summary>
-        /// Appends the type name to the path if needed
+        ///     Appends the type name to the path if needed
         /// </summary>
         public static string AppendType(string memberPath, Type type)
         {
-            string[] parts = memberPath.Split(new[] { '/' }, 2, StringSplitOptions.RemoveEmptyEntries);
+            var parts = memberPath.Split(new[] {'/'}, 2, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length <= 1 || !parts[0].Contains('.'))
                 memberPath = type + "/" + memberPath;
 
@@ -108,7 +111,7 @@ namespace Multiplayer.Client
 
         public static string RemoveType(string memberPath)
         {
-            string[] parts = memberPath.Split(new[] { '/' }, 2, StringSplitOptions.RemoveEmptyEntries);
+            var parts = memberPath.Split(new[] {'/'}, 2, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length <= 1 || !parts[0].Contains('.'))
                 return memberPath;
 
@@ -120,21 +123,21 @@ namespace Multiplayer.Client
             if (getters.ContainsKey(memberPath))
                 return;
 
-            string[] parts = memberPath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            var parts = memberPath.Split(new[] {'/'}, StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length < 2)
                 throw new Exception($"Path requires at least the type and one member: {memberPath}");
 
-            Type type = GetTypeByName(parts[0]);
+            var type = GetTypeByName(parts[0]);
             if (type == null)
                 throw new Exception($"Type {parts[0]} not found for path: {memberPath}");
 
-            List<MemberInfo> members = new List<MemberInfo>();
-            Type currentType = type;
-            bool hasSetter = false;
+            var members = new List<MemberInfo>();
+            var currentType = type;
+            var hasSetter = false;
 
-            for (int i = 1; i < parts.Length; i++)
+            for (var i = 1; i < parts.Length; i++)
             {
-                string part = parts[i];
+                var part = parts[i];
                 MemberInfo memberFound = null;
 
                 if (part == "[]")
@@ -142,7 +145,7 @@ namespace Multiplayer.Client
                     if (currentType.IsArray || currentType == typeof(Array))
                     {
                         currentType = currentType.GetElementType();
-                        memberFound = new ArrayAccess() { ElementType = currentType };
+                        memberFound = new ArrayAccess() {ElementType = currentType};
                         members.Add(memberFound);
                         hasSetter = true;
                         indexTypes[memberPath] = typeof(int);
@@ -151,10 +154,11 @@ namespace Multiplayer.Client
                     }
                     else
                     {
-                        PropertyInfo indexer = currentType.GetProperties().FirstOrDefault(p => p.GetIndexParameters().Length == 1);
+                        var indexer = currentType.GetProperties()
+                            .FirstOrDefault(p => p.GetIndexParameters().Length == 1);
                         if (indexer == null) continue;
 
-                        Type indexType = indexer.GetIndexParameters()[0].ParameterType;
+                        var indexType = indexer.GetIndexParameters()[0].ParameterType;
 
                         memberFound = indexer;
                         members.Add(indexer);
@@ -169,7 +173,7 @@ namespace Multiplayer.Client
                 {
                     if (!currentType.IsInterface)
                     {
-                        FieldInfo field = AccessTools.Field(currentType, part);
+                        var field = AccessTools.Field(currentType, part);
                         if (field != null)
                         {
                             memberFound = field;
@@ -179,7 +183,7 @@ namespace Multiplayer.Client
                             continue;
                         }
 
-                        PropertyInfo property = AccessTools.Property(currentType, part);
+                        var property = AccessTools.Property(currentType, part);
                         if (property != null)
                         {
                             memberFound = property;
@@ -190,7 +194,7 @@ namespace Multiplayer.Client
                         }
                     }
 
-                    MethodInfo method = AccessTools.Method(currentType, part);
+                    var method = AccessTools.Method(currentType, part);
                     if (method != null)
                     {
                         memberFound = method;
@@ -204,16 +208,17 @@ namespace Multiplayer.Client
                 throw new Exception($"Member {part} not found in path: {memberPath}, current type: {currentType}");
             }
 
-            MemberInfo lastMember = members.Last();
+            var lastMember = members.Last();
             pathTypes[memberPath] = currentType;
 
-            string methodName = memberPath.Replace('/', '_');
-            DynamicMethod getter = new DynamicMethod("MP_Reflection_Getter_" + methodName, typeof(object), new[] { typeof(object), typeof(object) }, true);
-            ILGenerator getterGen = getter.GetILGenerator();
+            var methodName = memberPath.Replace('/', '_');
+            var getter = new DynamicMethod("MP_Reflection_Getter_" + methodName, typeof(object),
+                new[] {typeof(object), typeof(object)}, true);
+            var getterGen = getter.GetILGenerator();
 
             EmitAccess(type, members, members.Count, getterGen, 1, lastMember);
             getterGen.Emit(OpCodes.Ret);
-            getters[memberPath] = (Getter)getter.CreateDelegate(typeof(Getter));
+            getters[memberPath] = (Getter) getter.CreateDelegate(typeof(Getter));
 
             if (!hasSetter)
             {
@@ -221,8 +226,9 @@ namespace Multiplayer.Client
             }
             else
             {
-                DynamicMethod setter = new DynamicMethod("MP_Reflection_Setter_" + methodName, null, new[] { typeof(object), typeof(object), typeof(object) }, true);
-                ILGenerator setterGen = setter.GetILGenerator();
+                var setter = new DynamicMethod("MP_Reflection_Setter_" + methodName, null,
+                    new[] {typeof(object), typeof(object), typeof(object)}, true);
+                var setterGen = setter.GetILGenerator();
 
                 // Load the instance
                 EmitAccess(type, members, members.Count - 1, setterGen, 2, lastMember);
@@ -235,7 +241,7 @@ namespace Multiplayer.Client
                 }
                 else if (lastMember is PropertyInfo prop && prop.GetIndexParameters().Length == 1)
                 {
-                    Type indexType = prop.GetIndexParameters()[0].ParameterType;
+                    var indexType = prop.GetIndexParameters()[0].ParameterType;
                     setterGen.Emit(OpCodes.Ldarg_2);
                     setterGen.Emit(OpCodes.Unbox_Any, indexType);
                 }
@@ -253,7 +259,7 @@ namespace Multiplayer.Client
                 }
                 else if (lastMember is PropertyInfo prop)
                 {
-                    MethodInfo setterMethod = prop.GetSetMethod(true);
+                    var setterMethod = prop.GetSetMethod(true);
                     setterGen.Emit(setterMethod.IsVirtual ? OpCodes.Callvirt : OpCodes.Call, setterMethod);
                 }
                 else if (lastMember is ArrayAccess)
@@ -262,11 +268,12 @@ namespace Multiplayer.Client
                 }
 
                 setterGen.Emit(OpCodes.Ret);
-                setters[memberPath] = (Setter)setter.CreateDelegate(typeof(Setter));
+                setters[memberPath] = (Setter) setter.CreateDelegate(typeof(Setter));
             }
         }
 
-        private static void EmitAccess(Type type, List<MemberInfo> members, int count, ILGenerator gen, int indexArg, MemberInfo lastMember)
+        private static void EmitAccess(Type type, List<MemberInfo> members, int count, ILGenerator gen, int indexArg,
+            MemberInfo lastMember)
         {
             if (!members[0].IsStatic())
             {
@@ -274,12 +281,12 @@ namespace Multiplayer.Client
                 gen.Emit(OpCodes.Unbox_Any, type);
             }
 
-            for (int i = 0; i < count; i++)
+            for (var i = 0; i < count; i++)
             {
-                MemberInfo member = members[i];
+                var member = members[i];
                 Type memberType;
 
-                bool dontBox = false;
+                var dontBox = false;
 
                 if (member is FieldInfo field)
                 {
@@ -294,12 +301,12 @@ namespace Multiplayer.Client
                 {
                     if (prop.GetIndexParameters().Length == 1)
                     {
-                        Type indexType = prop.GetIndexParameters()[0].ParameterType;
+                        var indexType = prop.GetIndexParameters()[0].ParameterType;
                         gen.Emit(OpCodes.Ldarg, indexArg);
                         gen.Emit(OpCodes.Unbox_Any, indexType);
                     }
 
-                    MethodInfo m = prop.GetGetMethod(true);
+                    var m = prop.GetGetMethod(true);
                     gen.Emit(m.IsVirtual ? OpCodes.Callvirt : OpCodes.Call, m);
                     memberType = m.ReturnType;
                 }
@@ -337,10 +344,10 @@ namespace Multiplayer.Client
 
         public static Type GetTypeByName(string name)
         {
-            if (types.TryGetValue(name, out Type cached))
+            if (types.TryGetValue(name, out var cached))
                 return cached;
 
-            Type type =
+            var type =
                 AllAssemblies.Select(a => a.GetType(name)).NotNull().FirstOrDefault() ??
                 Type.GetType(name) ??
                 AppDomain.CurrentDomain.GetAssemblies().Select(a => a.GetType(name)).NotNull().FirstOrDefault();

@@ -1,4 +1,8 @@
-﻿using System;
+﻿#region
+
+using System;
+
+#endregion
 
 namespace Multiplayer.Common
 {
@@ -29,12 +33,12 @@ namespace Multiplayer.Common
     {
         public const int NoFaction = -1;
         public const int Global = -1;
-
-        public readonly CommandType type;
-        public readonly int ticks;
+        public readonly byte[] data;
         public readonly int factionId;
         public readonly int mapId;
-        public readonly byte[] data;
+        public readonly int ticks;
+
+        public readonly CommandType type;
 
         // Client only, not serialized
         public bool issuedBySelf;
@@ -50,7 +54,7 @@ namespace Multiplayer.Common
 
         public byte[] Serialize()
         {
-            ByteWriter writer = new ByteWriter();
+            var writer = new ByteWriter();
             writer.WriteInt32(Convert.ToInt32(type));
             writer.WriteInt32(ticks);
             writer.WriteInt32(factionId);
@@ -62,11 +66,11 @@ namespace Multiplayer.Common
 
         public static ScheduledCommand Deserialize(ByteReader data)
         {
-            CommandType cmd = (CommandType)data.ReadInt32();
-            int ticks = data.ReadInt32();
-            int factionId = data.ReadInt32();
-            int mapId = data.ReadInt32();
-            byte[] extraBytes = data.ReadPrefixedBytes();
+            var cmd = (CommandType) data.ReadInt32();
+            var ticks = data.ReadInt32();
+            var factionId = data.ReadInt32();
+            var mapId = data.ReadInt32();
+            var extraBytes = data.ReadPrefixedBytes();
 
             return new ScheduledCommand(cmd, ticks, factionId, mapId, extraBytes);
         }

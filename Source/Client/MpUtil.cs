@@ -1,11 +1,8 @@
-﻿using Harmony;
-using Harmony.ILCopying;
-using Multiplayer.Common;
-using Steamworks;
+﻿#region
+
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -14,29 +11,40 @@ using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Threading;
+using Harmony;
+using Harmony.ILCopying;
 using UnityEngine;
 using Verse;
+
+#endregion
 
 namespace Multiplayer.Client
 {
     public static class MpUtil
     {
-        static Func<ICustomAttributeProvider, Type, bool> IsDefinedInternal;
+        private static Func<ICustomAttributeProvider, Type, bool> IsDefinedInternal;
+
+        private static readonly List<MethodBase> methods = new List<MethodBase>(10);
+        private static int depth;
+        private static IntPtr upToHandle;
+        private static int max;
+        private static readonly IntPtr walkPtr = Marshal.GetFunctionPointerForDelegate((walk_stack) WalkStack);
+        private static Func<IntPtr, MethodBase> methodHandleToMethodBase;
 
         // Doesn't load the type
         public static bool HasAttr(ICustomAttributeProvider provider, Type attrType)
         {
             if (IsDefinedInternal == null)
-                IsDefinedInternal = (Func<ICustomAttributeProvider, Type, bool>)Delegate.CreateDelegate(typeof(Func<ICustomAttributeProvider, Type, bool>), AccessTools.Method(Type.GetType("System.MonoCustomAttrs"), "IsDefinedInternal"));
+                IsDefinedInternal = (Func<ICustomAttributeProvider, Type, bool>) Delegate.CreateDelegate(
+                    typeof(Func<ICustomAttributeProvider, Type, bool>),
+                    AccessTools.Method(Type.GetType("System.MonoCustomAttrs"), "IsDefinedInternal"));
 
             return IsDefinedInternal(provider, attrType);
         }
 
         public static string FixedEllipsis()
         {
-            int num = Mathf.FloorToInt(Time.realtimeSinceStartup) % 3;
+            var num = Mathf.FloorToInt(Time.realtimeSinceStartup) % 3;
             if (num == 0)
                 return ".  ";
             if (num == 1)
@@ -60,20 +68,20 @@ namespace Multiplayer.Client
                 }
 
                 if (types != null)
-                    foreach (Type t in types)
+                    foreach (var t in types)
                         yield return t;
             }
         }
 
-        public unsafe static void MarkNoInlining(MethodBase method)
+        public static unsafe void MarkNoInlining(MethodBase method)
         {
-            ushort* iflags = (ushort*)(method.MethodHandle.Value) + 1;
-            *iflags |= (ushort)MethodImplOptions.NoInlining;
+            var iflags = (ushort*) method.MethodHandle.Value + 1;
+            *iflags |= (ushort) MethodImplOptions.NoInlining;
         }
 
         public static T UninitializedObject<T>()
         {
-            return (T)FormatterServices.GetUninitializedObject(typeof(T));
+            return (T) FormatterServices.GetUninitializedObject(typeof(T));
         }
 
         // Copied from Harmony.PatchProcessor
@@ -118,43 +126,40 @@ namespace Multiplayer.Client
         {
             try
             {
-                using (Socket socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.IP))
+                using (var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.IP))
                 {
                     socket.Connect("8.8.8.8", 65530);
-                    IPEndPoint endPoint = socket.LocalEndPoint as IPEndPoint;
+                    var endPoint = socket.LocalEndPoint as IPEndPoint;
                     return endPoint.Address.ToString();
                 }
             }
             catch
             {
-                return Dns.GetHostEntry(Dns.GetHostName()).AddressList.FirstOrDefault(i => i.AddressFamily == AddressFamily.InterNetwork).ToString();
+                return Dns.GetHostEntry(Dns.GetHostName()).AddressList
+                    .FirstOrDefault(i => i.AddressFamily == AddressFamily.InterNetwork).ToString();
             }
         }
-
-        private static List<MethodBase> methods = new List<MethodBase>(10);
-        private static int depth;
-        private static IntPtr upToHandle;
-        private static int max;
-        private static IntPtr walkPtr = Marshal.GetFunctionPointerForDelegate((walk_stack)WalkStack);
-        private static Func<IntPtr, MethodBase> methodHandleToMethodBase;
 
         public static MethodBase MethodHandleToMethodBase(IntPtr methodHandle)
         {
             if (methodHandleToMethodBase == null)
             {
-                var dyn = new DynamicMethod("MethodHandleToMethodBase", typeof(MethodBase), new[] { typeof(IntPtr) });
+                var dyn = new DynamicMethod("MethodHandleToMethodBase", typeof(MethodBase), new[] {typeof(IntPtr)});
                 var il = dyn.GetILGenerator();
                 var local = il.DeclareLocal(typeof(RuntimeTypeHandle));
 
                 il.Emit(OpCodes.Ldarg_0);
-                il.Emit(OpCodes.Newobj, AccessTools.Constructor(typeof(RuntimeMethodHandle), new[] { typeof(IntPtr) }));
+                il.Emit(OpCodes.Newobj, AccessTools.Constructor(typeof(RuntimeMethodHandle), new[] {typeof(IntPtr)}));
                 il.Emit(OpCodes.Ldloca_S, local);
                 il.Emit(OpCodes.Initobj, typeof(RuntimeTypeHandle));
                 il.Emit(OpCodes.Ldloc_S, local);
-                il.Emit(OpCodes.Call, AccessTools.Method(typeof(MethodBase), nameof(MethodBase.GetMethodFromHandle), new[] { typeof(RuntimeMethodHandle), typeof(RuntimeTypeHandle) }));
+                il.Emit(OpCodes.Call,
+                    AccessTools.Method(typeof(MethodBase), nameof(MethodBase.GetMethodFromHandle),
+                        new[] {typeof(RuntimeMethodHandle), typeof(RuntimeTypeHandle)}));
                 il.Emit(OpCodes.Ret);
 
-                methodHandleToMethodBase = (Func<IntPtr, MethodBase>)dyn.CreateDelegate(typeof(Func<IntPtr, MethodBase>));
+                methodHandleToMethodBase =
+                    (Func<IntPtr, MethodBase>) dyn.CreateDelegate(typeof(Func<IntPtr, MethodBase>));
             }
 
             return methodHandleToMethodBase(methodHandle);
@@ -172,7 +177,7 @@ namespace Multiplayer.Client
             if (upTo != null)
                 upToHandle = upTo.MethodHandle.Value;
 
-            Native.mono_stack_walk(walkPtr, (IntPtr)skip);
+            Native.mono_stack_walk(walkPtr, (IntPtr) skip);
 
             return methods.ToArray();
         }
@@ -180,7 +185,7 @@ namespace Multiplayer.Client
         private static bool WalkStack(IntPtr methodHandle, int native, int il, bool managed, IntPtr skip)
         {
             depth++;
-            if (depth > (int)skip)
+            if (depth > (int) skip)
                 methods.Add(MethodHandleToMethodBase(methodHandle));
             if (methodHandle == upToHandle || depth == max) return true;
             return false;
@@ -191,7 +196,7 @@ namespace Multiplayer.Client
             var insts = new MethodBodyReader(method, null);
             insts.SetPropertyOrField("locals", null);
             insts.ReadInstructions();
-            return (List<ILInstruction>)insts.GetPropertyOrField("ilInstructions");
+            return (List<ILInstruction>) insts.GetPropertyOrField("ilInstructions");
         }
     }
 
@@ -202,12 +207,11 @@ namespace Multiplayer.Client
 
     public struct Container<T>
     {
-        private readonly T _value;
-        public T Inner => _value;
+        public T Inner { get; }
 
         public Container(T value)
         {
-            _value = value;
+            Inner = value;
         }
 
         public static implicit operator Container<T>(T value)
@@ -218,17 +222,16 @@ namespace Multiplayer.Client
 
     public class OrderedDict<K, V> : IEnumerable
     {
-        private List<K> list = new List<K>();
-        private Dictionary<K, V> dict = new Dictionary<K, V>();
+        private readonly Dictionary<K, V> dict = new Dictionary<K, V>();
+        private readonly List<K> list = new List<K>();
 
-        public K this[int index]
-        {
-            get => list[index];
-        }
+        public K this[int index] => list[index];
 
-        public V this[K key]
+        public V this[K key] => dict[key];
+
+        IEnumerator IEnumerable.GetEnumerator()
         {
-            get => dict[key];
+            return dict.GetEnumerator();
         }
 
         public void Add(K key, V value)
@@ -248,20 +251,25 @@ namespace Multiplayer.Client
             value = default(V);
             return dict.TryGetValue(key, out value);
         }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return dict.GetEnumerator();
-        }
     }
 
     public class UniqueList<T> : IEnumerable<T>
     {
-        private List<T> list = new List<T>();
-        private HashSet<T> set = new HashSet<T>();
+        private readonly List<T> list = new List<T>();
+        private readonly HashSet<T> set = new HashSet<T>();
 
         public int Count => list.Count;
         public T this[int index] => list[index];
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            return list.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return list.GetEnumerator();
+        }
 
         public bool Add(T t)
         {
@@ -288,16 +296,6 @@ namespace Multiplayer.Client
         {
             return list.IndexOf(t);
         }
-
-        public IEnumerator<T> GetEnumerator()
-        {
-            return list.GetEnumerator();
-        }
-
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return list.GetEnumerator();
-        }
     }
 
     public class DefaultComparer<T> : IEqualityComparer<T>
@@ -314,5 +312,4 @@ namespace Multiplayer.Client
             return RuntimeHelpers.GetHashCode(obj);
         }
     }
-
 }
