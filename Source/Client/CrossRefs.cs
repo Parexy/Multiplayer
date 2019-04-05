@@ -1,11 +1,8 @@
-﻿#region
-
-using Harmony;
+﻿using Harmony;
 using RimWorld;
 using RimWorld.Planet;
 using Verse;
-
-#endregion
+using Verse.Profile;
 
 namespace Multiplayer.Client
 {
@@ -13,7 +10,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(Thing.SpawnSetup))]
     public static class ThingSpawnPatch
     {
-        private static void Postfix(Thing __instance)
+        static void Postfix(Thing __instance)
         {
             if (Multiplayer.game == null) return;
 
@@ -29,7 +26,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(Thing.DeSpawn))]
     public static class ThingDeSpawnPatch
     {
-        private static void Postfix(Thing __instance)
+        static void Postfix(Thing __instance)
         {
             if (Multiplayer.game == null) return;
 
@@ -42,7 +39,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(PassingShipManager.AddShip))]
     public static class ShipManagerAddPatch
     {
-        private static void Postfix(PassingShip vis)
+        static void Postfix(PassingShip vis)
         {
             if (Multiplayer.game == null) return;
             ScribeUtil.sharedCrossRefs.RegisterLoaded(vis);
@@ -53,7 +50,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(PassingShipManager.RemoveShip))]
     public static class ShipManagerRemovePatch
     {
-        private static void Postfix(PassingShip vis)
+        static void Postfix(PassingShip vis)
         {
             if (Multiplayer.game == null) return;
             ScribeUtil.sharedCrossRefs.Unregister(vis);
@@ -64,7 +61,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(PassingShipManager.ExposeData))]
     public static class ShipManagerExposePatch
     {
-        private static void Postfix(PassingShipManager __instance)
+        static void Postfix(PassingShipManager __instance)
         {
             if (Multiplayer.game == null) return;
 
@@ -78,7 +75,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(BillStack.AddBill))]
     public static class BillStackAddPatch
     {
-        private static void Postfix(Bill bill)
+        static void Postfix(Bill bill)
         {
             if (Multiplayer.game == null) return;
             ScribeUtil.sharedCrossRefs.RegisterLoaded(bill);
@@ -89,7 +86,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(BillStack.RemoveIncompletableBills))]
     public static class BillStackRemoveIncompletablePatch
     {
-        private static void Prefix(BillStack __instance)
+        static void Prefix(BillStack __instance)
         {
             if (Multiplayer.game == null) return;
 
@@ -103,7 +100,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(BillStack.Delete))]
     public static class BillStackDeletePatch
     {
-        private static void Postfix(Bill bill)
+        static void Postfix(Bill bill)
         {
             if (Multiplayer.game == null) return;
             ScribeUtil.sharedCrossRefs.Unregister(bill);
@@ -114,7 +111,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(BillStack.ExposeData))]
     public static class BillStackExposePatch
     {
-        private static void Postfix(BillStack __instance)
+        static void Postfix(BillStack __instance)
         {
             if (Multiplayer.game == null) return;
 
@@ -128,7 +125,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(WorldObject.SpawnSetup))]
     public static class WorldObjectSpawnPatch
     {
-        private static void Postfix(WorldObject __instance)
+        static void Postfix(WorldObject __instance)
         {
             if (Multiplayer.game == null) return;
             ScribeUtil.sharedCrossRefs.RegisterLoaded(__instance);
@@ -139,7 +136,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(WorldObject.PostRemove))]
     public static class WorldObjectRemovePatch
     {
-        private static void Postfix(WorldObject __instance)
+        static void Postfix(WorldObject __instance)
         {
             if (Multiplayer.game == null) return;
             ScribeUtil.sharedCrossRefs.Unregister(__instance);
@@ -150,7 +147,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(FactionManager.Add))]
     public static class FactionAddPatch
     {
-        private static void Postfix(Faction faction)
+        static void Postfix(Faction faction)
         {
             if (Multiplayer.game == null) return;
             ScribeUtil.sharedCrossRefs.RegisterLoaded(faction);
@@ -161,7 +158,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(Game.AddMap))]
     public static class AddMapPatch
     {
-        private static void Postfix(Map map)
+        static void Postfix(Map map)
         {
             if (Multiplayer.game == null) return;
             ScribeUtil.sharedCrossRefs.RegisterLoaded(map);
@@ -172,7 +169,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(MapDeiniter.Deinit))]
     public static class DeinitMapPatch
     {
-        private static void Prefix(Map map)
+        static void Prefix(Map map)
         {
             if (Multiplayer.game == null) return;
 
@@ -187,7 +184,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(ScribeLoader.FinalizeLoading))]
     public static class FinalizeLoadingGame
     {
-        private static void Postfix()
+        static void Postfix()
         {
             if (Multiplayer.game == null) return;
             if (!LoadGameMarker.loading) return;
@@ -195,14 +192,14 @@ namespace Multiplayer.Client
             RegisterCrossRefs();
         }
 
-        private static void RegisterCrossRefs()
+        static void RegisterCrossRefs()
         {
             ScribeUtil.sharedCrossRefs.RegisterLoaded(Find.World);
 
-            foreach (var f in Find.FactionManager.AllFactions)
+            foreach (Faction f in Find.FactionManager.AllFactions)
                 ScribeUtil.sharedCrossRefs.RegisterLoaded(f);
 
-            foreach (var map in Find.Maps)
+            foreach (Map map in Find.Maps)
                 ScribeUtil.sharedCrossRefs.RegisterLoaded(map);
         }
     }
@@ -211,12 +208,12 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(LoadedObjectDirectory.RegisterLoaded))]
     public static class LoadedObjectsRegisterPatch
     {
-        private static bool Prefix(LoadedObjectDirectory __instance, ILoadReferenceable reffable)
+        static bool Prefix(LoadedObjectDirectory __instance, ILoadReferenceable reffable)
         {
             if (!(__instance is SharedCrossRefs)) return true;
             if (reffable == null) return false;
 
-            var key = reffable.GetUniqueLoadID();
+            string key = reffable.GetUniqueLoadID();
             if (ScribeUtil.sharedCrossRefs.allObjectsByLoadID.ContainsKey(key)) return false;
 
             if (Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
@@ -232,7 +229,7 @@ namespace Multiplayer.Client
     [HarmonyPatch(nameof(LoadedObjectDirectory.Clear))]
     public static class LoadedObjectsClearPatch
     {
-        private static bool Prefix(LoadedObjectDirectory __instance)
+        static bool Prefix(LoadedObjectDirectory __instance)
         {
             if (!(__instance is SharedCrossRefs)) return true;
 

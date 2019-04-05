@@ -1,4 +1,9 @@
-﻿namespace Multiplayer.Common
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace Multiplayer.Common
 {
     public abstract class ChatCmdHandler
     {

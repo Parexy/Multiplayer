@@ -1,17 +1,15 @@
-﻿#region
+﻿extern alias zip;
 
-extern alias zip;
+using Harmony;
+using Multiplayer.Common;
+using RimWorld.Planet;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Harmony;
-using Multiplayer.Common;
-using RimWorld.Planet;
+using System.Threading;
 using UnityEngine;
 using Verse;
-
-#endregion
 
 namespace Multiplayer.Client
 {
@@ -26,16 +24,13 @@ namespace Multiplayer.Client
 
         public static TimeSpeed replayTimeSpeed;
 
-        private static bool skipToTickUntil;
+        static bool skipToTickUntil;
         public static int skipTo = -1;
-        private static Action afterSkip;
+        static Action afterSkip;
         public static bool canESCSkip;
         public static Action cancelSkip;
         public static string skipCancelButtonKey;
         public static string skippingTextKey;
-
-        private static readonly Stopwatch updateTimer = Stopwatch.StartNew();
-        public static double lastUpdateTook;
 
         public static bool Skipping => skipTo >= 0;
 
@@ -43,30 +38,33 @@ namespace Multiplayer.Client
         {
             get
             {
-                var comp = Multiplayer.WorldComp;
+                MultiplayerWorldComp comp = Multiplayer.WorldComp;
                 yield return comp;
 
                 var maps = Find.Maps;
-                for (var i = maps.Count - 1; i >= 0; i--)
+                for (int i = maps.Count - 1; i >= 0; i--)
                     yield return maps[i].AsyncTime();
             }
         }
 
-        private static bool Prefix()
+        static Stopwatch updateTimer = Stopwatch.StartNew();
+        public static double lastUpdateTook;
+
+        static bool Prefix()
         {
             if (Multiplayer.Client == null) return true;
             if (LongEventHandler.currentEvent != null) return false;
             if (Multiplayer.session.desynced) return false;
 
-            var delta = Time.deltaTime * 60.0;
-            var maxDelta = MultiplayerMod.settings.aggressiveTicking ? 6 : 3;
+            double delta = Time.deltaTime * 60.0;
+            int maxDelta = MultiplayerMod.settings.aggressiveTicking ? 6 : 3;
 
             if (delta > maxDelta)
                 delta = maxDelta;
 
             accumulator += delta;
 
-            var okDelta = MultiplayerMod.settings.aggressiveTicking ? 2.5f : 1.7f;
+            float okDelta = MultiplayerMod.settings.aggressiveTicking ? 2.5f : 1.7f;
 
             if (Timer >= tickUntil)
                 accumulator = 0;
@@ -101,8 +99,7 @@ namespace Multiplayer.Client
             }
         }
 
-        public static void SkipTo(int ticks = 0, bool toTickUntil = false, Action onFinish = null,
-            Action onCancel = null, string cancelButtonKey = null, bool canESC = false, string simTextKey = null)
+        public static void SkipTo(int ticks = 0, bool toTickUntil = false, Action onFinish = null, Action onCancel = null, string cancelButtonKey = null, bool canESC = false, string simTextKey = null)
         {
             skipTo = ticks;
             skipToTickUntil = toTickUntil;
@@ -125,7 +122,7 @@ namespace Multiplayer.Client
             skippingTextKey = null;
         }
 
-        private static ITickable CurrentTickable()
+        static ITickable CurrentTickable()
         {
             if (WorldRendererUtility.WorldRenderedNow)
                 return Multiplayer.WorldComp;
@@ -135,7 +132,7 @@ namespace Multiplayer.Client
             return null;
         }
 
-        private static void Postfix()
+        static void Postfix()
         {
             if (Multiplayer.Client == null || Find.CurrentMap == null) return;
             Shader.SetGlobalFloat(ShaderPropertyIDs.GameSeconds, Find.CurrentMap.AsyncTime().mapTicks.TicksToSeconds());
@@ -143,18 +140,20 @@ namespace Multiplayer.Client
 
         public static void Tick()
         {
-            while (!Skipping && accumulator > 0 || Skipping && Timer < skipTo && updateTimer.ElapsedMilliseconds < 25)
+            while ((!Skipping && accumulator > 0) || (Skipping && Timer < skipTo && updateTimer.ElapsedMilliseconds < 25))
             {
-                var curTimer = Timer;
+                int curTimer = Timer;
 
-                foreach (var tickable in AllTickables)
+                foreach (ITickable tickable in AllTickables)
+                {
                     while (tickable.Cmds.Count > 0 && tickable.Cmds.Peek().ticks == curTimer)
                     {
-                        var cmd = tickable.Cmds.Dequeue();
+                        ScheduledCommand cmd = tickable.Cmds.Dequeue();
                         tickable.ExecuteCmd(cmd);
                     }
+                }
 
-                foreach (var tickable in AllTickables)
+                foreach (ITickable tickable in AllTickables)
                 {
                     if (tickable.TimePerTick(tickable.TimeSpeed) == 0) continue;
                     tickable.RealTimeToTickThrough += 1f;
@@ -179,7 +178,7 @@ namespace Multiplayer.Client
         {
             while (tickable.RealTimeToTickThrough >= 0)
             {
-                var timePerTick = tickable.TimePerTick(tickable.TimeSpeed);
+                float timePerTick = tickable.TimePerTick(tickable.TimeSpeed);
                 if (timePerTick == 0) break;
 
                 tickable.RealTimeToTickThrough -= timePerTick;
@@ -202,7 +201,7 @@ namespace Multiplayer.Client
             if (replayTimeSpeed == TimeSpeed.Paused)
                 return 0f;
 
-            var tickable = CurrentTickable();
+            ITickable tickable = CurrentTickable();
             if (tickable.TimePerTick(tickable.TimeSpeed) == 0f)
                 return 1 / 100f; // So paused sections of the timeline are skipped through
 
@@ -221,8 +220,7 @@ namespace Multiplayer.Client
             if (Multiplayer.WorldComp.asyncTime)
                 return tickable.TickRateMultiplier(speed);
 
-            return Find.Maps.Select(m => (ITickable) m.AsyncTime()).Concat(Multiplayer.WorldComp)
-                .Select(t => t.TickRateMultiplier(speed)).Min();
+            return Find.Maps.Select(m => (ITickable)m.AsyncTime()).Concat(Multiplayer.WorldComp).Select(t => t.TickRateMultiplier(speed)).Min();
         }
     }
 
@@ -246,10 +244,11 @@ namespace Multiplayer.Client
     public static class CancelSingleTick
     {
         // Cancel ticking after loading as its handled seperately
-        private static void Postfix(ref bool __result)
+        static void Postfix(ref bool __result)
         {
             if (Multiplayer.Client != null)
                 __result = false;
         }
     }
+
 }

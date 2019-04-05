@@ -1,23 +1,20 @@
-﻿#region
-
+﻿using Multiplayer.Common;
+using RimWorld;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Multiplayer.Common;
-using RimWorld;
 using UnityEngine;
 using Verse;
-
-#endregion
 
 namespace Multiplayer.Client
 {
     public class PacketLogWindow : Window
     {
-        private int logHeight;
+        public override Vector2 InitialSize => new Vector2(UI.screenWidth / 2f, UI.screenHeight / 2f);
 
         public List<LogNode> nodes = new List<LogNode>();
+        private int logHeight;
         private Vector2 scrollPos;
 
         public PacketLogWindow()
@@ -25,24 +22,22 @@ namespace Multiplayer.Client
             doCloseX = true;
         }
 
-        public override Vector2 InitialSize => new Vector2(UI.screenWidth / 2f, UI.screenHeight / 2f);
-
         public override void DoWindowContents(Rect rect)
         {
             GUI.BeginGroup(rect);
 
             Text.Font = GameFont.Tiny;
-            var outRect = new Rect(0f, 0f, rect.width, rect.height - 30f);
-            var viewRect = new Rect(0f, 0f, rect.width - 16f, logHeight + 10f);
+            Rect outRect = new Rect(0f, 0f, rect.width, rect.height - 30f);
+            Rect viewRect = new Rect(0f, 0f, rect.width - 16f, logHeight + 10f);
 
             Widgets.BeginScrollView(outRect, ref scrollPos, viewRect);
 
-            var nodeRect = new Rect(0f, 0f, viewRect.width, 20f);
-            foreach (var node in nodes)
+            Rect nodeRect = new Rect(0f, 0f, viewRect.width, 20f);
+            foreach (LogNode node in nodes)
                 Draw(node, 0, ref nodeRect);
 
             if (Event.current.type == EventType.layout)
-                logHeight = (int) nodeRect.y;
+                logHeight = (int)nodeRect.y;
 
             Widgets.EndScrollView();
 
@@ -51,7 +46,7 @@ namespace Multiplayer.Client
 
         public void Draw(LogNode node, int depth, ref Rect rect)
         {
-            var text = node.text;
+            string text = node.text;
             if (depth == 0)
                 text = node.children[0].text;
 
@@ -66,17 +61,19 @@ namespace Multiplayer.Client
             Widgets.Label(rect, text);
             if (Widgets.ButtonInvisible(rect))
                 node.expand = !node.expand;
-            rect.y += (int) rect.height;
+            rect.y += (int)rect.height;
 
             if (node.expand)
-                foreach (var child in node.children)
+                foreach (LogNode child in node.children)
                     Draw(child, depth + 1, ref rect);
         }
     }
 
     public class DesyncedWindow : Window
     {
-        private readonly string text;
+        public override Vector2 InitialSize => new Vector2(550, 110);
+
+        private string text;
 
         public DesyncedWindow(string text)
         {
@@ -87,8 +84,6 @@ namespace Multiplayer.Client
             closeOnCancel = false;
             absorbInputAroundWindow = true;
         }
-
-        public override Vector2 InitialSize => new Vector2(550, 110);
 
         public override void DoWindowContents(Rect inRect)
         {
@@ -123,7 +118,6 @@ namespace Multiplayer.Client
 
                 ClientJoiningState.ReloadGame(OnMainThread.cachedMapData.Keys.ToList(), false);
             }
-
             x += 120 + 10;
 
             if (Widgets.ButtonText(new Rect(x, 0, 120, 35), "Save".Translate()))
@@ -131,7 +125,7 @@ namespace Multiplayer.Client
             x += 120 + 10;
 
             if (Widgets.ButtonText(new Rect(x, 0, 120, 35), "MpChatButton".Translate()))
-                Find.WindowStack.Add(new ChatWindow() {closeOnClickedOutside = true, absorbInputAroundWindow = true});
+                Find.WindowStack.Add(new ChatWindow() { closeOnClickedOutside = true, absorbInputAroundWindow = true });
             x += 120 + 10;
 
             if (Widgets.ButtonText(new Rect(x, 0, 120, 35), "Quit".Translate()))
@@ -143,9 +137,11 @@ namespace Multiplayer.Client
 
     public abstract class MpTextInput : Window
     {
+        public override Vector2 InitialSize => new Vector2(350f, 175f);
+
         public string curName;
-        private bool opened;
         public string title;
+        private bool opened;
 
         public MpTextInput()
         {
@@ -155,14 +151,12 @@ namespace Multiplayer.Client
             closeOnAccept = true;
         }
 
-        public override Vector2 InitialSize => new Vector2(350f, 175f);
-
         public override void DoWindowContents(Rect inRect)
         {
             Widgets.Label(new Rect(0, 15f, inRect.width, 35f), title);
 
             GUI.SetNextControlName("RenameField");
-            var text = Widgets.TextField(new Rect(0, 25 + 15f, inRect.width, 35f), curName);
+            string text = Widgets.TextField(new Rect(0, 25 + 15f, inRect.width, 35f), curName);
             if ((curName != text || !opened) && Validate(text))
                 curName = text;
 
@@ -174,8 +168,7 @@ namespace Multiplayer.Client
                 opened = true;
             }
 
-            if (Widgets.ButtonText(new Rect(0f, inRect.height - 35f - 5f, 120f, 35f).CenteredOnXIn(inRect),
-                "OK".Translate(), true, false, true))
+            if (Widgets.ButtonText(new Rect(0f, inRect.height - 35f - 5f, 120f, 35f).CenteredOnXIn(inRect), "OK".Translate(), true, false, true))
                 Accept();
         }
 
@@ -187,14 +180,9 @@ namespace Multiplayer.Client
 
         public abstract bool Accept();
 
-        public virtual bool Validate(string str)
-        {
-            return true;
-        }
+        public virtual bool Validate(string str) => true;
 
-        public virtual void DrawExtra(Rect inRect)
-        {
-        }
+        public virtual void DrawExtra(Rect inRect) { }
     }
 
     public class Dialog_SaveReplay : MpTextInput
@@ -248,8 +236,8 @@ namespace Multiplayer.Client
 
     public class Dialog_RenameFile : MpTextInput
     {
-        private readonly FileInfo file;
-        private readonly Action success;
+        private FileInfo file;
+        private Action success;
 
         public Dialog_RenameFile(FileInfo file, Action success = null)
         {
@@ -266,7 +254,7 @@ namespace Multiplayer.Client
             if (curName.Length == 0)
                 return false;
 
-            var newPath = Path.Combine(file.Directory.FullName, curName + file.Extension);
+            string newPath = Path.Combine(file.Directory.FullName, curName + file.Extension);
 
             if (newPath == file.FullName)
                 return true;
@@ -281,8 +269,7 @@ namespace Multiplayer.Client
             }
             catch (IOException e)
             {
-                Messages.Message(e is DirectoryNotFoundException ? "Error renaming." : "File already exists.",
-                    MessageTypeDefOf.RejectInput, false);
+                Messages.Message(e is DirectoryNotFoundException ? "Error renaming." : "File already exists.", MessageTypeDefOf.RejectInput, false);
                 return false;
             }
         }
@@ -295,8 +282,8 @@ namespace Multiplayer.Client
 
     public class TextAreaWindow : Window
     {
+        private string text;
         private Vector2 scroll;
-        private readonly string text;
 
         public TextAreaWindow(string text)
         {
@@ -314,11 +301,13 @@ namespace Multiplayer.Client
 
     public class DebugTextWindow : Window
     {
-        private float fullHeight;
-        private readonly List<string> lines;
+        public override Vector2 InitialSize => new Vector2(800, 450);
 
         private Vector2 scroll;
-        private readonly string text;
+        private string text;
+        private List<string> lines;
+
+        private float fullHeight;
 
         public DebugTextWindow(string text)
         {
@@ -328,8 +317,6 @@ namespace Multiplayer.Client
 
             lines = text.Split('\n').ToList();
         }
-
-        public override Vector2 InitialSize => new Vector2(800, 450);
 
         public override void DoWindowContents(Rect inRect)
         {
@@ -355,7 +342,7 @@ namespace Multiplayer.Client
 
             foreach (var str in lines)
             {
-                var h = Text.CalcHeight(str, viewRect.width);
+                float h = Text.CalcHeight(str, viewRect.width);
                 Widgets.TextArea(new Rect(viewRect.x, viewRect.y, viewRect.width, h), str, true);
                 viewRect.y += h + offsetY;
             }
@@ -366,11 +353,13 @@ namespace Multiplayer.Client
 
     public class TwoTextAreas_Window : Window
     {
-        private readonly string left;
-        private readonly string right;
+        public override Vector2 InitialSize => new Vector2(600, 300);
 
         private Vector2 scroll1;
         private Vector2 scroll2;
+
+        private string left;
+        private string right;
 
         public TwoTextAreas_Window(string left, string right)
         {
@@ -381,12 +370,11 @@ namespace Multiplayer.Client
             this.right = right;
         }
 
-        public override Vector2 InitialSize => new Vector2(600, 300);
-
         public override void DoWindowContents(Rect inRect)
         {
             Widgets.TextAreaScrollable(inRect.LeftHalf(), left, ref scroll1);
             Widgets.TextAreaScrollable(inRect.RightHalf(), right, ref scroll2);
         }
     }
+
 }

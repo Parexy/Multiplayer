@@ -1,5 +1,9 @@
-﻿#region
-
+﻿using Harmony;
+using Ionic.Zlib;
+using LiteNetLib;
+using Multiplayer.Common;
+using RimWorld;
+using Steamworks;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -7,15 +11,11 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using System.Threading;
-using Ionic.Zlib;
-using LiteNetLib;
-using Multiplayer.Common;
-using RimWorld;
-using Steamworks;
+using System.Xml;
 using Verse;
-
-#endregion
+using Verse.Sound;
 
 namespace Multiplayer.Client
 {
@@ -24,7 +24,7 @@ namespace Multiplayer.Client
         public static void TryConnect(string address, int port)
         {
             Multiplayer.session = new MultiplayerSession();
-            var netClient = new NetManager(new MpClientNetListener());
+            NetManager netClient = new NetManager(new MpClientNetListener());
 
             netClient.Start();
             netClient.ReconnectDelay = 300;
@@ -34,8 +34,7 @@ namespace Multiplayer.Client
             netClient.Connect(address, port, "");
         }
 
-        public static void HostServer(ServerSettings settings, bool fromReplay, bool withSimulation = false,
-            bool debugMode = false)
+        public static void HostServer(ServerSettings settings, bool fromReplay, bool withSimulation = false, bool debugMode = false)
         {
             Log.Message($"Starting the server");
 
@@ -49,10 +48,8 @@ namespace Multiplayer.Client
             if (withSimulation)
             {
                 localServer.savedGame = GZipStream.CompressBuffer(OnMainThread.cachedGameData);
-                localServer.mapData =
-                    OnMainThread.cachedMapData.ToDictionary(kv => kv.Key, kv => GZipStream.CompressBuffer(kv.Value));
-                localServer.mapCmds = OnMainThread.cachedMapCmds.ToDictionary(kv => kv.Key,
-                    kv => kv.Value.Select(c => c.Serialize()).ToList());
+                localServer.mapData = OnMainThread.cachedMapData.ToDictionary(kv => kv.Key, kv => GZipStream.CompressBuffer(kv.Value));
+                localServer.mapCmds = OnMainThread.cachedMapCmds.ToDictionary(kv => kv.Key, kv => kv.Value.Select(c => c.Serialize()).ToList());
             }
             else
             {
@@ -60,15 +57,13 @@ namespace Multiplayer.Client
             }
 
             localServer.debugMode = debugMode;
-            localServer.debugOnlySyncCmds =
-                new HashSet<int>(Sync.handlers.Where(h => h.debugOnly).Select(h => h.syncId));
+            localServer.debugOnlySyncCmds = new HashSet<int>(Sync.handlers.Where(h => h.debugOnly).Select(h => h.syncId));
             localServer.hostOnlySyncCmds = new HashSet<int>(Sync.handlers.Where(h => h.hostOnly).Select(h => h.syncId));
             localServer.hostUsername = Multiplayer.username;
             localServer.coopFactionId = Faction.OfPlayer.loadID;
 
             localServer.rwVersion = session.mods.remoteRwVersion = VersionControl.CurrentVersionString;
-            localServer.modNames = session.mods.remoteModNames =
-                LoadedModManager.RunningModsListForReading.Select(m => m.Name).ToArray();
+            localServer.modNames = session.mods.remoteModNames = LoadedModManager.RunningModsListForReading.Select(m => m.Name).ToArray();
             localServer.defInfos = session.mods.defInfo = Multiplayer.localDefInfos;
 
             if (settings.steam)
@@ -126,17 +121,13 @@ namespace Multiplayer.Client
                 var netStarted = localServer.StartListeningNet();
                 var lanStarted = localServer.StartListeningLan();
 
-                var text = "Server started.";
+                string text = "Server started.";
 
                 if (netStarted != null)
-                    text += netStarted.Value
-                        ? $" Direct at {settings.bindAddress}:{localServer.NetPort}."
-                        : " Couldn't bind direct.";
+                    text += (netStarted.Value ? $" Direct at {settings.bindAddress}:{localServer.NetPort}." : " Couldn't bind direct.");
 
                 if (lanStarted != null)
-                    text += lanStarted.Value
-                        ? $" LAN at {settings.lanAddress}:{localServer.LanPort}."
-                        : " Couldn't bind LAN.";
+                    text += (lanStarted.Value ? $" LAN at {settings.lanAddress}:{localServer.LanPort}." : " Couldn't bind LAN.");
 
                 session.serverThread = new Thread(localServer.Run)
                 {
@@ -151,14 +142,14 @@ namespace Multiplayer.Client
 
         private static void SetupGame()
         {
-            var comp = new MultiplayerWorldComp(Find.World);
-            var dummyFaction = Find.FactionManager.AllFactions.FirstOrDefault(f => f.loadID == -1);
+            MultiplayerWorldComp comp = new MultiplayerWorldComp(Find.World);
+            Faction dummyFaction = Find.FactionManager.AllFactions.FirstOrDefault(f => f.loadID == -1);
 
             if (dummyFaction == null)
             {
-                dummyFaction = new Faction() {loadID = -1, def = Multiplayer.DummyFactionDef};
+                dummyFaction = new Faction() { loadID = -1, def = Multiplayer.DummyFactionDef };
 
-                foreach (var other in Find.FactionManager.AllFactionsListForReading)
+                foreach (Faction other in Find.FactionManager.AllFactionsListForReading)
                     dummyFaction.TryMakeInitialRelationsWith(other);
 
                 Find.FactionManager.Add(dummyFaction);
@@ -180,25 +171,25 @@ namespace Multiplayer.Client
 
             comp.globalIdBlock = new IdBlock(GetMaxUniqueId(), 1_000_000_000);
 
-            foreach (var data in comp.factionData.Values)
+            foreach (FactionWorldData data in comp.factionData.Values)
             {
-                foreach (var p in data.drugPolicyDatabase.policies)
+                foreach (DrugPolicy p in data.drugPolicyDatabase.policies)
                     p.uniqueId = Multiplayer.GlobalIdBlock.NextId();
 
-                foreach (var o in data.outfitDatabase.outfits)
+                foreach (Outfit o in data.outfitDatabase.outfits)
                     o.uniqueId = Multiplayer.GlobalIdBlock.NextId();
 
-                foreach (var o in data.foodRestrictionDatabase.foodRestrictions)
+                foreach (FoodRestriction o in data.foodRestrictionDatabase.foodRestrictions)
                     o.id = Multiplayer.GlobalIdBlock.NextId();
             }
 
-            foreach (var map in Find.Maps)
+            foreach (Map map in Find.Maps)
             {
                 //mapComp.mapIdBlock = localServer.NextIdBlock();
 
                 BeforeMapGeneration.SetupMap(map);
 
-                var async = map.AsyncTime();
+                MapAsyncTimeComp async = map.AsyncTime();
                 async.mapTicks = Find.TickManager.TicksGame;
                 async.TimeSpeed = Find.TickManager.CurTimeSpeed;
             }
@@ -209,8 +200,8 @@ namespace Multiplayer.Client
             if (Multiplayer.session.localSettings.arbiter)
                 StartArbiter();
 
-            var localClient = new LocalClientConnection(Multiplayer.username);
-            var localServerConn = new LocalServerConnection(Multiplayer.username);
+            LocalClientConnection localClient = new LocalClientConnection(Multiplayer.username);
+            LocalServerConnection localServerConn = new LocalServerConnection(Multiplayer.username);
 
             localServerConn.clientSide = localClient;
             localClient.serverSide = localServerConn;
@@ -243,7 +234,7 @@ namespace Multiplayer.Client
             return typeof(UniqueIDsManager)
                 .GetFields(BindingFlags.NonPublic | BindingFlags.Instance)
                 .Where(f => f.FieldType == typeof(int))
-                .Select(f => (int) f.GetValue(Find.UniqueIDsManager))
+                .Select(f => (int)f.GetValue(Find.UniqueIDsManager))
                 .Max();
         }
     }
@@ -269,33 +260,19 @@ namespace Multiplayer.Client
 
         public void OnNetworkReceive(NetPeer peer, NetPacketReader reader, DeliveryMethod method)
         {
-            var data = reader.GetRemainingBytes();
+            byte[] data = reader.GetRemainingBytes();
             Multiplayer.HandleReceive(new ByteReader(data), method == DeliveryMethod.ReliableOrdered);
         }
 
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo info)
         {
             var reader = new ByteReader(info.AdditionalData.GetRemainingBytes());
-            Multiplayer.session.HandleDisconnectReason((MpDisconnectReason) reader.ReadByte(),
-                reader.ReadPrefixedBytes());
+            Multiplayer.session.HandleDisconnectReason((MpDisconnectReason)reader.ReadByte(), reader.ReadPrefixedBytes());
 
             ConnectionStatusListeners.TryNotifyAll_Disconnected();
 
             OnMainThread.StopMultiplayer();
             MpLog.Log("Net client disconnected");
-        }
-
-        public void OnConnectionRequest(ConnectionRequest request)
-        {
-        }
-
-        public void OnNetworkLatencyUpdate(NetPeer peer, int latency)
-        {
-        }
-
-        public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader,
-            UnconnectedMessageType messageType)
-        {
         }
 
         private static string DisconnectReasonString(DisconnectReason reason)
@@ -310,21 +287,21 @@ namespace Multiplayer.Client
                 default: return "Disconnected";
             }
         }
+
+        public void OnConnectionRequest(ConnectionRequest request) { }
+        public void OnNetworkLatencyUpdate(NetPeer peer, int latency) { }
+        public void OnNetworkReceiveUnconnected(IPEndPoint remoteEndPoint, NetPacketReader reader, UnconnectedMessageType messageType) { }
     }
 
     public class LocalClientConnection : IConnection
     {
         public LocalServerConnection serverSide;
 
+        public override int Latency { get => 0; set { } }
+
         public LocalClientConnection(string username)
         {
             this.username = username;
-        }
-
-        public override int Latency
-        {
-            get => 0;
-            set { }
         }
 
         protected override void SendRaw(byte[] raw, bool reliable)
@@ -356,15 +333,11 @@ namespace Multiplayer.Client
     {
         public LocalClientConnection clientSide;
 
+        public override int Latency { get => 0; set { } }
+
         public LocalServerConnection(string username)
         {
             this.username = username;
-        }
-
-        public override int Latency
-        {
-            get => 0;
-            set { }
         }
 
         protected override void SendRaw(byte[] raw, bool reliable)
@@ -403,12 +376,11 @@ namespace Multiplayer.Client
 
         protected override void SendRaw(byte[] raw, bool reliable)
         {
-            var full = new byte[1 + raw.Length];
-            full[0] = reliable ? (byte) 2 : (byte) 0;
+            byte[] full = new byte[1 + raw.Length];
+            full[0] = reliable ? (byte)2 : (byte)0;
             raw.CopyTo(full, 1);
 
-            SteamNetworking.SendP2PPacket(remoteId, full, (uint) full.Length,
-                reliable ? EP2PSend.k_EP2PSendReliable : EP2PSend.k_EP2PSendUnreliable, 0);
+            SteamNetworking.SendP2PPacket(remoteId, full, (uint)full.Length, reliable ? EP2PSend.k_EP2PSendReliable : EP2PSend.k_EP2PSendUnreliable, 0);
         }
 
         public override void Close(MpDisconnectReason reason, byte[] data)
@@ -418,10 +390,14 @@ namespace Multiplayer.Client
 
         protected override void HandleReceive(int msgId, int fragState, ByteReader reader, bool reliable)
         {
-            if (msgId == (int) Packets.Special_Steam_Disconnect)
+            if (msgId == (int)Packets.Special_Steam_Disconnect)
+            {
                 OnDisconnect();
+            }
             else
+            {
                 base.HandleReceive(msgId, fragState, reader, reliable);
+            }
         }
 
         public virtual void OnError(EP2PSessionError error)
@@ -443,23 +419,20 @@ namespace Multiplayer.Client
         {
             SteamIntegration.ClearChannel(0);
 
-            SteamNetworking.SendP2PPacket(remoteId, new byte[] {1}, 1, EP2PSend.k_EP2PSendReliable, 0);
+            SteamNetworking.SendP2PPacket(remoteId, new byte[] { 1 }, 1, EP2PSend.k_EP2PSendReliable, 0);
         }
 
         protected override void HandleReceive(int msgId, int fragState, ByteReader reader, bool reliable)
         {
-            if (msgId == (int) Packets.Special_Steam_Disconnect)
-                Multiplayer.session.HandleDisconnectReason((MpDisconnectReason) reader.ReadByte(),
-                    reader.ReadPrefixedBytes());
+            if (msgId == (int)Packets.Special_Steam_Disconnect)
+                Multiplayer.session.HandleDisconnectReason((MpDisconnectReason)reader.ReadByte(), reader.ReadPrefixedBytes());
 
             base.HandleReceive(msgId, fragState, reader, reliable);
         }
 
         public override void OnError(EP2PSessionError error)
         {
-            Multiplayer.session.disconnectReasonKey = error == EP2PSessionError.k_EP2PSessionErrorTimeout
-                ? "Connection timed out"
-                : "Connection error";
+            Multiplayer.session.disconnectReasonKey = error == EP2PSessionError.k_EP2PSessionErrorTimeout ? "Connection timed out" : "Connection error";
             base.OnError(error);
         }
 
@@ -481,4 +454,5 @@ namespace Multiplayer.Client
             serverPlayer.Server.OnDisconnected(this, MpDisconnectReason.ClientLeft);
         }
     }
+
 }
