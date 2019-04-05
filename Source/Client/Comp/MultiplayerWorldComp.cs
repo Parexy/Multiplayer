@@ -333,7 +333,7 @@ namespace Multiplayer.Client
         {
             return Enumerable
                 .Range(1, MultiplayerMod.settings.autosaveSlots)
-                .Select(i => $"Autosave-{i}")
+                .Select(i => $"Autosave-{Multiplayer.session.gameName}-{i}")
                 .OrderBy(s => new FileInfo(Path.Combine(Multiplayer.ReplaysDir, $"{s}.zip")).LastWriteTime)
                 .First();
         }
