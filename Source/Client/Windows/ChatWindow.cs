@@ -1,13 +1,15 @@
-﻿using Multiplayer.Common;
-using RimWorld;
-using Steamworks;
+﻿#region
+
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
+using Multiplayer.Common;
+using RimWorld;
+using Steamworks;
 using UnityEngine;
 using Verse;
-using Verse.Steam;
+
+#endregion
 
 namespace Multiplayer.Client
 {
@@ -15,20 +17,15 @@ namespace Multiplayer.Client
     [HotSwappable]
     public class ChatWindow : Window
     {
-        public static ChatWindow Opened => Find.WindowStack?.WindowOfType<ChatWindow>();
-
-        public override Vector2 InitialSize => new Vector2(640f, 460f);
-
-        private static readonly Texture2D SelectedMsg = SolidColorMaterials.NewSolidColorTexture(new Color(0.17f, 0.17f, 0.17f, 0.85f));
+        private static readonly Texture2D SelectedMsg =
+            SolidColorMaterials.NewSolidColorTexture(new Color(0.17f, 0.17f, 0.17f, 0.85f));
 
         private Vector2 chatScroll;
-        private Vector2 playerListScroll;
-        private Vector2 steamScroll;
-        private float messagesHeight;
         private string currentMsg = "";
         private bool hasBeenFocused;
-
-        public override float Margin => 0f;
+        private float messagesHeight;
+        private Vector2 playerListScroll;
+        private Vector2 steamScroll;
 
         public ChatWindow()
         {
@@ -51,6 +48,12 @@ namespace Multiplayer.Client
             }
         }
 
+        public static ChatWindow Opened => Find.WindowStack?.WindowOfType<ChatWindow>();
+
+        public override Vector2 InitialSize => new Vector2(640f, 460f);
+
+        public override float Margin => 0f;
+
         public override void DoWindowContents(Rect inRect)
         {
             if (MultiplayerMod.settings.transparentChat && !Mouse.IsOver(inRect))
@@ -72,16 +75,14 @@ namespace Multiplayer.Client
             Text.Font = GameFont.Small;
 
             if (Event.current.type == EventType.KeyDown)
-            {
                 if (Event.current.keyCode == KeyCode.Return)
                 {
                     SendMsg();
                     Event.current.Use();
                 }
-            }
 
             const float infoWidth = 140f;
-            Rect chat = new Rect(inRect.x, inRect.y, inRect.width - infoWidth - 10f, inRect.height);
+            var chat = new Rect(inRect.x, inRect.y, inRect.width - infoWidth - 10f, inRect.height);
             DrawChat(chat);
 
             GUI.BeginGroup(new Rect(chat.xMax + 10f, chat.y, infoWidth, inRect.height));
@@ -117,7 +118,7 @@ namespace Multiplayer.Client
                         TooltipHandler.TipRegion(steamIcon, new TipSignal($"{p.steamPersonaName}\n{p.steamId}", p.id));
                     }
 
-                    string toolTip = $"{p.ticksBehind >> 1} ticks behind";
+                    var toolTip = $"{p.ticksBehind >> 1} ticks behind";
                     if ((p.ticksBehind & 1) != 0)
                         toolTip += "\n(Simulating)";
 
@@ -143,12 +144,11 @@ namespace Multiplayer.Client
         private void ClickPlayer(PlayerInfo p)
         {
             if (p.id == 0 && Event.current.button == 1)
-            {
                 Find.WindowStack.Add(new FloatMenu(new List<FloatMenuOption>()
                 {
-                    new FloatMenuOption("MpSeeModList".Translate(), () => DefMismatchWindow.ShowModList(Multiplayer.session.mods))
+                    new FloatMenuOption("MpSeeModList".Translate(),
+                        () => DefMismatchWindow.ShowModList(Multiplayer.session.mods))
                 }));
-            }
         }
 
         private void AcceptSteamPlayer(CSteamID id)
@@ -169,32 +169,34 @@ namespace Multiplayer.Client
             }
         }
 
-        private void DrawList<T>(string label, IList<T> entries, Func<T, string> entryString, ref Rect inRect, ref Vector2 scroll, Action<T> click = null, bool hideEmpty = false, string tooltip = null, Action<T, Rect> extra = null, Func<T, Color?> entryLabelColor = null)
+        private void DrawList<T>(string label, IList<T> entries, Func<T, string> entryString, ref Rect inRect,
+            ref Vector2 scroll, Action<T> click = null, bool hideEmpty = false, string tooltip = null,
+            Action<T, Rect> extra = null, Func<T, Color?> entryLabelColor = null)
         {
             if (hideEmpty && entries.Count == 0) return;
 
             Widgets.Label(inRect, label);
             inRect.yMin += 20f;
 
-            float entryHeight = 24f;
-            float height = entries.Count * entryHeight;
+            var entryHeight = 24f;
+            var height = entries.Count * entryHeight;
 
-            Rect outRect = new Rect(0, inRect.yMin, inRect.width, Math.Min(height, Math.Min(230, inRect.height)));
-            Rect viewRect = new Rect(0, 0, outRect.width - 16f, height);
+            var outRect = new Rect(0, inRect.yMin, inRect.width, Math.Min(height, Math.Min(230, inRect.height)));
+            var viewRect = new Rect(0, 0, outRect.width - 16f, height);
             if (viewRect.height <= outRect.height)
                 viewRect.width += 16f;
 
             Widgets.BeginScrollView(outRect, ref scroll, viewRect, true);
             GUI.color = new Color(1, 1, 1, 0.8f);
 
-            float y = height;
+            var y = height;
 
-            for (int i = entries.Count - 1; i >= 0; i--)
+            for (var i = entries.Count - 1; i >= 0; i--)
             {
                 y -= entryHeight;
 
-                T entry = entries[i];
-                string entryLabel = entryString(entry);
+                var entry = entries[i];
+                var entryLabel = entryString(entry);
 
                 var entryRect = new Rect(0, y, viewRect.width, entryHeight);
                 GUI.BeginGroup(entryRect);
@@ -241,17 +243,18 @@ namespace Multiplayer.Client
 
         private void DrawChat(Rect inRect)
         {
-            if ((Event.current.type == EventType.mouseDown || KeyBindingDefOf.Cancel.KeyDownEvent) && !GUI.GetNameOfFocusedControl().NullOrEmpty())
+            if ((Event.current.type == EventType.mouseDown || KeyBindingDefOf.Cancel.KeyDownEvent) &&
+                !GUI.GetNameOfFocusedControl().NullOrEmpty())
             {
                 Event.current.Use();
                 UI.UnfocusCurrentControl();
             }
 
-            Rect outRect = new Rect(0f, 0f, inRect.width, inRect.height - 30f);
-            Rect viewRect = new Rect(0f, 0f, inRect.width - 16f, messagesHeight + 10f);
+            var outRect = new Rect(0f, 0f, inRect.width, inRect.height - 30f);
+            var viewRect = new Rect(0f, 0f, inRect.width - 16f, messagesHeight + 10f);
 
-            float width = viewRect.width;
-            Rect textField = new Rect(20f, outRect.yMax + 5f, width - 70f, 25f);
+            var width = viewRect.width;
+            var textField = new Rect(20f, outRect.yMax + 5f, width - 70f, 25f);
 
             GUI.BeginGroup(inRect);
 
@@ -264,13 +267,13 @@ namespace Multiplayer.Client
             float yPos = 0;
             GUI.color = Color.white;
 
-            int i = 0;
+            var i = 0;
 
-            foreach (ChatMsg msg in Multiplayer.session.messages)
+            foreach (var msg in Multiplayer.session.messages)
             {
-                float height = Text.CalcHeight(msg.Msg, width - 20f);
-                float textWidth = Text.CalcSize(msg.Msg).x + 15;
-                Rect msgRect = new Rect(20f, yPos, width - 20f, height);
+                var height = Text.CalcHeight(msg.Msg, width - 20f);
+                var textWidth = Text.CalcSize(msg.Msg).x + 15;
+                var msgRect = new Rect(20f, yPos, width - 20f, height);
 
                 if (Mouse.IsOver(msgRect))
                 {
@@ -280,11 +283,11 @@ namespace Multiplayer.Client
                         TooltipHandler.TipRegion(msgRect, msg.TimeStamp.ToLongTimeString());
                 }
 
-                Color cursorColor = GUI.skin.settings.cursorColor;
+                var cursorColor = GUI.skin.settings.cursorColor;
                 GUI.skin.settings.cursorColor = new Color(0, 0, 0, 0);
 
                 msgRect.width = Math.Min(textWidth, msgRect.width);
-                bool mouseOver = Mouse.IsOver(msgRect);
+                var mouseOver = Mouse.IsOver(msgRect);
 
                 if (mouseOver && msg.Clickable)
                     GUI.color = new Color(0.8f, 0.8f, 1);
@@ -310,7 +313,8 @@ namespace Multiplayer.Client
 
             Widgets.EndScrollView();
 
-            if (Widgets.ButtonText(new Rect(textField.xMax + 5f, textField.y, 55f, textField.height), "MpSend".Translate()))
+            if (Widgets.ButtonText(new Rect(textField.xMax + 5f, textField.y, 55f, textField.height),
+                "MpSend".Translate()))
                 SendMsg();
 
             GUI.EndGroup();
@@ -320,7 +324,7 @@ namespace Multiplayer.Client
                 chatScroll.y = messagesHeight;
 
                 GUI.FocusControl("chat_input");
-                TextEditor editor = (TextEditor)GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
+                var editor = (TextEditor) GUIUtility.GetStateObject(typeof(TextEditor), GUIUtility.keyboardControl);
                 editor.OnFocus();
                 editor.MoveTextEnd();
                 hasBeenFocused = true;
@@ -371,7 +375,7 @@ namespace Multiplayer.Client
                 text.AppendLine(SteamFriends.GetFriendPersonaName(remote));
                 text.AppendLine(remote.ToString());
 
-                if (SteamNetworking.GetP2PSessionState(remote, out P2PSessionState_t state))
+                if (SteamNetworking.GetP2PSessionState(remote, out var state))
                 {
                     text.AppendLine($"Active: {state.m_bConnectionActive}");
                     text.AppendLine($"Connecting: {state.m_bConnecting}");
@@ -407,47 +411,45 @@ namespace Multiplayer.Client
 
     public abstract class ChatMsg
     {
-        public virtual bool Clickable => false;
-        public abstract string Msg { get; }
-        public virtual DateTime TimeStamp => timestamp;
-
-        private DateTime timestamp;
-
         public ChatMsg()
         {
-            timestamp = DateTime.Now;
+            TimeStamp = DateTime.Now;
         }
 
-        public virtual void Click() { }
+        public virtual bool Clickable => false;
+        public abstract string Msg { get; }
+        public virtual DateTime TimeStamp { get; }
+
+        public virtual void Click()
+        {
+        }
     }
 
     public class ChatMsg_Text : ChatMsg
     {
-        private string msg;
-        public override string Msg => msg;
-
         public ChatMsg_Text(string msg)
         {
-            this.msg = msg;
+            Msg = msg;
         }
+
+        public override string Msg { get; }
     }
 
     public class ChatMsg_Url : ChatMsg
     {
-        public override string Msg => url;
-        public override bool Clickable => true;
-
-        private string url;
+        private readonly string url;
 
         public ChatMsg_Url(string url)
         {
             this.url = url;
         }
 
+        public override string Msg => url;
+        public override bool Clickable => true;
+
         public override void Click()
         {
             Application.OpenURL(url);
         }
     }
-
 }

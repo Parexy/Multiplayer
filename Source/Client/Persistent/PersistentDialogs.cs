@@ -1,22 +1,30 @@
-﻿using Harmony;
+﻿#region
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using Harmony;
 using Multiplayer.Common;
 using RimWorld;
 using RimWorld.Planet;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
-using System.Text;
 using Verse;
+
+#endregion
 
 namespace Multiplayer.Client
 {
     public class PersistentDialog : IExposable
     {
-        public Map map;
-        public int id;
         public Dialog_NodeTreeWithFactionInfo dialog;
+        private Faction faction;
+
+        private List<FieldSave> fieldValues;
+        public int id;
+        public Map map;
+        private bool radioMode;
+        private List<DiaNodeSave> saveNodes;
+        private string title;
         public int ver;
 
         public PersistentDialog(Map map)
@@ -29,25 +37,6 @@ namespace Multiplayer.Client
             id = Multiplayer.GlobalIdBlock.NextId();
             this.dialog = dialog;
         }
-
-        [SyncMethod]
-        public void Click(int ver, int opt)
-        {
-            if (ver != this.ver) return;
-            dialog.curNode.options[opt].Activate();
-            this.ver++;
-        }
-
-        public static PersistentDialog FindDialog(Window dialog)
-        {
-            return Find.Maps.SelectMany(m => m.MpComp().mapDialogs).FirstOrDefault(d => d.dialog == dialog);
-        }
-
-        private List<FieldSave> fieldValues;
-        private List<DiaNodeSave> saveNodes;
-        private Faction faction;
-        private bool radioMode;
-        private string title;
 
         public void ExposeData()
         {
@@ -101,6 +90,19 @@ namespace Multiplayer.Client
             }
         }
 
+        [SyncMethod]
+        public void Click(int ver, int opt)
+        {
+            if (ver != this.ver) return;
+            dialog.curNode.options[opt].Activate();
+            this.ver++;
+        }
+
+        public static PersistentDialog FindDialog(Window dialog)
+        {
+            return Find.Maps.SelectMany(m => m.MpComp().mapDialogs).FirstOrDefault(d => d.dialog == dialog);
+        }
+
         private IEnumerable<FieldSave> DelegateValues(Delegate del)
         {
             if (del == null) yield break;
@@ -117,10 +119,13 @@ namespace Multiplayer.Client
                     yield return new FieldSave(this, field.FieldType, field.GetValue(target));
         }
 
-        class DiaNodeSave : IExposable
+        private class DiaNodeSave : IExposable
         {
-            public PersistentDialog parent;
             public DiaNode node;
+            public readonly PersistentDialog parent;
+            private List<DiaOptionSave> saveOptions;
+
+            private string text;
 
             public DiaNodeSave(PersistentDialog parent)
             {
@@ -131,9 +136,6 @@ namespace Multiplayer.Client
             {
                 this.node = node;
             }
-
-            private string text;
-            private List<DiaOptionSave> saveOptions;
 
             public void ExposeData()
             {
@@ -159,10 +161,19 @@ namespace Multiplayer.Client
             }
         }
 
-        class DiaOptionSave : IExposable
+        private class DiaOptionSave : IExposable
         {
-            public PersistentDialog parent;
+            private int actionIndex;
+            private SoundDef clickSound;
+            private bool disabled;
+            private string disabledReason;
+            private int linkIndex;
+            private int linkLateBindIndex;
             public DiaOption opt;
+            public readonly PersistentDialog parent;
+            private bool resolveTree;
+
+            private string text;
 
             public DiaOptionSave(PersistentDialog parent)
             {
@@ -173,16 +184,6 @@ namespace Multiplayer.Client
             {
                 this.opt = opt;
             }
-
-            private string text;
-            private bool resolveTree;
-            private int linkIndex;
-            private bool disabled;
-            private string disabledReason;
-            private SoundDef clickSound;
-
-            private int actionIndex;
-            private int linkLateBindIndex;
 
             public void ExposeData()
             {
@@ -195,8 +196,10 @@ namespace Multiplayer.Client
                     Scribe_Values.Look(ref opt.disabledReason, "disabledReason");
                     Scribe_Defs.Look(ref opt.clickSound, "clickSound");
 
-                    ScribeUtil.LookValue(parent.fieldValues.FindIndex(f => Equals(f.value, opt.action)), "actionIndex", true);
-                    ScribeUtil.LookValue(parent.fieldValues.FindIndex(f => Equals(f.value, opt.linkLateBind)), "linkLateBindIndex", true);
+                    ScribeUtil.LookValue(parent.fieldValues.FindIndex(f => Equals(f.value, opt.action)), "actionIndex",
+                        true);
+                    ScribeUtil.LookValue(parent.fieldValues.FindIndex(f => Equals(f.value, opt.linkLateBind)),
+                        "linkLateBindIndex", true);
                 }
 
                 if (Scribe.mode == LoadSaveMode.LoadingVars)
@@ -224,19 +227,33 @@ namespace Multiplayer.Client
                 if (Scribe.mode == LoadSaveMode.PostLoadInit)
                 {
                     opt.link = parent.saveNodes.ElementAtOrDefault(linkIndex)?.node;
-                    opt.action = (Action)parent.fieldValues.ElementAtOrDefault(actionIndex)?.value;
-                    opt.linkLateBind = (Func<DiaNode>)parent.fieldValues.ElementAtOrDefault(linkLateBindIndex)?.value;
+                    opt.action = (Action) parent.fieldValues.ElementAtOrDefault(actionIndex)?.value;
+                    opt.linkLateBind = (Func<DiaNode>) parent.fieldValues.ElementAtOrDefault(linkLateBindIndex)?.value;
                 }
             }
         }
 
-        class FieldSave : IExposable
+        private class FieldSave : IExposable
         {
-            public PersistentDialog parent;
+            private static readonly MethodInfo ScribeValues = typeof(Scribe_Values).GetMethod("Look");
+            private static readonly MethodInfo ScribeDefs = typeof(Scribe_Defs).GetMethod("Look");
+
+            private static readonly MethodInfo ScribeReferences = typeof(Scribe_References).GetMethods().First(m =>
+                m.Name == "Look" && (m.GetParameters()[0].ParameterType.GetElementType()?.IsGenericParameter ?? false));
+
+            private static readonly MethodInfo ScribeDeep = typeof(Scribe_Deep).GetMethods()
+                .First(m => m.Name == "Look" && m.GetParameters().Length == 3);
+
+            private Dictionary<string, int> fields;
+            private string methodName;
+
+            private string methodType;
+            private LookMode mode;
+            public readonly PersistentDialog parent;
+            private int targetIndex;
             public Type type;
             public string typeName;
             public object value;
-            private LookMode mode;
 
             public FieldSave(PersistentDialog parent)
             {
@@ -250,7 +267,7 @@ namespace Multiplayer.Client
                 this.value = value;
 
                 if (typeof(Delegate).IsAssignableFrom(type))
-                    mode = (LookMode)101;
+                    mode = (LookMode) 101;
                 else if (ParseHelper.HandlesType(type))
                     mode = LookMode.Value;
                 else if (typeof(Def).IsAssignableFrom(type))
@@ -262,19 +279,8 @@ namespace Multiplayer.Client
                 else if (typeof(IExposable).IsAssignableFrom(type))
                     mode = LookMode.Deep;
                 else
-                    mode = (LookMode)100;
+                    mode = (LookMode) 100;
             }
-
-            private static MethodInfo ScribeValues = typeof(Scribe_Values).GetMethod("Look");
-            private static MethodInfo ScribeDefs = typeof(Scribe_Defs).GetMethod("Look");
-            private static MethodInfo ScribeReferences = typeof(Scribe_References).GetMethods().First(m => m.Name == "Look" && (m.GetParameters()[0].ParameterType.GetElementType()?.IsGenericParameter ?? false));
-            private static MethodInfo ScribeDeep = typeof(Scribe_Deep).GetMethods().First(m => m.Name == "Look" && m.GetParameters().Length == 3);
-
-            private Dictionary<string, int> fields;
-
-            private string methodType;
-            private string methodName;
-            private int targetIndex;
 
             public void ExposeData()
             {
@@ -286,40 +292,41 @@ namespace Multiplayer.Client
 
                 if (mode == LookMode.Value)
                 {
-                    var args = new[] { value, "value", type.GetDefaultValue(), false };
+                    var args = new[] {value, "value", type.GetDefaultValue(), false};
                     ScribeValues.MakeGenericMethod(type).Invoke(null, args);
                     if (Scribe.mode == LoadSaveMode.LoadingVars)
                         value = args[0];
                 }
                 else if (mode == LookMode.Def)
                 {
-                    var args = new[] { value, "value" };
+                    var args = new[] {value, "value"};
                     ScribeDefs.MakeGenericMethod(type).Invoke(null, args);
                     if (Scribe.mode == LoadSaveMode.LoadingVars)
                         value = args[0];
                 }
                 else if (mode == LookMode.Reference)
                 {
-                    var args = new[] { value, "value", false };
+                    var args = new[] {value, "value", false};
                     ScribeReferences.MakeGenericMethod(type).Invoke(null, args);
                     if (Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
                         value = args[0];
                 }
                 else if (mode == LookMode.Deep)
                 {
-                    var args = new[] { value, "value", new object[0] };
+                    var args = new[] {value, "value", new object[0]};
                     ScribeDeep.MakeGenericMethod(type).Invoke(null, args);
                     if (Scribe.mode == LoadSaveMode.LoadingVars)
                         value = args[0];
                 }
-                else if (mode == (LookMode)100)
+                else if (mode == (LookMode) 100)
                 {
                     if (Scribe.mode == LoadSaveMode.Saving)
                     {
                         fields = new Dictionary<string, int>();
                         foreach (var field in type.GetDeclaredInstanceFields())
                             if (!field.FieldType.IsCompilerGenerated())
-                                fields[field.Name] = parent.fieldValues.FindIndex(v => Equals(v.value, field.GetValue(value)));
+                                fields[field.Name] =
+                                    parent.fieldValues.FindIndex(v => Equals(v.value, field.GetValue(value)));
 
                         Scribe_Collections.Look(ref fields, "fields");
                     }
@@ -331,22 +338,21 @@ namespace Multiplayer.Client
                     }
 
                     if (Scribe.mode == LoadSaveMode.PostLoadInit)
-                    {
                         foreach (var kv in fields)
                             value.SetPropertyOrField(kv.Key, parent.fieldValues[kv.Value].value);
-                    }
                 }
-                else if (mode == (LookMode)101)
+                else if (mode == (LookMode) 101)
                 {
                     if (Scribe.mode == LoadSaveMode.Saving)
                     {
-                        var del = (Delegate)value;
+                        var del = (Delegate) value;
 
                         ScribeUtil.LookValue(del.Method.DeclaringType.FullName, "methodType");
                         ScribeUtil.LookValue(del.Method.Name, "methodName");
 
                         if (del.Target != null)
-                            ScribeUtil.LookValue(parent.fieldValues.FindIndex(f => Equals(f.value, del.Target)), "targetIndex", true);
+                            ScribeUtil.LookValue(parent.fieldValues.FindIndex(f => Equals(f.value, del.Target)),
+                                "targetIndex", true);
                     }
 
                     if (Scribe.mode == LoadSaveMode.LoadingVars)
@@ -360,19 +366,20 @@ namespace Multiplayer.Client
                     {
                         if (targetIndex != -1)
                         {
-                            object target = parent.fieldValues[targetIndex].value;
+                            var target = parent.fieldValues[targetIndex].value;
                             value = Delegate.CreateDelegate(type, target, methodName);
                         }
                         else
                         {
-                            value = Delegate.CreateDelegate(type, GenTypes.GetTypeInAnyAssembly(methodType), methodName);
+                            value = Delegate.CreateDelegate(type, GenTypes.GetTypeInAnyAssembly(methodType),
+                                methodName);
                         }
                     }
                 }
             }
         }
 
-        class FieldSaveEquality : IEqualityComparer<FieldSave>
+        private class FieldSaveEquality : IEqualityComparer<FieldSave>
         {
             public bool Equals(FieldSave x, FieldSave y)
             {
@@ -387,15 +394,15 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(WindowStack), nameof(WindowStack.Add))]
-    static class CancelDialogNodeTree
+    internal static class CancelDialogNodeTree
     {
-        static bool Prefix(Window window)
+        private static bool Prefix(Window window)
         {
             var map = Multiplayer.MapContext;
 
             if (map != null && window.GetType() == typeof(Dialog_NodeTreeWithFactionInfo))
             {
-                var dialog = (Dialog_NodeTreeWithFactionInfo)window;
+                var dialog = (Dialog_NodeTreeWithFactionInfo) window;
                 dialog.doCloseX = true;
                 dialog.closeOnCancel = true;
 
@@ -408,15 +415,19 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Dialog_NodeTree), nameof(Dialog_NodeTree.PreClose))]
-    static class DialogNodeTreePreClose
+    internal static class DialogNodeTreePreClose
     {
-        static bool Prefix(Dialog_NodeTree __instance) => Multiplayer.Client == null || __instance.GetType() != typeof(Dialog_NodeTreeWithFactionInfo) || !Multiplayer.ShouldSync;
+        private static bool Prefix(Dialog_NodeTree __instance)
+        {
+            return Multiplayer.Client == null || __instance.GetType() != typeof(Dialog_NodeTreeWithFactionInfo) ||
+                   !Multiplayer.ShouldSync;
+        }
     }
 
     [HarmonyPatch(typeof(Dialog_NodeTree), nameof(Dialog_NodeTree.PostClose))]
-    static class DialogNodeTreePostClose
+    internal static class DialogNodeTreePostClose
     {
-        static bool Prefix(Dialog_NodeTree __instance)
+        private static bool Prefix(Dialog_NodeTree __instance)
         {
             if (Multiplayer.Client == null) return true;
             if (__instance.GetType() != typeof(Dialog_NodeTreeWithFactionInfo)) return true;
@@ -432,10 +443,10 @@ namespace Multiplayer.Client
         }
     }
 
-    [HarmonyPatch(typeof(WindowStack), nameof(WindowStack.TryRemove), new[] { typeof(Window), typeof(bool) })]
-    static class WindowStackTryRemove
+    [HarmonyPatch(typeof(WindowStack), nameof(WindowStack.TryRemove), new[] {typeof(Window), typeof(bool)})]
+    internal static class WindowStackTryRemove
     {
-        static void Postfix(Window window)
+        private static void Postfix(Window window)
         {
             if (Multiplayer.Client == null) return;
 
@@ -448,9 +459,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(DiaOption), nameof(DiaOption.Activate))]
-    static class DiaOptionActivate
+    internal static class DiaOptionActivate
     {
-        static bool Prefix(DiaOption __instance)
+        private static bool Prefix(DiaOption __instance)
         {
             if (Multiplayer.ShouldSync)
             {
@@ -465,5 +476,4 @@ namespace Multiplayer.Client
             return true;
         }
     }
-
 }
