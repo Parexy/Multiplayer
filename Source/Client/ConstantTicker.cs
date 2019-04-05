@@ -1,24 +1,16 @@
-﻿#region
+﻿extern alias zip;
 
-extern alias zip;
-using System.Linq;
 using Harmony;
 using Multiplayer.Common;
 using RimWorld;
+using System.Linq;
 using Verse;
-
-#endregion
 
 namespace Multiplayer.Client
 {
     public static class ConstantTicker
     {
         public static bool ticking;
-
-        private static readonly Pawn dummyPawn = new Pawn()
-        {
-            relations = new Pawn_RelationsTracker(dummyPawn),
-        };
 
         public static void Tick()
         {
@@ -66,7 +58,7 @@ namespace Multiplayer.Client
 
         private static void TickSync()
         {
-            foreach (var f in Sync.bufferedFields)
+            foreach (SyncField f in Sync.bufferedFields)
             {
                 if (!f.inGameLoop) continue;
 
@@ -87,10 +79,15 @@ namespace Multiplayer.Client
             }
         }
 
+        private static Pawn dummyPawn = new Pawn()
+        {
+            relations = new Pawn_RelationsTracker(dummyPawn),
+        };
+
         public static void TickResearch()
         {
-            var comp = Multiplayer.WorldComp;
-            foreach (var factionData in comp.factionData.Values)
+            MultiplayerWorldComp comp = Multiplayer.WorldComp;
+            foreach (FactionWorldData factionData in comp.factionData.Values)
             {
                 if (factionData.researchManager.currentProj == null)
                     continue;
@@ -99,7 +96,7 @@ namespace Multiplayer.Client
 
                 foreach (var kv in factionData.researchSpeed.data)
                 {
-                    var pawn = PawnsFinder.AllMaps_Spawned.FirstOrDefault(p => p.thingIDNumber == kv.Key);
+                    Pawn pawn = PawnsFinder.AllMaps_Spawned.FirstOrDefault(p => p.thingIDNumber == kv.Key);
                     if (pawn == null)
                     {
                         dummyPawn.factionInt = Faction.OfPlayer;
@@ -117,20 +114,15 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(ShipCountdown), nameof(ShipCountdown.CancelCountdown))]
-    internal static class CancelCancelCountdown
+    static class CancelCancelCountdown
     {
-        private static bool Prefix()
-        {
-            return Multiplayer.Client == null || Current.ProgramState != ProgramState.Playing;
-        }
+        static bool Prefix() => Multiplayer.Client == null || Current.ProgramState != ProgramState.Playing;
     }
 
     [HarmonyPatch(typeof(ShipCountdown), nameof(ShipCountdown.ShipCountdownUpdate))]
-    internal static class ShipCountdownUpdatePatch
+    static class ShipCountdownUpdatePatch
     {
-        private static bool Prefix()
-        {
-            return Multiplayer.Client == null;
-        }
+        static bool Prefix() => Multiplayer.Client == null;
     }
+
 }

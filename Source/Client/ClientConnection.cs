@@ -1,19 +1,19 @@
-﻿#region
-
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Xml;
-using Harmony;
+﻿using Harmony;
 using Ionic.Zlib;
 using Multiplayer.Common;
 using RimWorld;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Xml;
 using UnityEngine;
 using Verse;
 using Verse.Profile;
-
-#endregion
 
 namespace Multiplayer.Client
 {
@@ -68,36 +68,36 @@ namespace Multiplayer.Client
             connection.State = ConnectionStateEnum.ClientPlaying;
             Log.Message("Game data size: " + data.Length);
 
-            var factionId = data.ReadInt32();
+            int factionId = data.ReadInt32();
             Multiplayer.session.myFactionId = factionId;
 
-            var tickUntil = data.ReadInt32();
+            int tickUntil = data.ReadInt32();
 
-            var worldData = GZipStream.UncompressBuffer(data.ReadPrefixedBytes());
+            byte[] worldData = GZipStream.UncompressBuffer(data.ReadPrefixedBytes());
             OnMainThread.cachedGameData = worldData;
 
-            var mapsToLoad = new List<int>();
+            List<int> mapsToLoad = new List<int>();
 
-            var mapCmdsCount = data.ReadInt32();
-            for (var i = 0; i < mapCmdsCount; i++)
+            int mapCmdsCount = data.ReadInt32();
+            for (int i = 0; i < mapCmdsCount; i++)
             {
-                var mapId = data.ReadInt32();
+                int mapId = data.ReadInt32();
 
-                var mapCmdsLen = data.ReadInt32();
-                var mapCmds = new List<ScheduledCommand>(mapCmdsLen);
-                for (var j = 0; j < mapCmdsLen; j++)
+                int mapCmdsLen = data.ReadInt32();
+                List<ScheduledCommand> mapCmds = new List<ScheduledCommand>(mapCmdsLen);
+                for (int j = 0; j < mapCmdsLen; j++)
                     mapCmds.Add(ScheduledCommand.Deserialize(new ByteReader(data.ReadPrefixedBytes())));
 
                 OnMainThread.cachedMapCmds[mapId] = mapCmds;
             }
 
-            var mapDataCount = data.ReadInt32();
-            for (var i = 0; i < mapDataCount; i++)
+            int mapDataCount = data.ReadInt32();
+            for (int i = 0; i < mapDataCount; i++)
             {
-                var mapId = data.ReadInt32();
-                var rawMapData = data.ReadPrefixedBytes();
+                int mapId = data.ReadInt32();
+                byte[] rawMapData = data.ReadPrefixedBytes();
 
-                var mapData = GZipStream.UncompressBuffer(rawMapData);
+                byte[] mapData = GZipStream.UncompressBuffer(rawMapData);
                 OnMainThread.cachedMapData[mapId] = mapData;
                 mapsToLoad.Add(mapId);
             }
@@ -116,18 +116,20 @@ namespace Multiplayer.Client
 
         private static XmlDocument GetGameDocument(List<int> mapsToLoad)
         {
-            var gameDoc = ScribeUtil.LoadDocument(OnMainThread.cachedGameData);
+            XmlDocument gameDoc = ScribeUtil.LoadDocument(OnMainThread.cachedGameData);
             XmlNode gameNode = gameDoc.DocumentElement["game"];
 
-            foreach (var map in mapsToLoad)
-                using (var reader = XmlReader.Create(new MemoryStream(OnMainThread.cachedMapData[map])))
+            foreach (int map in mapsToLoad)
+            {
+                using (XmlReader reader = XmlReader.Create(new MemoryStream(OnMainThread.cachedMapData[map])))
                 {
-                    var mapNode = gameDoc.ReadNode(reader);
+                    XmlNode mapNode = gameDoc.ReadNode(reader);
                     gameNode["maps"].AppendChild(mapNode);
 
                     if (gameNode["currentMapIndex"] == null)
                         gameNode.AddNode("currentMapIndex", map.ToString());
                 }
+            }
 
             return gameDoc;
         }
@@ -138,6 +140,7 @@ namespace Multiplayer.Client
             TickPatch.replayTimeSpeed = TimeSpeed.Paused;
 
             if (async)
+            {
                 LongEventHandler.QueueLongEvent(() =>
                 {
                     MemoryUtility.ClearAllMapsAndWorld();
@@ -150,12 +153,15 @@ namespace Multiplayer.Client
                         LongEventHandler.QueueLongEvent(() => PostLoad(), "MpSimulating", false, null);
                     });
                 }, "Play", "MpLoading", true, null);
+            }
             else
+            {
                 LongEventHandler.QueueLongEvent(() =>
                 {
                     SaveLoad.LoadInMainThread(LoadPatch.gameToLoad);
                     PostLoad();
                 }, "MpLoading", false, null);
+            }
         }
 
         private static void PostLoad()
@@ -175,16 +181,14 @@ namespace Multiplayer.Client
             // todo find a better way
             Multiplayer.game.myFactionLoading = null;
 
-            Multiplayer.WorldComp.cmds = new Queue<ScheduledCommand>(
-                OnMainThread.cachedMapCmds.GetValueSafe(ScheduledCommand.Global) ?? new List<ScheduledCommand>());
+            Multiplayer.WorldComp.cmds = new Queue<ScheduledCommand>(OnMainThread.cachedMapCmds.GetValueSafe(ScheduledCommand.Global) ?? new List<ScheduledCommand>());
             // Map cmds are added in MapAsyncTimeComp.FinalizeInit
         }
     }
 
     public enum JoiningState
     {
-        Connected,
-        Downloading
+        Connected, Downloading
     }
 
     public class ClientPlayingState : MpConnectionState
@@ -196,15 +200,15 @@ namespace Multiplayer.Client
         [PacketHandler(Packets.Server_TimeControl)]
         public void HandleTimeControl(ByteReader data)
         {
-            var tickUntil = data.ReadInt32();
+            int tickUntil = data.ReadInt32();
             TickPatch.tickUntil = tickUntil;
         }
 
         [PacketHandler(Packets.Server_KeepAlive)]
         public void HandleKeepAlive(ByteReader data)
         {
-            var id = data.ReadInt32();
-            var ticksBehind = TickPatch.tickUntil - TickPatch.Timer;
+            int id = data.ReadInt32();
+            int ticksBehind = TickPatch.tickUntil - TickPatch.Timer;
 
             connection.Send(Packets.Client_KeepAlive, id, (ticksBehind << 1) | (TickPatch.Skipping ? 1 : 0));
         }
@@ -212,7 +216,7 @@ namespace Multiplayer.Client
         [PacketHandler(Packets.Server_Command)]
         public void HandleCommand(ByteReader data)
         {
-            var cmd = ScheduledCommand.Deserialize(data);
+            ScheduledCommand cmd = ScheduledCommand.Deserialize(data);
             cmd.issuedBySelf = data.ReadBool();
             OnMainThread.ScheduleCommand(cmd);
         }
@@ -220,7 +224,7 @@ namespace Multiplayer.Client
         [PacketHandler(Packets.Server_PlayerList)]
         public void HandlePlayerList(ByteReader data)
         {
-            var action = (PlayerListAction) data.ReadByte();
+            var action = (PlayerListAction)data.ReadByte();
 
             if (action == PlayerListAction.Add)
             {
@@ -230,22 +234,22 @@ namespace Multiplayer.Client
             }
             else if (action == PlayerListAction.Remove)
             {
-                var id = data.ReadInt32();
+                int id = data.ReadInt32();
                 Multiplayer.session.players.RemoveAll(p => p.id == id);
             }
             else if (action == PlayerListAction.List)
             {
-                var count = data.ReadInt32();
+                int count = data.ReadInt32();
 
                 Multiplayer.session.players.Clear();
-                for (var i = 0; i < count; i++)
+                for (int i = 0; i < count; i++)
                     Multiplayer.session.players.Add(PlayerInfo.Read(data));
             }
             else if (action == PlayerListAction.Latencies)
             {
-                var count = data.ReadInt32();
+                int count = data.ReadInt32();
 
-                for (var i = 0; i < count; i++)
+                for (int i = 0; i < count; i++)
                 {
                     var player = Multiplayer.session.players[i];
                     player.latency = data.ReadInt32();
@@ -255,7 +259,7 @@ namespace Multiplayer.Client
             else if (action == PlayerListAction.Status)
             {
                 var id = data.ReadInt32();
-                var status = (PlayerStatus) data.ReadByte();
+                var status = (PlayerStatus)data.ReadByte();
                 var player = Multiplayer.session.GetPlayerInfo(id);
 
                 if (player != null)
@@ -266,28 +270,28 @@ namespace Multiplayer.Client
         [PacketHandler(Packets.Server_Chat)]
         public void HandleChat(ByteReader data)
         {
-            var msg = data.ReadString();
+            string msg = data.ReadString();
             Multiplayer.session.AddMsg(msg);
         }
 
         [PacketHandler(Packets.Server_Cursor)]
         public void HandleCursor(ByteReader data)
         {
-            var playerId = data.ReadInt32();
+            int playerId = data.ReadInt32();
             var player = Multiplayer.session.GetPlayerInfo(playerId);
             if (player == null) return;
 
-            var seq = data.ReadByte();
+            byte seq = data.ReadByte();
             if (seq < player.cursorSeq && player.cursorSeq - seq < 128) return;
 
-            var map = data.ReadByte();
+            byte map = data.ReadByte();
             player.map = map;
 
             if (map == byte.MaxValue) return;
 
-            var icon = data.ReadByte();
-            var x = data.ReadShort() / 10f;
-            var z = data.ReadShort() / 10f;
+            byte icon = data.ReadByte();
+            float x = data.ReadShort() / 10f;
+            float z = data.ReadShort() / 10f;
 
             player.cursorSeq = seq;
             player.lastCursor = player.cursor;
@@ -296,11 +300,11 @@ namespace Multiplayer.Client
             player.updatedAt = Multiplayer.Clock.ElapsedMillisDouble();
             player.cursorIcon = icon;
 
-            var dragXRaw = data.ReadShort();
+            short dragXRaw = data.ReadShort();
             if (dragXRaw != -1)
             {
-                var dragX = dragXRaw / 10f;
-                var dragZ = data.ReadShort() / 10f;
+                float dragX = dragXRaw / 10f;
+                float dragZ = data.ReadShort() / 10f;
 
                 player.dragStart = new Vector3(dragX, 0, dragZ);
             }
@@ -313,37 +317,37 @@ namespace Multiplayer.Client
         [PacketHandler(Packets.Server_Selected)]
         public void HandleSelected(ByteReader data)
         {
-            var playerId = data.ReadInt32();
+            int playerId = data.ReadInt32();
             var player = Multiplayer.session.GetPlayerInfo(playerId);
             if (player == null) return;
 
-            var reset = data.ReadBool();
+            bool reset = data.ReadBool();
 
             if (reset)
                 player.selectedThings.Clear();
 
-            var add = data.ReadPrefixedInts();
-            for (var i = 0; i < add.Length; i++)
+            int[] add = data.ReadPrefixedInts();
+            for (int i = 0; i < add.Length; i++)
                 player.selectedThings[add[i]] = Time.realtimeSinceStartup;
 
-            var remove = data.ReadPrefixedInts();
-            for (var i = 0; i < remove.Length; i++)
+            int[] remove = data.ReadPrefixedInts();
+            for (int i = 0; i < remove.Length; i++)
                 player.selectedThings.Remove(remove[i]);
         }
 
         [PacketHandler(Packets.Server_MapResponse)]
         public void HandleMapResponse(ByteReader data)
         {
-            var mapId = data.ReadInt32();
+            int mapId = data.ReadInt32();
 
-            var mapCmdsLen = data.ReadInt32();
-            var mapCmds = new List<ScheduledCommand>(mapCmdsLen);
-            for (var j = 0; j < mapCmdsLen; j++)
+            int mapCmdsLen = data.ReadInt32();
+            List<ScheduledCommand> mapCmds = new List<ScheduledCommand>(mapCmdsLen);
+            for (int j = 0; j < mapCmdsLen; j++)
                 mapCmds.Add(ScheduledCommand.Deserialize(new ByteReader(data.ReadPrefixedBytes())));
 
             OnMainThread.cachedMapCmds[mapId] = mapCmds;
 
-            var mapData = GZipStream.UncompressBuffer(data.ReadPrefixedBytes());
+            byte[] mapData = GZipStream.UncompressBuffer(data.ReadPrefixedBytes());
             OnMainThread.cachedMapData[mapId] = mapData;
 
             //ClientJoiningState.ReloadGame(TickPatch.tickUntil, Find.Maps.Select(m => m.uniqueID).Concat(mapId).ToList());
@@ -353,11 +357,10 @@ namespace Multiplayer.Client
         [PacketHandler(Packets.Server_Notification)]
         public void HandleNotification(ByteReader data)
         {
-            var key = data.ReadString();
-            var args = data.ReadPrefixedStrings();
+            string key = data.ReadString();
+            string[] args = data.ReadPrefixedStrings();
 
-            Messages.Message(key.Translate(Array.ConvertAll(args, s => (NamedArgument) s)),
-                MessageTypeDefOf.SilentInput, false);
+            Messages.Message(key.Translate(Array.ConvertAll(args, s => (NamedArgument)s)), MessageTypeDefOf.SilentInput, false);
         }
 
         [PacketHandler(Packets.Server_SyncInfo)]
@@ -370,16 +373,16 @@ namespace Multiplayer.Client
         [PacketHandler(Packets.Server_Pause)]
         public void HandlePause(ByteReader data)
         {
-            var pause = data.ReadBool();
+            bool pause = data.ReadBool();
             // This packet doesn't get processed in time during a synchronous long event 
         }
 
         [PacketHandler(Packets.Server_Debug)]
         public void HandleDebug(ByteReader data)
         {
-            var tick = data.ReadInt32();
-            var start = data.ReadInt32();
-            var end = data.ReadInt32();
+            int tick = data.ReadInt32();
+            int start = data.ReadInt32();
+            int end = data.ReadInt32();
             var info = Multiplayer.game.sync.buffer.FirstOrDefault(b => b.startTick == tick);
 
             Log.Message($"{info?.traces.Count} arbiter traces");
@@ -414,7 +417,7 @@ namespace Multiplayer.Client
             get
             {
                 if (Find.WindowStack != null)
-                    foreach (var window in Find.WindowStack.Windows.ToList())
+                    foreach (Window window in Find.WindowStack.Windows.ToList())
                         if (window is IConnectionStatusListener listener)
                             yield return listener;
 
@@ -429,6 +432,7 @@ namespace Multiplayer.Client
         public static void TryNotifyAll_Connected()
         {
             foreach (var listener in All)
+            {
                 try
                 {
                     listener.Connected();
@@ -437,11 +441,13 @@ namespace Multiplayer.Client
                 {
                     Log.Error(e.ToString());
                 }
+            }
         }
 
         public static void TryNotifyAll_Disconnected()
         {
             foreach (var listener in All)
+            {
                 try
                 {
                     listener.Disconnected();
@@ -450,6 +456,8 @@ namespace Multiplayer.Client
                 {
                     Log.Error(e.ToString());
                 }
+            }
         }
     }
+
 }

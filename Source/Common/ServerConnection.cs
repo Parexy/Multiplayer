@@ -1,9 +1,7 @@
-﻿#region
-
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
-
-#endregion
 
 namespace Multiplayer.Common
 {
@@ -18,11 +16,10 @@ namespace Multiplayer.Common
         [PacketHandler(Packets.Client_Protocol)]
         public void HandleProtocol(ByteReader data)
         {
-            var clientProtocol = data.ReadInt32();
+            int clientProtocol = data.ReadInt32();
             if (clientProtocol != MpVersion.Protocol)
             {
-                Player.Disconnect(MpDisconnectReason.Protocol,
-                    ByteWriter.GetBytes(MpVersion.Version, MpVersion.Protocol));
+                Player.Disconnect(MpDisconnectReason.Protocol, ByteWriter.GetBytes(MpVersion.Version, MpVersion.Protocol));
                 return;
             }
 
@@ -42,7 +39,7 @@ namespace Multiplayer.Common
             var response = new ByteWriter();
             var disconnect = false;
 
-            for (var i = 0; i < count; i++)
+            for (int i = 0; i < count; i++)
             {
                 var defType = data.ReadString(128);
                 var defCount = data.ReadInt32();
@@ -50,7 +47,7 @@ namespace Multiplayer.Common
 
                 var status = DefCheckStatus.OK;
 
-                if (!Server.defInfos.TryGetValue(defType, out var info))
+                if (!Server.defInfos.TryGetValue(defType, out DefInfo info))
                     status = DefCheckStatus.Not_Found;
                 else if (info.count != defCount)
                     status = DefCheckStatus.Count_Diff;
@@ -60,7 +57,7 @@ namespace Multiplayer.Common
                 if (status != DefCheckStatus.OK)
                     disconnect = true;
 
-                response.WriteByte((byte) status);
+                response.WriteByte((byte)status);
             }
 
             if (disconnect)
@@ -78,7 +75,7 @@ namespace Multiplayer.Common
             if (connection.username != null && connection.username.Length != 0)
                 return;
 
-            var username = data.ReadString();
+            string username = data.ReadString();
 
             if (username.Length < 3 || username.Length > 15)
             {
@@ -104,7 +101,7 @@ namespace Multiplayer.Common
             Server.SendChat($"{Player.Username} has joined.");
 
             var writer = new ByteWriter();
-            writer.WriteByte((byte) PlayerListAction.Add);
+            writer.WriteByte((byte)PlayerListAction.Add);
             writer.WriteRaw(Player.SerializePlayerInfo());
 
             Server.SendToAll(Packets.Server_PlayerList, writer.ToArray());
@@ -114,7 +111,7 @@ namespace Multiplayer.Common
 
         private void SendWorldData()
         {
-            var factionId = MultiplayerServer.instance.coopFactionId;
+            int factionId = MultiplayerServer.instance.coopFactionId;
             MultiplayerServer.instance.playerFactions[connection.username] = factionId;
 
             /*if (!MultiplayerServer.instance.playerFactions.TryGetValue(connection.Username, out int factionId))
@@ -128,12 +125,11 @@ namespace Multiplayer.Common
 
             if (Server.PlayingPlayers.Count(p => p.FactionId == factionId) == 1)
             {
-                var extra = ByteWriter.GetBytes(factionId);
-                MultiplayerServer.instance.SendCommand(CommandType.FactionOnline, ScheduledCommand.NoFaction,
-                    ScheduledCommand.Global, extra);
+                byte[] extra = ByteWriter.GetBytes(factionId);
+                MultiplayerServer.instance.SendCommand(CommandType.FactionOnline, ScheduledCommand.NoFaction, ScheduledCommand.Global, extra);
             }
 
-            var writer = new ByteWriter();
+            ByteWriter writer = new ByteWriter();
 
             writer.WriteInt32(factionId);
             writer.WriteInt32(MultiplayerServer.instance.gameTimer);
@@ -143,11 +139,11 @@ namespace Multiplayer.Common
 
             foreach (var kv in MultiplayerServer.instance.mapCmds)
             {
-                var mapId = kv.Key;
+                int mapId = kv.Key;
 
                 //MultiplayerServer.instance.SendCommand(CommandType.CreateMapFactionData, ScheduledCommand.NoFaction, mapId, ByteWriter.GetBytes(factionId));
 
-                var mapCmds = kv.Value;
+                List<byte[]> mapCmds = kv.Value;
 
                 writer.WriteInt32(mapId);
 
@@ -160,8 +156,8 @@ namespace Multiplayer.Common
 
             foreach (var kv in MultiplayerServer.instance.mapData)
             {
-                var mapId = kv.Key;
-                var mapData = kv.Value;
+                int mapId = kv.Key;
+                byte[] mapData = kv.Value;
 
                 writer.WriteInt32(mapId);
                 writer.WritePrefixedBytes(mapData);
@@ -169,7 +165,7 @@ namespace Multiplayer.Common
 
             connection.State = ConnectionStateEnum.ServerPlaying;
 
-            var packetData = writer.ToArray();
+            byte[] packetData = writer.ToArray();
             connection.SendFragmented(Packets.Server_WorldData, packetData);
 
             Player.SendPlayerList();
@@ -188,8 +184,6 @@ namespace Multiplayer.Common
 
     public class ServerPlayingState : MpConnectionState
     {
-        public const int MaxChatMsgLength = 128;
-
         public ServerPlayingState(IConnection conn) : base(conn)
         {
         }
@@ -209,20 +203,22 @@ namespace Multiplayer.Common
         [PacketHandler(Packets.Client_Command)]
         public void HandleClientCommand(ByteReader data)
         {
-            var cmd = (CommandType) data.ReadInt32();
-            var mapId = data.ReadInt32();
-            var extra = data.ReadPrefixedBytes(32767);
+            CommandType cmd = (CommandType)data.ReadInt32();
+            int mapId = data.ReadInt32();
+            byte[] extra = data.ReadPrefixedBytes(32767);
 
             // todo check if map id is valid for the player
 
-            var factionId = MultiplayerServer.instance.playerFactions[connection.username];
+            int factionId = MultiplayerServer.instance.playerFactions[connection.username];
             MultiplayerServer.instance.SendCommand(cmd, factionId, mapId, extra, Player);
         }
+
+        public const int MaxChatMsgLength = 128;
 
         [PacketHandler(Packets.Client_Chat)]
         public void HandleChat(ByteReader data)
         {
-            var msg = data.ReadString();
+            string msg = data.ReadString();
             msg = msg.Trim();
 
             // todo handle max length
@@ -260,10 +256,10 @@ namespace Multiplayer.Common
             if (arbiter && !Player.IsArbiter) return;
             if (!arbiter && Player.Username != Server.hostUsername) return;
 
-            var maps = data.ReadInt32();
-            for (var i = 0; i < maps; i++)
+            int maps = data.ReadInt32();
+            for (int i = 0; i < maps; i++)
             {
-                var mapId = data.ReadInt32();
+                int mapId = data.ReadInt32();
                 Server.mapData[mapId] = data.ReadPrefixedBytes();
             }
 
@@ -283,8 +279,8 @@ namespace Multiplayer.Common
 
             var writer = new ByteWriter();
 
-            var seq = data.ReadByte();
-            var map = data.ReadByte();
+            byte seq = data.ReadByte();
+            byte map = data.ReadByte();
 
             writer.WriteInt32(Player.id);
             writer.WriteByte(seq);
@@ -292,33 +288,33 @@ namespace Multiplayer.Common
 
             if (map < byte.MaxValue)
             {
-                var icon = data.ReadByte();
-                var x = data.ReadShort();
-                var z = data.ReadShort();
+                byte icon = data.ReadByte();
+                short x = data.ReadShort();
+                short z = data.ReadShort();
 
                 writer.WriteByte(icon);
                 writer.WriteShort(x);
                 writer.WriteShort(z);
 
-                var dragX = data.ReadShort();
+                short dragX = data.ReadShort();
                 writer.WriteShort(dragX);
 
                 if (dragX != -1)
                 {
-                    var dragZ = data.ReadShort();
+                    short dragZ = data.ReadShort();
                     writer.WriteShort(dragZ);
                 }
             }
 
             Player.lastCursorTick = Server.netTimer;
 
-            Server.SendToAll(Packets.Server_Cursor, writer.ToArray(), false, Player);
+            Server.SendToAll(Packets.Server_Cursor, writer.ToArray(), reliable: false, excluding: Player);
         }
 
         [PacketHandler(Packets.Client_Selected)]
         public void HandleSelected(ByteReader data)
         {
-            var reset = data.ReadBool();
+            bool reset = data.ReadBool();
 
             var writer = new ByteWriter();
 
@@ -333,7 +329,7 @@ namespace Multiplayer.Common
         [PacketHandler(Packets.Client_IdBlockRequest)]
         public void HandleIdBlockRequest(ByteReader data)
         {
-            var mapId = data.ReadInt32();
+            int mapId = data.ReadInt32();
 
             if (mapId == ScheduledCommand.Global)
             {
@@ -349,8 +345,8 @@ namespace Multiplayer.Common
         [PacketHandler(Packets.Client_KeepAlive)]
         public void HandleClientKeepAlive(ByteReader data)
         {
-            var id = data.ReadInt32();
-            var ticksBehind = data.ReadInt32();
+            int id = data.ReadInt32();
+            int ticksBehind = data.ReadInt32();
 
             Player.ticksBehind = ticksBehind;
 
@@ -358,7 +354,7 @@ namespace Multiplayer.Common
             if (connection is MpNetConnection) return;
 
             if (MultiplayerServer.instance.keepAliveId == id)
-                connection.Latency = (int) MultiplayerServer.instance.lastKeepAlive.ElapsedMilliseconds / 2;
+                connection.Latency = (int)MultiplayerServer.instance.lastKeepAlive.ElapsedMilliseconds / 2;
             else
                 connection.Latency = 2000;
         }
@@ -379,12 +375,12 @@ namespace Multiplayer.Common
         [PacketHandler(Packets.Client_Pause)]
         public void HandlePause(ByteReader data)
         {
-            var pause = data.ReadBool();
+            bool pause = data.ReadBool();
             if (pause && Player.Username != Server.hostUsername) return;
             if (Server.paused == pause) return;
 
             Server.paused = pause;
-            Server.SendToAll(Packets.Server_Pause, new object[] {pause});
+            Server.SendToAll(Packets.Server_Pause, new object[] { pause });
         }
 
         [PacketHandler(Packets.Client_Debug)]
@@ -392,8 +388,7 @@ namespace Multiplayer.Common
         {
             if (!MpVersion.IsDebug) return;
 
-            Server.PlayingPlayers.FirstOrDefault(p => p.IsArbiter)
-                ?.SendPacket(Packets.Server_Debug, data.ReadRaw(data.Left));
+            Server.PlayingPlayers.FirstOrDefault(p => p.IsArbiter)?.SendPacket(Packets.Server_Debug, data.ReadRaw(data.Left));
         }
     }
 
