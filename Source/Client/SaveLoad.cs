@@ -1,18 +1,20 @@
-﻿using Harmony;
+﻿#region
+
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Threading;
+using System.Xml;
+using Harmony;
 using Ionic.Zlib;
 using Multiplayer.Common;
 using RimWorld;
 using RimWorld.Planet;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Xml;
 using UnityEngine;
 using Verse;
 using Verse.Profile;
+
+#endregion
 
 namespace Multiplayer.Client
 {
@@ -36,12 +38,12 @@ namespace Multiplayer.Client
 
             //RealPlayerFaction = DummyFaction;
 
-            foreach (Map map in Find.Maps)
+            foreach (var map in Find.Maps)
             {
                 drawers[map.uniqueID] = map.mapDrawer;
                 //RebuildRegionsAndRoomsPatch.copyFrom[map.uniqueID] = map.regionGrid;
 
-                foreach (Pawn p in map.mapPawns.AllPawnsSpawned)
+                foreach (var p in map.mapPawns.AllPawnsSpawned)
                     tweenedPos[p.thingIDNumber] = p.drawer.tweener.tweenedPos;
 
                 mapCmds[map.uniqueID] = map.AsyncTime().cmds;
@@ -49,8 +51,8 @@ namespace Multiplayer.Client
 
             mapCmds[ScheduledCommand.Global] = Multiplayer.WorldComp.cmds;
 
-            Stopwatch watch = Stopwatch.StartNew();
-            XmlDocument gameDoc = SaveGame();
+            var watch = Stopwatch.StartNew();
+            var gameDoc = SaveGame();
             Log.Message("Saving took " + watch.ElapsedMilliseconds);
 
             MapDrawerRegenPatch.copyFrom = drawers;
@@ -61,16 +63,14 @@ namespace Multiplayer.Client
 
             Multiplayer.RealPlayerFaction = Find.FactionManager.GetById(localFactionId);
 
-            foreach (Map m in Find.Maps)
+            foreach (var m in Find.Maps)
             {
-                foreach (Pawn p in m.mapPawns.AllPawnsSpawned)
-                {
-                    if (tweenedPos.TryGetValue(p.thingIDNumber, out Vector3 v))
+                foreach (var p in m.mapPawns.AllPawnsSpawned)
+                    if (tweenedPos.TryGetValue(p.thingIDNumber, out var v))
                     {
                         p.drawer.tweener.tweenedPos = v;
                         p.drawer.tweener.lastDrawFrame = Time.frameCount;
                     }
-                }
 
                 m.AsyncTime().cmds = mapCmds[m.uniqueID];
             }
@@ -78,7 +78,8 @@ namespace Multiplayer.Client
             if (chatWindow != null)
                 Find.WindowStack.Add_KeepRect(chatWindow);
 
-            var selectedReader = new ByteReader(selectedData.ToArray()) { context = new MpContext() { map = Find.CurrentMap } };
+            var selectedReader = new ByteReader(selectedData.ToArray())
+                {context = new MpContext() {map = Find.CurrentMap}};
             Find.Selector.selected = Sync.ReadSync<List<ISelectable>>(selectedReader).NotNull().Cast<object>().ToList();
 
             Find.World.renderer.wantedMode = planetRenderMode;
@@ -116,9 +117,9 @@ namespace Multiplayer.Client
             if (Find.MusicManagerPlay != null)
             {
                 // todo destroy other game objects?
-                UnityEngine.Object.Destroy(Find.MusicManagerPlay.audioSource?.gameObject);
-                UnityEngine.Object.Destroy(Find.SoundRoot.sourcePool.sourcePoolCamera.cameraSourcesContainer);
-                UnityEngine.Object.Destroy(Find.SoundRoot.sourcePool.sourcePoolWorld.sourcesWorld[0].gameObject);
+                Object.Destroy(Find.MusicManagerPlay.audioSource?.gameObject);
+                Object.Destroy(Find.SoundRoot.sourcePool.sourcePoolCamera.cameraSourcesContainer);
+                Object.Destroy(Find.SoundRoot.sourcePool.sourcePoolWorld.sourcesWorld[0].gameObject);
 
                 foreach (var sustainer in Find.SoundRoot.sustainerManager.AllSustainers.ToList())
                     sustainer.Cleanup();
@@ -137,9 +138,9 @@ namespace Multiplayer.Client
             int currentMapIndex = Current.Game.currentMapIndex;
             Scribe_Values.Look(ref currentMapIndex, "currentMapIndex", -1);
             Current.Game.ExposeSmallComponents();
-            World world = Current.Game.World;
+            var world = Current.Game.World;
             Scribe_Deep.Look(ref world, "world");
-            List<Map> maps = Find.Maps;
+            var maps = Find.Maps;
             Scribe_Collections.Look(ref maps, "maps", LookMode.Deep);
             Find.CameraDriver.Expose();
             Scribe.ExitNode();
@@ -159,19 +160,21 @@ namespace Multiplayer.Client
 
             foreach (XmlNode mapNode in mapsNode)
             {
-                int id = int.Parse(mapNode["uniqueID"].InnerText);
-                byte[] mapData = ScribeUtil.XmlToByteArray(mapNode);
+                var id = int.Parse(mapNode["uniqueID"].InnerText);
+                var mapData = ScribeUtil.XmlToByteArray(mapNode);
                 OnMainThread.cachedMapData[id] = mapData;
-                OnMainThread.cachedMapCmds[id] = new List<ScheduledCommand>(Find.Maps.First(m => m.uniqueID == id).AsyncTime().cmds);
+                OnMainThread.cachedMapCmds[id] =
+                    new List<ScheduledCommand>(Find.Maps.First(m => m.uniqueID == id).AsyncTime().cmds);
             }
 
             gameNode["currentMapIndex"].RemoveFromParent();
             mapsNode.RemoveAll();
 
-            byte[] gameData = ScribeUtil.XmlToByteArray(doc);
+            var gameData = ScribeUtil.XmlToByteArray(doc);
             OnMainThread.cachedAtTime = TickPatch.Timer;
             OnMainThread.cachedGameData = gameData;
-            OnMainThread.cachedMapCmds[ScheduledCommand.Global] = new List<ScheduledCommand>(Multiplayer.WorldComp.cmds);
+            OnMainThread.cachedMapCmds[ScheduledCommand.Global] =
+                new List<ScheduledCommand>(Multiplayer.WorldComp.cmds);
         }
 
         public static void SendCurrentGameData(bool async)
@@ -192,10 +195,12 @@ namespace Multiplayer.Client
 
                 writer.WritePrefixedBytes(GZipStream.CompressBuffer(gameData));
 
-                byte[] data = writer.ToArray();
+                var data = writer.ToArray();
 
                 OnMainThread.Enqueue(() => Multiplayer.Client.SendFragmented(Packets.Client_AutosavedData, data));
-            };
+            }
+
+            ;
 
             if (async)
                 ThreadPool.QueueUserWorkItem(c => Send());
@@ -206,12 +211,12 @@ namespace Multiplayer.Client
 
     [HarmonyPatch(typeof(SavedGameLoaderNow))]
     [HarmonyPatch(nameof(SavedGameLoaderNow.LoadGameFromSaveFileNow))]
-    [HarmonyPatch(new[] { typeof(string) })]
+    [HarmonyPatch(new[] {typeof(string)})]
     public static class LoadPatch
     {
         public static XmlDocument gameToLoad;
 
-        static bool Prefix()
+        private static bool Prefix()
         {
             if (gameToLoad == null) return true;
 
@@ -229,11 +234,10 @@ namespace Multiplayer.Client
             Log.Message("Game loaded");
 
             if (Multiplayer.Client != null)
-            {
                 LongEventHandler.ExecuteWhenFinished(() =>
                 {
                     // Inits all caches
-                    foreach (ITickable tickable in TickPatch.AllTickables.Where(t => !(t is ConstantTicker)))
+                    foreach (var tickable in TickPatch.AllTickables.Where(t => !(t is ConstantTicker)))
                         tickable.Tick();
 
                     if (!Current.Game.Maps.Any())
@@ -242,16 +246,15 @@ namespace Multiplayer.Client
                         Find.World.renderer.RegenerateAllLayersNow();
                     }
                 });
-            }
 
             return false;
         }
     }
 
     [HarmonyPatch(typeof(Game), nameof(Game.ExposeSmallComponents))]
-    static class GameExposeComponentsPatch
+    internal static class GameExposeComponentsPatch
     {
-        static void Prefix()
+        private static void Prefix()
         {
             if (Multiplayer.Client == null) return;
 
@@ -261,18 +264,18 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(MemoryUtility), nameof(MemoryUtility.ClearAllMapsAndWorld))]
-    static class ClearAllPatch
+    internal static class ClearAllPatch
     {
-        static void Postfix()
+        private static void Postfix()
         {
             Multiplayer.game = null;
         }
     }
 
     [HarmonyPatch(typeof(FactionManager), nameof(FactionManager.RecacheFactions))]
-    static class RecacheFactionsPatch
+    internal static class RecacheFactionsPatch
     {
-        static void Postfix()
+        private static void Postfix()
         {
             if (Multiplayer.Client == null) return;
             Multiplayer.game.dummyFaction = Find.FactionManager.GetById(-1);
@@ -280,9 +283,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(World), nameof(World.ExposeComponents))]
-    static class SaveWorldComp
+    internal static class SaveWorldComp
     {
-        static void Postfix(World __instance)
+        private static void Postfix(World __instance)
         {
             if (Multiplayer.Client == null) return;
 
@@ -300,9 +303,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Map), nameof(Map.ExposeComponents))]
-    static class SaveMapComps
+    internal static class SaveMapComps
     {
-        static void Postfix(Map __instance)
+        private static void Postfix(Map __instance)
         {
             if (Multiplayer.Client == null) return;
 
@@ -338,9 +341,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(MapComponentUtility), nameof(MapComponentUtility.MapComponentTick))]
-    static class MapCompTick
+    internal static class MapCompTick
     {
-        static void Postfix(Map map)
+        private static void Postfix(Map map)
         {
             if (Multiplayer.Client == null) return;
             map.MpComp()?.DoTick();
@@ -348,9 +351,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(MapComponentUtility), nameof(MapComponentUtility.FinalizeInit))]
-    static class MapCompFinalizeInit
+    internal static class MapCompFinalizeInit
     {
-        static void Postfix(Map map)
+        private static void Postfix(Map map)
         {
             if (Multiplayer.Client == null) return;
             map.AsyncTime()?.FinalizeInit();
@@ -358,9 +361,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(WorldComponentUtility), nameof(WorldComponentUtility.FinalizeInit))]
-    static class WorldCompFinalizeInit
+    internal static class WorldCompFinalizeInit
     {
-        static void Postfix()
+        private static void Postfix()
         {
             if (Multiplayer.Client == null) return;
             Multiplayer.WorldComp.FinalizeInit();
@@ -368,13 +371,12 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Alert), nameof(Alert.Notify_Started))]
-    static class FixAlertBellTime
+    internal static class FixAlertBellTime
     {
-        static void Postfix(Alert __instance)
+        private static void Postfix(Alert __instance)
         {
             if (__instance.lastBellTime == float.NaN)
                 __instance.lastBellTime = Time.realtimeSinceStartup;
         }
     }
-
 }

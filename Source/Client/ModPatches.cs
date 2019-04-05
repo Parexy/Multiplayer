@@ -1,18 +1,29 @@
-﻿using Harmony;
-using RimWorld;
+﻿#region
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using System.Text;
+using Harmony;
+using RimWorld;
 using UnityEngine;
 using Verse;
 
+#endregion
+
 namespace Multiplayer.Client
 {
-    static class ModPatches
+    internal static class ModPatches
     {
+        private static readonly MethodInfo SetPriorityMethod =
+            AccessTools.Method(typeof(Pawn_WorkSettings), nameof(Pawn_WorkSettings.SetPriority));
+
+        private static readonly MethodBase WorkTypeDefDictCtor =
+            AccessTools.Constructor(typeof(Dictionary<WorkTypeDef, int>), new Type[0]);
+
+        private static Dictionary<WorkTypeDef, int> workTypeDefDict = new Dictionary<WorkTypeDef, int>();
+
         public static void Init()
         {
             var harmony = Multiplayer.harmony;
@@ -20,13 +31,11 @@ namespace Multiplayer.Client
             // Compat with Fluffy's mod loader
             var fluffysModButtonType = MpReflection.GetTypeByName("ModManager.ModButton_Installed");
             if (fluffysModButtonType != null)
-            {
                 harmony.Patch(
                     fluffysModButtonType.GetMethod("DoModButton"),
                     new HarmonyMethod(typeof(PageModsPatch), nameof(PageModsPatch.ModManager_ButtonPrefix)),
                     new HarmonyMethod(typeof(PageModsPatch), nameof(PageModsPatch.Postfix))
                 );
-            }
 
             var cancelForArbiter = new HarmonyMethod(typeof(CancelForArbiter), "Prefix");
 
@@ -42,9 +51,12 @@ namespace Multiplayer.Client
             // Minimizes side effects and goes around syncing
             // Also cache the dictionary to improve performance
             {
-                var pawnsAreCapablePatch = new HarmonyMethod(typeof(ModPatches), nameof(PawnsAreCapable_FloatMenu_Patch_Transpiler));
-                PatchIfExists("PawnsAreCapable.FloatMenuMakerMap_ChoicesAtFor", "Prefix", transpiler: pawnsAreCapablePatch);
-                PatchIfExists("PawnsAreCapable.FloatMenuMakerMap_ChoicesAtFor", "Postfix", transpiler: pawnsAreCapablePatch);
+                var pawnsAreCapablePatch =
+                    new HarmonyMethod(typeof(ModPatches), nameof(PawnsAreCapable_FloatMenu_Patch_Transpiler));
+                PatchIfExists("PawnsAreCapable.FloatMenuMakerMap_ChoicesAtFor", "Prefix",
+                    transpiler: pawnsAreCapablePatch);
+                PatchIfExists("PawnsAreCapable.FloatMenuMakerMap_ChoicesAtFor", "Postfix",
+                    transpiler: pawnsAreCapablePatch);
             }
 
             var randPatchPrefix = new HarmonyMethod(typeof(RandPatches), "Prefix");
@@ -52,27 +64,27 @@ namespace Multiplayer.Client
 
             // Facial Stuff compat
             {
-                PatchIfExists("FacialStuff.Harmony.HarmonyPatchesFS", "TryInteractWith_Postfix", randPatchPrefix, randPatchPostfix);
+                PatchIfExists("FacialStuff.Harmony.HarmonyPatchesFS", "TryInteractWith_Postfix", randPatchPrefix,
+                    randPatchPostfix);
             }
         }
 
-        static MethodInfo SetPriorityMethod = AccessTools.Method(typeof(Pawn_WorkSettings), nameof(Pawn_WorkSettings.SetPriority));
-        static MethodBase WorkTypeDefDictCtor = AccessTools.Constructor(typeof(Dictionary<WorkTypeDef, int>), new Type[0]);
-        static Dictionary<WorkTypeDef, int> workTypeDefDict = new Dictionary<WorkTypeDef, int>();
-
-        static IEnumerable<CodeInstruction> PawnsAreCapable_FloatMenu_Patch_Transpiler(IEnumerable<CodeInstruction> insts)
+        private static IEnumerable<CodeInstruction> PawnsAreCapable_FloatMenu_Patch_Transpiler(
+            IEnumerable<CodeInstruction> insts)
         {
             foreach (var inst in insts)
             {
                 if (inst.operand == WorkTypeDefDictCtor)
                 {
-                    yield return new CodeInstruction(OpCodes.Ldsfld, AccessTools.Field(typeof(ModPatches), nameof(workTypeDefDict)));
+                    yield return new CodeInstruction(OpCodes.Ldsfld,
+                        AccessTools.Field(typeof(ModPatches), nameof(workTypeDefDict)));
                     continue;
                 }
 
                 if (inst.operand == SetPriorityMethod)
                 {
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ModPatches), nameof(SetPriority)));
+                    yield return new CodeInstruction(OpCodes.Call,
+                        AccessTools.Method(typeof(ModPatches), nameof(SetPriority)));
                     continue;
                 }
 
@@ -80,9 +92,13 @@ namespace Multiplayer.Client
             }
         }
 
-        static void SetPriority(Pawn_WorkSettings settings, WorkTypeDef def, int p) => settings.priorities[def] = p;
+        private static void SetPriority(Pawn_WorkSettings settings, WorkTypeDef def, int p)
+        {
+            settings.priorities[def] = p;
+        }
 
-        static void PatchIfExists(string typeName, string methodName, HarmonyMethod prefix = null, HarmonyMethod postfix = null, HarmonyMethod transpiler = null)
+        private static void PatchIfExists(string typeName, string methodName, HarmonyMethod prefix = null,
+            HarmonyMethod postfix = null, HarmonyMethod transpiler = null)
         {
             var type = MpReflection.GetTypeByName(typeName);
             if (type == null) return;
@@ -96,24 +112,25 @@ namespace Multiplayer.Client
 
     // Hold shift in the mod list to highlight XML mods
     [HarmonyPatch(typeof(Page_ModsConfig), nameof(Page_ModsConfig.DoModRow))]
-    static class PageModsPatch
+    internal static class PageModsPatch
     {
         public static string currentXMLMod;
         public static Dictionary<string, string> truncatedStrings;
 
-        static void Prefix(Page_ModsConfig __instance, ModMetaData mod)
+        private static void Prefix(Page_ModsConfig __instance, ModMetaData mod)
         {
             ModManager_ButtonPrefix(null, mod, __instance.truncatedModNamesCache);
         }
 
-        public static void ModManager_ButtonPrefix(object __instance, ModMetaData ____selected, Dictionary<string, string> ____modNameTruncationCache)
+        public static void ModManager_ButtonPrefix(object __instance, ModMetaData ____selected,
+            Dictionary<string, string> ____modNameTruncationCache)
         {
             if (!Input.GetKey(KeyCode.LeftShift)) return;
 
             var mod = ____selected;
             if (Multiplayer.xmlMods.Contains(mod.RootDir.FullName))
             {
-                currentXMLMod = __instance == null ? mod.Name : (string)__instance.GetPropertyOrField("TrimmedName");
+                currentXMLMod = __instance == null ? mod.Name : (string) __instance.GetPropertyOrField("TrimmedName");
                 truncatedStrings = ____modNameTruncationCache;
             }
         }
@@ -126,13 +143,15 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Widgets), nameof(Widgets.Label), typeof(Rect), typeof(string))]
-    static class WidgetsLabelPatch
+    internal static class WidgetsLabelPatch
     {
-        static void Prefix(ref Rect rect, ref string label)
+        private static void Prefix(ref Rect rect, ref string label)
         {
             if (PageModsPatch.currentXMLMod == null) return;
 
-            if (label == PageModsPatch.currentXMLMod || PageModsPatch.truncatedStrings.TryGetValue(PageModsPatch.currentXMLMod, out string truncated) && truncated == label)
+            if (label == PageModsPatch.currentXMLMod ||
+                PageModsPatch.truncatedStrings.TryGetValue(PageModsPatch.currentXMLMod, out var truncated) &&
+                truncated == label)
             {
                 rect.width += 50;
                 label = "<b>[XML]</b> " + label;
@@ -141,11 +160,11 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(ScribeMetaHeaderUtility), nameof(ScribeMetaHeaderUtility.ModListsMatch))]
-    static class IgnoreSomeModsWhenCheckingSaveModList
+    internal static class IgnoreSomeModsWhenCheckingSaveModList
     {
-        static List<string> IgnoredModNames = new List<string>() { "HotSwap", "Mod Manager" };
+        private static readonly List<string> IgnoredModNames = new List<string>() {"HotSwap", "Mod Manager"};
 
-        static void Prefix(ref List<string> a, ref List<string> b)
+        private static void Prefix(ref List<string> a, ref List<string> b)
         {
             if (a != ScribeMetaHeaderUtility.loadedModIdsList)
                 return;
@@ -154,8 +173,8 @@ namespace Multiplayer.Client
             b = b.ToList();
 
             a.RemoveAll((id, index) => IgnoredModNames.Contains(ScribeMetaHeaderUtility.loadedModNamesList[index]));
-            b.RemoveAll((id, index) => IgnoredModNames.Contains(LoadedModManager.RunningModsListForReading[index].Name));
+            b.RemoveAll((id, index) =>
+                IgnoredModNames.Contains(LoadedModManager.RunningModsListForReading[index].Name));
         }
     }
-
 }

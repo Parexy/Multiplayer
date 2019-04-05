@@ -1,13 +1,16 @@
-﻿using Harmony;
-using Multiplayer.Common;
-using RimWorld;
+﻿#region
+
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Xml;
+using Harmony;
+using RimWorld;
 using Verse;
+
+#endregion
 
 namespace Multiplayer.Client
 {
@@ -32,13 +35,11 @@ namespace Multiplayer.Client
         public void UnregisterAllFrom(Map map)
         {
             foreach (var val in allObjectsByLoadID.Values.ToArray())
-            {
                 if (val is Thing thing && thing.Map == map ||
                     val is PassingShip ship && ship.Map == map ||
                     val is Bill bill && bill.Map == map
                 )
                     Unregister(val);
-            }
         }
     }
 
@@ -67,8 +68,6 @@ namespace Multiplayer.Client
         private const string RootNode = "root";
 
         private static MemoryStream stream;
-
-        public static SharedCrossRefs sharedCrossRefs => Multiplayer.game.sharedCrossRefs;
         public static LoadedObjectDirectory defaultCrossRefs;
 
         public static bool loading;
@@ -76,18 +75,20 @@ namespace Multiplayer.Client
         public static Type XmlNodeWriter = AccessTools.TypeByName("System.Xml.XmlNodeWriter");
         public static PropertyInfo GetDocumentProperty = AccessTools.Property(XmlNodeWriter, "Document");
 
+        public static SharedCrossRefs sharedCrossRefs => Multiplayer.game.sharedCrossRefs;
+
         public static void StartWriting(bool indent = false)
         {
             stream = new MemoryStream();
 
             Scribe.mode = LoadSaveMode.Saving;
-            XmlWriterSettings xmlWriterSettings = new XmlWriterSettings()
+            var xmlWriterSettings = new XmlWriterSettings()
             {
                 Indent = indent,
                 OmitXmlDeclaration = true
             };
 
-            XmlWriter writer = XmlWriter.Create(stream, xmlWriterSettings);
+            var writer = XmlWriter.Create(stream, xmlWriterSettings);
             Scribe.saver.writer = writer;
             writer.WriteStartDocument();
         }
@@ -96,7 +97,7 @@ namespace Multiplayer.Client
         {
             Scribe.saver.FinalizeSaving();
 
-            byte[] arr = stream.ToArray();
+            var arr = stream.ToArray();
             stream.Close();
             stream = null;
 
@@ -106,15 +107,15 @@ namespace Multiplayer.Client
         public static void StartWritingToDoc()
         {
             Scribe.mode = LoadSaveMode.Saving;
-            XmlWriter writer = (XmlWriter)Activator.CreateInstance(XmlNodeWriter);
+            var writer = (XmlWriter) Activator.CreateInstance(XmlNodeWriter);
             Scribe.saver.writer = writer;
             writer.WriteStartDocument();
         }
 
         public static XmlDocument FinishWritingToDoc()
         {
-            XmlWriter writer = Scribe.saver.writer;
-            XmlDocument doc = (XmlDocument)GetDocumentProperty.GetValue(writer, null);
+            var writer = Scribe.saver.writer;
+            var doc = (XmlDocument) GetDocumentProperty.GetValue(writer, null);
             Scribe.saver.writer = null;
             Scribe.saver.ExitNode();
             writer.WriteEndDocument();
@@ -145,7 +146,7 @@ namespace Multiplayer.Client
                 return;
             }
 
-            ScribeLoader loader = Scribe.loader;
+            var loader = Scribe.loader;
 
             try
             {
@@ -171,10 +172,10 @@ namespace Multiplayer.Client
 
         public static XmlDocument LoadDocument(byte[] data)
         {
-            using (MemoryStream stream = new MemoryStream(data))
-            using (XmlReader reader = XmlReader.Create(stream))
+            using (var stream = new MemoryStream(data))
+            using (var reader = XmlReader.Create(stream))
             {
-                XmlDocument xmlDocument = new XmlDocument();
+                var xmlDocument = new XmlDocument();
                 xmlDocument.Load(reader);
                 return xmlDocument;
             }
@@ -182,14 +183,14 @@ namespace Multiplayer.Client
 
         public static byte[] XmlToByteArray(XmlNode node, string rootNode = null, bool indent = false)
         {
-            XmlWriterSettings xmlWriterSettings = new XmlWriterSettings()
+            var xmlWriterSettings = new XmlWriterSettings()
             {
                 Indent = indent,
                 OmitXmlDeclaration = true
             };
 
-            using (MemoryStream stream = new MemoryStream())
-            using (XmlWriter writer = XmlWriter.Create(stream, xmlWriterSettings))
+            using (var stream = new MemoryStream())
+            using (var writer = XmlWriter.Create(stream, xmlWriterSettings))
             {
                 if (rootNode != null)
                     writer.WriteStartElement(rootNode);
@@ -219,10 +220,12 @@ namespace Multiplayer.Client
 
             Scribe.loader.crossRefs.loadedObjectDirectory = sharedCrossRefs;
 
-            Log.Message($"Cross ref supply: {sharedCrossRefs.allObjectsByLoadID.Count} {sharedCrossRefs.allObjectsByLoadID.LastOrDefault()} {Faction.OfPlayer}");
+            Log.Message(
+                $"Cross ref supply: {sharedCrossRefs.allObjectsByLoadID.Count} {sharedCrossRefs.allObjectsByLoadID.LastOrDefault()} {Faction.OfPlayer}");
         }
 
-        public static byte[] WriteExposable(IExposable element, string name = RootNode, bool indent = false, Action beforeElement = null)
+        public static byte[] WriteExposable(IExposable element, string name = RootNode, bool indent = false,
+            Action beforeElement = null)
         {
             StartWriting(indent);
             Scribe.EnterNode(RootNode);
@@ -235,7 +238,7 @@ namespace Multiplayer.Client
         {
             StartLoading(data);
             SupplyCrossRefs();
-            T element = default(T);
+            var element = default(T);
             Scribe_Deep.Look(ref element, RootNode);
 
             beforeFinish?.Invoke(element);
@@ -248,24 +251,25 @@ namespace Multiplayer.Client
         }
 
         /// <summary>
-        /// Dictionary Look with value type keys
+        ///     Dictionary Look with value type keys
         /// </summary>
-        public static void LookWithValueKey<K, V>(ref Dictionary<K, V> dict, string label, LookMode valueLookMode, params object[] valueCtorArgs)
+        public static void LookWithValueKey<K, V>(ref Dictionary<K, V> dict, string label, LookMode valueLookMode,
+            params object[] valueCtorArgs)
         {
             List<V> list = null;
             LookWithValueKey(ref dict, label, valueLookMode, ref list, valueCtorArgs);
         }
 
         /// <summary>
-        /// Dictionary Look with value type keys
+        ///     Dictionary Look with value type keys
         /// </summary>
-        public static void LookWithValueKey<K, V>(ref Dictionary<K, V> dict, string label, LookMode valueLookMode, ref List<V> valuesWorkingList, params object[] valueCtorArgs)
+        public static void LookWithValueKey<K, V>(ref Dictionary<K, V> dict, string label, LookMode valueLookMode,
+            ref List<V> valuesWorkingList, params object[] valueCtorArgs)
         {
-            LookMode keyLookMode = LookMode.Value;
+            var keyLookMode = LookMode.Value;
             List<K> keysWorkingList = null;
 
             if (Scribe.EnterNode(label))
-            {
                 try
                 {
                     if (Scribe.mode == LoadSaveMode.Saving || Scribe.mode == LoadSaveMode.LoadingVars)
@@ -275,13 +279,11 @@ namespace Multiplayer.Client
                     }
 
                     if (Scribe.mode == LoadSaveMode.Saving)
-                    {
-                        foreach (KeyValuePair<K, V> current in dict)
+                        foreach (var current in dict)
                         {
                             keysWorkingList.Add(current.Key);
                             valuesWorkingList.Add(current.Value);
                         }
-                    }
 
                     Scribe_Collections.Look(ref keysWorkingList, "keys", keyLookMode);
                     Scribe_Collections.Look(ref valuesWorkingList, "values", valueLookMode, valueCtorArgs);
@@ -301,8 +303,9 @@ namespace Multiplayer.Client
                         }
                     }
 
-                    bool flag = keyLookMode == LookMode.Reference || valueLookMode == LookMode.Reference;
-                    if ((flag && Scribe.mode == LoadSaveMode.ResolvingCrossRefs) || (!flag && Scribe.mode == LoadSaveMode.LoadingVars))
+                    var flag = keyLookMode == LookMode.Reference || valueLookMode == LookMode.Reference;
+                    if (flag && Scribe.mode == LoadSaveMode.ResolvingCrossRefs ||
+                        !flag && Scribe.mode == LoadSaveMode.LoadingVars)
                     {
                         dict.Clear();
                         if (keysWorkingList == null)
@@ -316,7 +319,6 @@ namespace Multiplayer.Client
                         else
                         {
                             if (keysWorkingList.Count != valuesWorkingList.Count)
-                            {
                                 Log.Error(string.Concat(new object[]
                                 {
                                     "Keys count does not match the values count while loading a dictionary (maybe keys and values were resolved during different passes?). Some elements will be skipped. keys=",
@@ -324,13 +326,10 @@ namespace Multiplayer.Client
                                     ", values=",
                                     valuesWorkingList.Count
                                 }));
-                            }
 
-                            int num = Math.Min(keysWorkingList.Count, valuesWorkingList.Count);
-                            for (int i = 0; i < num; i++)
-                            {
+                            var num = Math.Min(keysWorkingList.Count, valuesWorkingList.Count);
+                            for (var i = 0; i < num; i++)
                                 if (keysWorkingList[i] == null)
-                                {
                                     Log.Error(string.Concat(new object[]
                                     {
                                         "Null key while loading dictionary of ",
@@ -339,9 +338,7 @@ namespace Multiplayer.Client
                                         typeof(V),
                                         "."
                                     }));
-                                }
                                 else
-                                {
                                     try
                                     {
                                         dict.Add(keysWorkingList[i], valuesWorkingList[i]);
@@ -356,8 +353,6 @@ namespace Multiplayer.Client
                                             ex
                                         }));
                                     }
-                                }
-                            }
                         }
                     }
 
@@ -380,11 +375,7 @@ namespace Multiplayer.Client
                 {
                     Scribe.ExitNode();
                 }
-            }
-            else if (Scribe.mode == LoadSaveMode.LoadingVars)
-            {
-                dict = null;
-            }
+            else if (Scribe.mode == LoadSaveMode.LoadingVars) dict = null;
         }
 
         public static void LookValue<T>(T t, string label, bool force = false)
@@ -399,7 +390,7 @@ namespace Multiplayer.Client
 
         public static void LookULong(ref ulong value, string label, ulong defaultValue = 0)
         {
-            string valueStr = value.ToString();
+            var valueStr = value.ToString();
             Scribe_Values.Look(ref valueStr, label, defaultValue.ToString());
             if (Scribe.mode == LoadSaveMode.LoadingVars)
                 ulong.TryParse(valueStr, out value);
