@@ -1,54 +1,27 @@
-﻿#region
-
+﻿using Harmony;
+using Multiplayer.Common;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
-using Harmony;
-using Multiplayer.Common;
-
-#endregion
+using Verse;
 
 namespace Multiplayer.Client
 {
     /// <summary>
-    ///     Applies a normal Harmony patch, but allows multiple targets
+    /// Applies a normal Harmony patch, but allows multiple targets
     /// </summary>
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
     public class MpPatch : Attribute
     {
-        private readonly Type[] argTypes;
+        private Type type;
+        private string typeName;
+        private string methodName;
+        private Type[] argTypes;
+        private MethodType methodType;
 
         private MethodBase method;
-        private readonly string methodName;
-        private readonly MethodType methodType;
-        private Type type;
-        private readonly string typeName;
-
-        public MpPatch(Type type, string innerType, string methodName) : this($"{type}+{innerType}", methodName)
-        {
-        }
-
-        public MpPatch(string typeName, string methodName)
-        {
-            this.typeName = typeName;
-            this.methodName = methodName;
-        }
-
-        public MpPatch(Type type, string methodName, Type[] argTypes = null)
-        {
-            this.type = type;
-            this.methodName = methodName;
-            this.argTypes = argTypes;
-        }
-
-        public MpPatch(Type type, MethodType methodType, Type[] argTypes = null)
-        {
-            this.type = type;
-            this.methodType = methodType;
-            this.argTypes = argTypes;
-        }
 
         public Type Type
         {
@@ -80,21 +53,53 @@ namespace Multiplayer.Client
             }
         }
 
-        public HarmonyMethod HarmonyMethod =>
-            new HarmonyMethod()
+        public HarmonyMethod HarmonyMethod
+        {
+            get
             {
-                declaringType = Type,
-                methodName = methodName,
-                argumentTypes = argTypes,
-                methodType = methodType
-            };
+                return new HarmonyMethod()
+                {
+                    declaringType = Type,
+                    methodName = methodName,
+                    argumentTypes = argTypes,
+                    methodType = methodType
+                };
+            }
+        }
+
+        public MpPatch(Type type, string innerType, string methodName) : this($"{type}+{innerType}", methodName)
+        {
+        }
+
+        public MpPatch(string typeName, string methodName)
+        {
+            this.typeName = typeName;
+            this.methodName = methodName;
+        }
+
+        public MpPatch(Type type, string methodName, Type[] argTypes = null)
+        {
+            this.type = type;
+            this.methodName = methodName;
+            this.argTypes = argTypes;
+        }
+
+        public MpPatch(Type type, MethodType methodType, Type[] argTypes = null)
+        {
+            this.type = type;
+            this.methodType = methodType;
+            this.argTypes = argTypes;
+        }
     }
 
     public static class MpPatchExtensions
     {
         public static void DoAllMpPatches(this HarmonyInstance harmony)
         {
-            foreach (var type in Assembly.GetCallingAssembly().GetTypes()) harmony.DoMpPatches(type);
+            foreach (Type type in Assembly.GetCallingAssembly().GetTypes())
+            {
+                harmony.DoMpPatches(type);
+            }
         }
 
         // Use null as harmony instance to just collect the methods
@@ -118,19 +123,20 @@ namespace Multiplayer.Client
 
             // On methods
             foreach (var m in type.GetDeclaredMethods().Where(m => m.IsStatic))
-            foreach (var attr in m.AllAttributes<MpPatch>())
             {
-                var toPatch = attr.Method;
-                var patch = new HarmonyMethod(m);
+                foreach (MpPatch attr in m.AllAttributes<MpPatch>())
+                {
+                    var toPatch = attr.Method;
+                    HarmonyMethod patch = new HarmonyMethod(m);
 
-                if (harmony != null)
-                    harmony.Patch(toPatch, attr is MpPrefix ? patch : null, attr is MpPostfix ? patch : null,
-                        attr is MpTranspiler ? patch : null);
+                    if (harmony != null)
+                        harmony.Patch(toPatch, (attr is MpPrefix) ? patch : null, (attr is MpPostfix) ? patch : null, (attr is MpTranspiler) ? patch : null);
 
-                if (result == null)
-                    result = new List<MethodBase>();
+                    if (result == null)
+                        result = new List<MethodBase>();
 
-                result.Add(toPatch);
+                    result.Add(toPatch);
+                }
             }
 
             return result;
@@ -138,7 +144,7 @@ namespace Multiplayer.Client
     }
 
     /// <summary>
-    ///     Prefix method attribute
+    /// Prefix method attribute
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class MpPrefix : MpPatch
@@ -157,7 +163,7 @@ namespace Multiplayer.Client
     }
 
     /// <summary>
-    ///     Postfix method attribute
+    /// Postfix method attribute
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class MpPostfix : MpPatch
@@ -176,7 +182,7 @@ namespace Multiplayer.Client
     }
 
     /// <summary>
-    ///     Transpiler method attribute
+    /// Transpiler method attribute
     /// </summary>
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
     public class MpTranspiler : MpPatch
@@ -196,8 +202,11 @@ namespace Multiplayer.Client
 
     public class CodeFinder
     {
-        private readonly MethodBase inMethod;
-        private readonly List<CodeInstruction> list;
+        private MethodBase inMethod;
+        private int pos;
+        private List<CodeInstruction> list;
+
+        public int Pos => pos;
 
         public CodeFinder(MethodBase inMethod, List<CodeInstruction> list)
         {
@@ -205,11 +214,9 @@ namespace Multiplayer.Client
             this.list = list;
         }
 
-        public int Pos { get; private set; }
-
         public CodeFinder Advance(int steps)
         {
-            Pos += steps;
+            pos += steps;
             return this;
         }
 
@@ -227,37 +234,35 @@ namespace Multiplayer.Client
 
         public CodeFinder Find(OpCode opcode, object operand, int direction)
         {
-            while (Pos < list.Count && Pos >= 0)
+            while (pos < list.Count && pos >= 0)
             {
-                if (Matches(list[Pos], opcode, operand)) return this;
-                Pos += direction;
+                if (Matches(list[pos], opcode, operand)) return this;
+                pos += direction;
             }
 
-            throw new Exception(
-                $"Couldn't find instruction ({opcode}) with operand ({operand}) in {inMethod.FullDescription()}.");
+            throw new Exception($"Couldn't find instruction ({opcode}) with operand ({operand}) in {inMethod.FullDescription()}.");
         }
 
         public CodeFinder Find(Predicate<CodeInstruction> predicate, int direction)
         {
-            while (Pos < list.Count && Pos >= 0)
+            while (pos < list.Count && pos >= 0)
             {
-                if (predicate(list[Pos])) return this;
-                Pos += direction;
+                if (predicate(list[pos])) return this;
+                pos += direction;
             }
 
-            throw new Exception(
-                $"Couldn't find instruction using predicate ({predicate.Method}) in method {inMethod.FullDescription()}.");
+            throw new Exception($"Couldn't find instruction using predicate ({predicate.Method}) in method {inMethod.FullDescription()}.");
         }
 
         public CodeFinder Start()
         {
-            Pos = 0;
+            pos = 0;
             return this;
         }
 
         public CodeFinder End()
         {
-            Pos = list.Count - 1;
+            pos = list.Count - 1;
             return this;
         }
 
@@ -267,14 +272,14 @@ namespace Multiplayer.Client
             if (operand == null) return true;
 
             if (opcode == OpCodes.Stloc_S)
-                return (inst.operand as LocalBuilder).LocalIndex == (int) operand;
+                return (inst.operand as LocalBuilder).LocalIndex == (int)operand;
 
             return Equals(inst.operand, operand);
         }
 
         public static implicit operator int(CodeFinder finder)
         {
-            return finder.Pos;
+            return finder.pos;
         }
     }
 
@@ -283,4 +288,5 @@ namespace Multiplayer.Client
         public const int MpLast = Priority.Last - 2;
         public const int MpFirst = Priority.First + 1;
     }
+
 }

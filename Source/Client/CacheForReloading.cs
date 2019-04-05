@@ -1,13 +1,10 @@
-﻿#region
-
+﻿using Harmony;
+using RimWorld.Planet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Harmony;
-using RimWorld.Planet;
+using System.Text;
 using Verse;
-
-#endregion
 
 namespace Multiplayer.Client
 {
@@ -16,24 +13,24 @@ namespace Multiplayer.Client
     {
         public static Dictionary<int, MapDrawer> copyFrom = new Dictionary<int, MapDrawer>();
 
-        private static bool Prefix(MapDrawer __instance)
+        static bool Prefix(MapDrawer __instance)
         {
-            var map = __instance.map;
-            if (!copyFrom.TryGetValue(map.uniqueID, out var keepDrawer)) return true;
+            Map map = __instance.map;
+            if (!copyFrom.TryGetValue(map.uniqueID, out MapDrawer keepDrawer)) return true;
 
             map.mapDrawer = keepDrawer;
             keepDrawer.map = map;
 
-            foreach (var section in keepDrawer.sections)
+            foreach (Section section in keepDrawer.sections)
             {
                 section.map = map;
 
-                for (var i = 0; i < section.layers.Count; i++)
+                for (int i = 0; i < section.layers.Count; i++)
                 {
-                    var layer = section.layers[i];
+                    SectionLayer layer = section.layers[i];
 
                     if (!ShouldKeep(layer))
-                        section.layers[i] = (SectionLayer) Activator.CreateInstance(layer.GetType(), section);
+                        section.layers[i] = (SectionLayer)Activator.CreateInstance(layer.GetType(), section);
                     else if (layer is SectionLayer_LightingOverlay lighting)
                         lighting.glowGrid = map.glowGrid.glowGrid;
                     else if (layer is SectionLayer_TerrainScatter scatter)
@@ -41,17 +38,17 @@ namespace Multiplayer.Client
                 }
             }
 
-            foreach (var s in keepDrawer.sections)
-            foreach (var layer in s.layers)
-                if (!ShouldKeep(layer))
-                    layer.Regenerate();
+            foreach (Section s in keepDrawer.sections)
+                foreach (SectionLayer layer in s.layers)
+                    if (!ShouldKeep(layer))
+                        layer.Regenerate();
 
             copyFrom.Remove(map.uniqueID);
 
             return false;
         }
 
-        private static bool ShouldKeep(SectionLayer layer)
+        static bool ShouldKeep(SectionLayer layer)
         {
             return layer.GetType().Assembly == typeof(Game).Assembly;
         }
@@ -62,17 +59,17 @@ namespace Multiplayer.Client
     {
         public static Dictionary<int, RegionGrid> copyFrom = new Dictionary<int, RegionGrid>();
 
-        private static bool Prefix(RegionAndRoomUpdater __instance)
+        static bool Prefix(RegionAndRoomUpdater __instance)
         {
-            var map = __instance.map;
-            if (!copyFrom.TryGetValue(map.uniqueID, out var oldRegions)) return true;
+            Map map = __instance.map;
+            if (!copyFrom.TryGetValue(map.uniqueID, out RegionGrid oldRegions)) return true;
 
             __instance.initialized = true;
             map.temperatureCache.ResetTemperatureCache();
 
             oldRegions.map = map; // for access to cellIndices in the iterator
 
-            foreach (var r in oldRegions.AllRegions_NoRebuild_InvalidAllowed)
+            foreach (Region r in oldRegions.AllRegions_NoRebuild_InvalidAllowed)
             {
                 r.cachedAreaOverlaps = null;
                 r.cachedDangers.Clear();
@@ -80,21 +77,21 @@ namespace Multiplayer.Client
                 r.reachedIndex = 0;
                 r.closedIndex = new uint[RegionTraverser.NumWorkers];
                 r.cachedCellCount = -1;
-                r.mapIndex = (sbyte) map.Index;
+                r.mapIndex = (sbyte)map.Index;
 
                 if (r.door != null)
                     r.door = map.ThingReplacement(r.door);
 
-                foreach (var things in r.listerThings.listsByGroup.Concat(r.ListerThings.listsByDef.Values))
+                foreach (List<Thing> things in r.listerThings.listsByGroup.Concat(r.ListerThings.listsByDef.Values))
                     if (things != null)
-                        for (var j = 0; j < things.Count; j++)
+                        for (int j = 0; j < things.Count; j++)
                             if (things[j] != null)
                                 things[j] = map.ThingReplacement(things[j]);
 
-                var rm = r.Room;
+                Room rm = r.Room;
                 if (rm == null) continue;
 
-                rm.mapIndex = (sbyte) map.Index;
+                rm.mapIndex = (sbyte)map.Index;
                 rm.cachedCellCount = -1;
                 rm.cachedOpenRoofCount = -1;
                 rm.statsAndRoleDirty = true;
@@ -103,11 +100,11 @@ namespace Multiplayer.Client
                 rm.uniqueNeighbors.Clear();
                 rm.uniqueContainedThings.Clear();
 
-                var rg = rm.groupInt;
+                RoomGroup rg = rm.groupInt;
                 rg.tempTracker.cycleIndex = 0;
             }
 
-            for (var i = 0; i < oldRegions.regionGrid.Length; i++)
+            for (int i = 0; i < oldRegions.regionGrid.Length; i++)
                 map.regionGrid.regionGrid[i] = oldRegions.regionGrid[i];
 
             copyFrom.Remove(map.uniqueID);
@@ -121,12 +118,11 @@ namespace Multiplayer.Client
     {
         public static WorldGrid copyFrom;
 
-        private static bool Prefix(WorldGrid __instance, int ___cachedTraversalDistance,
-            int ___cachedTraversalDistanceForStart, int ___cachedTraversalDistanceForEnd)
+        static bool Prefix(WorldGrid __instance, int ___cachedTraversalDistance, int ___cachedTraversalDistanceForStart, int ___cachedTraversalDistanceForEnd)
         {
             if (copyFrom == null) return true;
 
-            var grid = __instance;
+            WorldGrid grid = __instance;
 
             grid.viewAngle = copyFrom.viewAngle;
             grid.viewCenter = copyFrom.viewCenter;
@@ -152,7 +148,7 @@ namespace Multiplayer.Client
     {
         public static WorldRenderer copyFrom;
 
-        private static bool Prefix(WorldRenderer __instance)
+        static bool Prefix(WorldRenderer __instance)
         {
             if (copyFrom == null) return true;
 

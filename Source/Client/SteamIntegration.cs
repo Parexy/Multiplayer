@@ -1,19 +1,17 @@
-﻿#region
-
+﻿using Multiplayer.Common;
+using Steamworks;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Multiplayer.Common;
-using Steamworks;
+using System.Text;
 using UnityEngine;
-
-#endregion
+using Verse;
 
 namespace Multiplayer.Client
 {
     public static class SteamIntegration
     {
-        public const string SteamConnectStart = " -mpserver=";
         private static Callback<P2PSessionRequest_t> sessionReq;
         private static Callback<P2PSessionConnectFail_t> p2pFail;
         private static Callback<FriendRichPresenceUpdate_t> friendRchpUpdate;
@@ -22,8 +20,7 @@ namespace Multiplayer.Client
 
         public static AppId_t RimWorldAppId;
 
-        private static readonly Stopwatch lastSteamUpdate = Stopwatch.StartNew();
-        private static bool lastSteam;
+        public const string SteamConnectStart = " -mpserver=";
 
         public static void InitCallbacks()
         {
@@ -32,8 +29,7 @@ namespace Multiplayer.Client
             sessionReq = Callback<P2PSessionRequest_t>.Create(req =>
             {
                 var session = Multiplayer.session;
-                if (session?.localSettings != null && session.localSettings.steam &&
-                    !session.pendingSteam.Contains(req.m_steamIDRemote))
+                if (session?.localSettings != null && session.localSettings.steam && !session.pendingSteam.Contains(req.m_steamIDRemote))
                 {
                     if (MultiplayerMod.settings.autoAcceptSteam)
                         SteamNetworking.AcceptP2PSessionWithUser(req.m_steamIDRemote);
@@ -47,11 +43,17 @@ namespace Multiplayer.Client
                 }
             });
 
-            friendRchpUpdate = Callback<FriendRichPresenceUpdate_t>.Create(update => { });
+            friendRchpUpdate = Callback<FriendRichPresenceUpdate_t>.Create(update =>
+            {
+            });
 
-            gameJoinReq = Callback<GameRichPresenceJoinRequested_t>.Create(req => { });
+            gameJoinReq = Callback<GameRichPresenceJoinRequested_t>.Create(req =>
+            {
+            });
 
-            personaChange = Callback<PersonaStateChange_t>.Create(change => { });
+            personaChange = Callback<PersonaStateChange_t>.Create(change =>
+            {
+            });
 
             p2pFail = Callback<P2PSessionConnectFail_t>.Create(fail =>
             {
@@ -59,7 +61,7 @@ namespace Multiplayer.Client
                 if (session == null) return;
 
                 var remoteId = fail.m_steamIDRemote;
-                var error = (EP2PSessionError) fail.m_eP2PSessionError;
+                var error = (EP2PSessionError)fail.m_eP2PSessionError;
 
                 if (Multiplayer.Client is SteamBaseConn clientConn && clientConn.remoteId == remoteId)
                     clientConn.OnError(error);
@@ -69,8 +71,7 @@ namespace Multiplayer.Client
 
                 server.Enqueue(() =>
                 {
-                    var conn = server.players.Select(p => p.conn).OfType<SteamBaseConn>()
-                        .FirstOrDefault(c => c.remoteId == remoteId);
+                    var conn = server.players.Select(p => p.conn).OfType<SteamBaseConn>().FirstOrDefault(c => c.remoteId == remoteId);
                     if (conn != null)
                         conn.OnError(error);
                 });
@@ -79,27 +80,26 @@ namespace Multiplayer.Client
 
         public static IEnumerable<SteamPacket> ReadPackets()
         {
-            while (SteamNetworking.IsP2PPacketAvailable(out var size, 0))
+            while (SteamNetworking.IsP2PPacketAvailable(out uint size, 0))
             {
-                var data = new byte[size];
+                byte[] data = new byte[size];
 
-                if (!SteamNetworking.ReadP2PPacket(data, size, out var sizeRead, out var remote, 0)) continue;
+                if (!SteamNetworking.ReadP2PPacket(data, size, out uint sizeRead, out CSteamID remote, 0)) continue;
                 if (data.Length <= 0) continue;
 
                 var reader = new ByteReader(data);
-                var info = reader.ReadByte();
-                var joinPacket = (info & 1) > 0;
-                var reliable = (info & 2) > 0;
+                byte info = reader.ReadByte();
+                bool joinPacket = (info & 1) > 0;
+                bool reliable = (info & 2) > 0;
 
-                yield return new SteamPacket()
-                    {remote = remote, data = reader, joinPacket = joinPacket, reliable = reliable};
+                yield return new SteamPacket() { remote = remote, data = reader, joinPacket = joinPacket, reliable = reliable };
             }
         }
 
         public static void ClearChannel(int channel)
         {
-            while (SteamNetworking.IsP2PPacketAvailable(out var size, channel))
-                SteamNetworking.ReadP2PPacket(new byte[size], size, out var sizeRead, out var remote, channel);
+            while (SteamNetworking.IsP2PPacketAvailable(out uint size, channel))
+                SteamNetworking.ReadP2PPacket(new byte[size], size, out uint sizeRead, out CSteamID remote, channel);
         }
 
         public static void ServerSteamNetTick(MultiplayerServer server)
@@ -109,8 +109,7 @@ namespace Multiplayer.Client
                 if (packet.joinPacket)
                     ClearChannel(0);
 
-                var player =
-                    server.players.FirstOrDefault(p => p.conn is SteamBaseConn conn && conn.remoteId == packet.remote);
+                var player = server.players.FirstOrDefault(p => p.conn is SteamBaseConn conn && conn.remoteId == packet.remote);
 
                 if (packet.joinPacket && player == null)
                 {
@@ -119,7 +118,7 @@ namespace Multiplayer.Client
                     player = server.OnConnected(conn);
                     player.type = PlayerType.Steam;
 
-                    player.steamId = (ulong) packet.remote;
+                    player.steamId = (ulong)packet.remote;
                     player.steamPersonaName = SteamFriends.GetFriendPersonaName(packet.remote);
                     if (player.steamPersonaName.Length == 0)
                         player.steamPersonaName = "[unknown]";
@@ -127,15 +126,21 @@ namespace Multiplayer.Client
                     conn.Send(Packets.Server_SteamAccept);
                 }
 
-                if (!packet.joinPacket && player != null) player.HandleReceive(packet.data, packet.reliable);
+                if (!packet.joinPacket && player != null)
+                {
+                    player.HandleReceive(packet.data, packet.reliable);
+                }
             }
         }
+
+        private static Stopwatch lastSteamUpdate = Stopwatch.StartNew();
+        private static bool lastSteam;
 
         public static void UpdateRichPresence()
         {
             if (lastSteamUpdate.ElapsedMilliseconds < 1000) return;
 
-            var steam = Multiplayer.session?.localSettings?.steam ?? false;
+            bool steam = Multiplayer.session?.localSettings?.steam ?? false;
 
             if (steam != lastSteam)
             {
@@ -166,25 +171,25 @@ namespace Multiplayer.Client
         // Remember to flip it
         public static Texture2D GetTexture(int id)
         {
-            if (cache.TryGetValue(id, out var tex))
+            if (cache.TryGetValue(id, out Texture2D tex))
                 return tex;
 
-            if (!SteamUtils.GetImageSize(id, out var width, out var height))
+            if (!SteamUtils.GetImageSize(id, out uint width, out uint height))
             {
                 cache[id] = null;
                 return null;
             }
 
-            var sizeInBytes = width * height * 4;
-            var data = new byte[sizeInBytes];
+            uint sizeInBytes = width * height * 4;
+            byte[] data = new byte[sizeInBytes];
 
-            if (!SteamUtils.GetImageRGBA(id, data, (int) sizeInBytes))
+            if (!SteamUtils.GetImageRGBA(id, data, (int)sizeInBytes))
             {
                 cache[id] = null;
                 return null;
             }
 
-            tex = new Texture2D((int) width, (int) height, TextureFormat.RGBA32, false);
+            tex = new Texture2D((int)width, (int)height, TextureFormat.RGBA32, false);
             tex.LoadRawTextureData(data);
             tex.Apply();
 
@@ -193,4 +198,5 @@ namespace Multiplayer.Client
             return tex;
         }
     }
+
 }

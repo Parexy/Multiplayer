@@ -1,26 +1,25 @@
-﻿#region
-
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using Harmony;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 
-#endregion
-
 namespace Multiplayer.Client
 {
     public class TransporterLoading : IExposable, ISessionWithTransferables
     {
-        public Map map;
-        public List<ThingWithComps> pods;
+        public int SessionId => sessionId;
 
         public int sessionId;
-        public List<TransferableOneWay> transferables;
+        public Map map;
 
         public List<CompTransporter> transporters;
+        public List<ThingWithComps> pods;
+        public List<TransferableOneWay> transferables;
 
         public bool uiDirty;
 
@@ -36,27 +35,6 @@ namespace Multiplayer.Client
             pods = transporters.Select(t => t.parent).ToList();
 
             AddItems();
-        }
-
-        public void ExposeData()
-        {
-            Scribe_Collections.Look(ref transferables, "transferables", LookMode.Deep);
-            Scribe_Collections.Look(ref pods, "transporters", LookMode.Reference);
-
-            if (Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
-                transporters = pods.Select(t => t.GetComp<CompTransporter>()).ToList();
-        }
-
-        public int SessionId => sessionId;
-
-        public Transferable GetTransferableByThingId(int thingId)
-        {
-            return transferables.Find(tr => tr.things.Any(t => t.thingIDNumber == thingId));
-        }
-
-        public void Notify_CountChanged(Transferable tr)
-        {
-            uiDirty = true;
         }
 
         private void AddItems()
@@ -110,7 +88,26 @@ namespace Multiplayer.Client
 
         private MpLoadTransportersWindow PrepareDummyDialog()
         {
-            return new MpLoadTransportersWindow(map, transporters) {itemsReady = true, transferables = transferables};
+            return new MpLoadTransportersWindow(map, transporters) { itemsReady = true, transferables = transferables };
+        }
+
+        public void ExposeData()
+        {
+            Scribe_Collections.Look(ref transferables, "transferables", LookMode.Deep);
+            Scribe_Collections.Look(ref pods, "transporters", LookMode.Reference);
+
+            if (Scribe.mode == LoadSaveMode.ResolvingCrossRefs)
+                transporters = pods.Select(t => t.GetComp<CompTransporter>()).ToList();
+        }
+
+        public Transferable GetTransferableByThingId(int thingId)
+        {
+            return transferables.Find(tr => tr.things.Any(t => t.thingIDNumber == thingId));
+        }
+
+        public void Notify_CountChanged(Transferable tr)
+        {
+            uiDirty = true;
         }
     }
 
@@ -120,11 +117,11 @@ namespace Multiplayer.Client
 
         public bool itemsReady;
 
+        public TransporterLoading Session => map.MpComp().transporterLoading;
+
         public MpLoadTransportersWindow(Map map, List<CompTransporter> transporters) : base(map, transporters)
         {
         }
-
-        public TransporterLoading Session => map.MpComp().transporterLoading;
 
         public override void PostClose()
         {
@@ -161,11 +158,10 @@ namespace Multiplayer.Client
         }
     }
 
-    [HarmonyPatch(typeof(Widgets), nameof(Widgets.ButtonText),
-        new[] {typeof(Rect), typeof(string), typeof(bool), typeof(bool), typeof(bool)})]
-    internal static class MakeCancelLoadingButtonRed
+    [HarmonyPatch(typeof(Widgets), nameof(Widgets.ButtonText), new[] { typeof(Rect), typeof(string), typeof(bool), typeof(bool), typeof(bool) })]
+    static class MakeCancelLoadingButtonRed
     {
-        private static void Prefix(string label, ref bool __state)
+        static void Prefix(string label, ref bool __state)
         {
             if (MpLoadTransportersWindow.drawing == null) return;
             if (label != "CancelButton".Translate()) return;
@@ -174,7 +170,7 @@ namespace Multiplayer.Client
             __state = true;
         }
 
-        private static void Postfix(bool __state, ref bool __result)
+        static void Postfix(bool __state, ref bool __result)
         {
             if (!__state) return;
 
@@ -187,11 +183,10 @@ namespace Multiplayer.Client
         }
     }
 
-    [HarmonyPatch(typeof(Widgets), nameof(Widgets.ButtonText),
-        new[] {typeof(Rect), typeof(string), typeof(bool), typeof(bool), typeof(bool)})]
-    internal static class LoadPodsHandleReset
+    [HarmonyPatch(typeof(Widgets), nameof(Widgets.ButtonText), new[] { typeof(Rect), typeof(string), typeof(bool), typeof(bool), typeof(bool) })]
+    static class LoadPodsHandleReset
     {
-        private static void Prefix(string label, ref bool __state)
+        static void Prefix(string label, ref bool __state)
         {
             if (MpLoadTransportersWindow.drawing == null) return;
             if (label != "ResetButton".Translate()) return;
@@ -199,7 +194,7 @@ namespace Multiplayer.Client
             __state = true;
         }
 
-        private static void Postfix(bool __state, ref bool __result)
+        static void Postfix(bool __state, ref bool __result)
         {
             if (!__state) return;
 
@@ -213,9 +208,9 @@ namespace Multiplayer.Client
 
     [MpPatch(typeof(Dialog_LoadTransporters), nameof(Dialog_LoadTransporters.AddPawnsToTransferables))]
     [MpPatch(typeof(Dialog_LoadTransporters), nameof(Dialog_LoadTransporters.AddItemsToTransferables))]
-    internal static class CancelAddItems
+    static class CancelAddItems
     {
-        private static bool Prefix(Dialog_LoadTransporters __instance)
+        static bool Prefix(Dialog_LoadTransporters __instance)
         {
             if (__instance is MpLoadTransportersWindow mp && mp.itemsReady)
             {
@@ -228,9 +223,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Dialog_LoadTransporters), nameof(Dialog_LoadTransporters.TryAccept))]
-    internal static class TryAcceptPodsPatch
+    static class TryAcceptPodsPatch
     {
-        private static bool Prefix(Dialog_LoadTransporters __instance)
+        static bool Prefix(Dialog_LoadTransporters __instance)
         {
             if (Multiplayer.ShouldSync && __instance is MpLoadTransportersWindow dialog)
             {
@@ -243,9 +238,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Dialog_LoadTransporters), nameof(Dialog_LoadTransporters.DebugTryLoadInstantly))]
-    internal static class DebugTryLoadInstantlyPatch
+    static class DebugTryLoadInstantlyPatch
     {
-        private static bool Prefix(Dialog_LoadTransporters __instance)
+        static bool Prefix(Dialog_LoadTransporters __instance)
         {
             if (Multiplayer.ShouldSync && __instance is MpLoadTransportersWindow dialog)
             {
@@ -258,9 +253,9 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(WindowStack), nameof(WindowStack.Add))]
-    internal static class CancelDialogLoadTransporters
+    static class CancelDialogLoadTransporters
     {
-        private static bool Prefix(Window window)
+        static bool Prefix(Window window)
         {
             if (Multiplayer.MapContext != null && window.GetType() == typeof(Dialog_LoadTransporters))
                 return false;
@@ -270,10 +265,10 @@ namespace Multiplayer.Client
     }
 
     [HarmonyPatch(typeof(Dialog_LoadTransporters), MethodType.Constructor)]
-    [HarmonyPatch(new[] {typeof(Map), typeof(List<CompTransporter>)})]
-    internal static class CancelDialogLoadTransportersCtor
+    [HarmonyPatch(new[] { typeof(Map), typeof(List<CompTransporter>) })]
+    static class CancelDialogLoadTransportersCtor
     {
-        private static bool Prefix(Dialog_LoadTransporters __instance, Map map, List<CompTransporter> transporters)
+        static bool Prefix(Dialog_LoadTransporters __instance, Map map, List<CompTransporter> transporters)
         {
             if (__instance.GetType() != typeof(Dialog_LoadTransporters))
                 return true;
@@ -292,13 +287,14 @@ namespace Multiplayer.Client
     }
 
     [MpPatch(typeof(ITab_TransporterContents), "<DoItemsLists>c__AnonStorey0", "<>m__0")]
-    internal static class TransporterContents_DiscardToLoad
+    static class TransporterContents_DiscardToLoad
     {
-        private static bool Prefix(int x)
+        static bool Prefix(int x)
         {
             if (Multiplayer.Client == null) return true;
             Messages.Message("MpNotAvailable".Translate(), MessageTypeDefOf.RejectInput, false);
             return false;
         }
     }
+
 }
