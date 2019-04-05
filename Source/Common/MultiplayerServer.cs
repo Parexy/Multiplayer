@@ -432,7 +432,6 @@ namespace Multiplayer.Common
         public string lanAddress;
         public int maxPlayers = 8;
         public bool pauseOnAutosave = false;
-        public bool appendNameToAutosave = false;
         public bool steam;
     }
 

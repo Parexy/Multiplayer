@@ -314,7 +314,7 @@ namespace Multiplayer.Client
         {
             var autosavePrefix = "Autosave-";
 
-            if (MultiplayerServer.instance.settings.appendNameToAutosave)
+            if (MultiplayerMod.settings.appendNameToAutosave)
             {
                 autosavePrefix += $"{Multiplayer.session.gameName}-";
             }
