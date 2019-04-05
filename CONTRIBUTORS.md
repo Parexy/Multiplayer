@@ -33,7 +33,7 @@ Once you've got your assemblies in the correct spots, you can open up the `Sourc
 
 You're now ready to start an issue. Assign yourself to the issue you want to complete and make a branch for it. Please include the number of the issue in the branch name for easy traceability of feature branches (Example: `issue-9-feature`). Complete the feature and test thoroughly before making your PR.
 
-Please include at least one commit in your PR that references the issue number associated with your branch (Example `#9: create initial contributors document`).
+Please prefix all commit messages in your PR with `#{issue_number}` to help with auto-linking to issue (Example `#9: create initial contributors document`).
 
 ## Making a PR
 
