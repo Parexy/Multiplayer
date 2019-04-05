@@ -23,4 +23,4 @@ Please prefix all commit messages in your PR with `#{issue_number}` to help with
 
 ## Making a PR
 
-Make a PR to commit your code to the master branch. At this point, at least one reviewer needs to sign off before the code can be merged. They may also have comments or requests for changes. Please work with the reviewer until they are satisfied. Once the approval is given, merge your branch via the `Squash and Merge` merge method.
+Make a PR to commit your code to the development branch. At this point, at least two reviewers needs to sign off before the code can be merged. They may also have comments or requests for changes. Please work with the reviewer until they are satisfied. Once the approval is given, merge your branch via the `Squash and Merge` merge method.
