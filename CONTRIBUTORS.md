@@ -25,7 +25,7 @@ Once you've downloaded the tool, simply run this command from git bash:
 
 This will generate the assembly in the correct location for the Multiplayer mod to use.
 
-## Building the project
+### Building the Multiplayer mod
 
 Once you've got your assemblies in the correct spots, you can open up the `Source/Multiplayer.sln` file in your IDE of choice and press `ctl-shift-b` to build the assemblies. You should now have a debug version of the Multiplayer mod.
 
