@@ -70,9 +70,9 @@ namespace Multiplayer.Common
 
         public event Action<MultiplayerServer> NetTick;
 
-		private float autosaveCountdown;
+        private float autosaveCountdown;
 
-		public MultiplayerServer(ServerSettings settings)
+        public MultiplayerServer(ServerSettings settings)
         {
             this.settings = settings;
 
@@ -85,8 +85,8 @@ namespace Multiplayer.Common
             if (settings.lanAddress != null)
                 lanManager = new NetManager(new MpNetListener(this, false));
 
-			autosaveCountdown = settings.autosaveInterval * 2500 * 24;
-		}
+        autosaveCountdown = settings.autosaveInterval * 2500 * 24;
+        }
 
         public bool? StartListeningNet()
         {
@@ -168,7 +168,7 @@ namespace Multiplayer.Common
                 lastKeepAlive.Restart();
             }
         }
-		
+
         public void Tick()
         {
             if (gameTimer % 3 == 0)
@@ -176,8 +176,8 @@ namespace Multiplayer.Common
 
             gameTimer++;
 
-			autosaveCountdown -= Client.Multiplayer.WorldComp.TickRateMultiplier(Client.Multiplayer.WorldComp.TimeSpeed);
-			if (settings.autosaveInterval > 0 && autosaveCountdown <= 0)
+            autosaveCountdown -= Client.Multiplayer.WorldComp.TickRateMultiplier(Client.Multiplayer.WorldComp.TimeSpeed);
+            if (settings.autosaveInterval > 0 && autosaveCountdown <= 0)
                 DoAutosave();
         }
 
@@ -209,8 +209,8 @@ namespace Multiplayer.Common
 
             SendChat("Autosaving...");
 
-			autosaveCountdown = settings.autosaveInterval * 2500 * 24;
-			return true;
+            autosaveCountdown = settings.autosaveInterval * 2500 * 24;
+            return true;
         }
 
         public void Enqueue(Action action)

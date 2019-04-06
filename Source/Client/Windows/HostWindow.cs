@@ -243,7 +243,7 @@ namespace Multiplayer.Client
         }
 
         public static void TextFieldNumericLabeled<T>(Rect rect, string label, ref T val, ref string buffer, float labelWidth, float min = 0, float max = float.MaxValue) where T : struct
-		{
+        {
             Rect labelRect = rect;
             labelRect.width = labelWidth;
             Rect fieldRect = rect;
