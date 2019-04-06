@@ -85,7 +85,7 @@ namespace Multiplayer.Common
             if (settings.lanAddress != null)
                 lanManager = new NetManager(new MpNetListener(this, false));
 
-        autosaveCountdown = settings.autosaveInterval * 2500 * 24;
+            autosaveCountdown = settings.autosaveInterval * 2500 * 24;
         }
 
         public bool? StartListeningNet()
