@@ -176,8 +176,15 @@ namespace Multiplayer.Common
 
             gameTimer++;
 
-            autosaveCountdown -= Client.Multiplayer.WorldComp.TickRateMultiplier(Client.Multiplayer.WorldComp.TimeSpeed);
-            if (settings.autosaveInterval > 0 && autosaveCountdown <= 0)
+            if (settings.autosaveInterval <= 0)
+                return;
+
+            var curSpeed = Client.Multiplayer.WorldComp.TimeSpeed;
+
+            autosaveCountdown -= (curSpeed == Verse.TimeSpeed.Paused && !Client.MultiplayerMod.settings.pauseAutosaveCounter) 
+                ? 1 : Client.Multiplayer.WorldComp.TickRateMultiplier(curSpeed);
+
+            if (autosaveCountdown <= 0)
                 DoAutosave();
         }
 

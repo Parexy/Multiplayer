@@ -112,6 +112,8 @@
   
   <MpPauseOnAutosave>Pause on Autosave</MpPauseOnAutosave>
   <MpAppendNameToAutosave>Append Name to Autosave</MpAppendNameToAutosave>
+  <MpPauseAutosaveCounter>Pause autosave counter</MpPauseAutosaveCounter>
+  <MpPauseAutosaveCounterDesc>Pauses the counter along with the game preventing autosaving while time is paused.</MpPauseAutosaveCounterDesc>
   <MpLan>LAN</MpLan>
   <MpDirect>Bezpośrednio</MpDirect>
   <MpSteam>Steam</MpSteam>
