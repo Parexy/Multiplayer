@@ -85,7 +85,7 @@
   <MpGameName>Játék neve</MpGameName>
   <MpMaxPlayers>Max játékosok</MpMaxPlayers>
   <MpAutosaveEvery>Automatikus mentés</MpAutosaveEvery>
-  <MpAutosaveMinutes>percenként</MpAutosaveMinutes>
+  <MpAutosaveDays>napok</MpAutosaveDays>
   <MpLanDesc1>A játék hírdetése helyi hálózaton</MpLanDesc1>
   <MpLanDesc2>LAN cím: {0}</MpLanDesc2>
   <MpArbiterDesc>Egy játékfolyamat, ami a háttérben futva segít a szinkronizáció megtartásában.</MpArbiterDesc>

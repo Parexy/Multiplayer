@@ -85,7 +85,7 @@
   <MpGameName>Название игры</MpGameName>
   <MpMaxPlayers>Макс. игроков</MpMaxPlayers>
   <MpAutosaveEvery>Автосохранение кажд.</MpAutosaveEvery>
-  <MpAutosaveMinutes>минут</MpAutosaveMinutes>
+  <MpAutosaveDays>дней</MpAutosaveDays>
   <MpLanDesc1>Броадкастить игровую сессию по LAN.</MpLanDesc1>
   <MpLanDesc2>Вычисленный LAN адрес: {0}</MpLanDesc2>
   <MpArbiterDesc>Игра, которая запускается в трее и помогает с десинхронизацией.</MpArbiterDesc>
