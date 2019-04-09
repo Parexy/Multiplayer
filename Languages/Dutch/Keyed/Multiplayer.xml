@@ -113,11 +113,11 @@
   <MpPauseOnAutosave>Pauze op Autosave</MpPauseOnAutosave>
   <MpLan>LAN</MpLan>
   <MpDirect>Direct</MpDirect>
-  <MpSteam>Stoom</MpSteam>
-  <MpHostTab>Gastheer</MpHostTab>
+  <MpSteam>Steam</MpSteam>
+  <MpHostTab>Hosten</MpHostTab>
   
-  <MpMultiplayer>Multiplayer</MpMultiplayer>
-  <MpSingleplayer>Singleplayer</MpSingleplayer>
+  <MpMultiplayer>Multiplayermodus</MpMultiplayer>
+  <MpSingleplayer>Singleplayermodus</MpSingleplayer>
   
   <MpNotAvailable>Niet beschikbaar in de meerspelerstand.</MpNotAvailable>
   <MpCallingFactionNotAvailable>Andere facties bellen is momenteel niet beschikbaar in de multiplayer.</MpCallingFactionNotAvailable>
