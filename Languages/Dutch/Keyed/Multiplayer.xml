@@ -60,7 +60,7 @@
   
   <MpChatPlayers>Spelers ({0}):</MpChatPlayers>
   <MpSend>Verzenden</MpSend>
-  <MpSteamAcceptTitle>Accepteer stoomspelers</MpSteamAcceptTitle>
+  <MpSteamAcceptTitle>Steam-spelers accepteren</MpSteamAcceptTitle>
   <MpSteamAcceptDesc>Klik om te accepteren</MpSteamAcceptDesc>
   <MpSteamAccepted>Speler is geaccepteerd</MpSteamAccepted>
   
@@ -68,10 +68,10 @@
   <MpConnected>Aangesloten.</MpConnected>
   <MpDownloading>Downloaden ({0}%)</MpDownloading>
   
-  <MpSteamConnectingTo>Verbinding maken met een spel dat wordt gehost door {0}</MpSteamConnectingTo>
-  <MpSteamConnectingWaiting>Wachten tot de gastheer het accepteert...</MpSteamConnectingWaiting>
+  <MpSteamConnectingTo>Een verbinding met {0} aan het maken</MpSteamConnectingTo>
+  <MpSteamConnectingWaiting>We wachten op een acceptatie van de host</MpSteamConnectingWaiting>
   
-  <MpTicksBehind>U bent {0} teekken achter.</MpTicksBehind>
+  <MpTicksBehind>U bent {0} ticks vroeger.</MpTicksBehind>
   <MpLowerGameSpeed>Overweeg het verlagen van de spelsnelheid.</MpLowerGameSpeed>
   <MpForceCatchUp>Klik om te dwingen de achterstand in te halen.</MpForceCatchUp>
   
@@ -82,32 +82,32 @@
   <MpWillOverwrite>Zal overschrijven</MpWillOverwrite>
   <MpReplaySaved>Replay opgeslagen</MpReplaySaved>
   
-  <MpGameName>Naam van het spel</MpGameName>
-  <MpMaxPlayers>Max spelers</MpMaxPlayers>
-  <MpAutosaveEvery>Sla elke</MpAutosaveEvery>
-  <MpAutosaveMinutes>notulen</MpAutosaveMinutes>
-  <MpLanDesc1>Zend het spel uit naar uw lokale netwerk.</MpLanDesc1>
-  <MpLanDesc2>Opgelost LAN-adres: {0}</MpLanDesc2>
-  <MpArbiterDesc>Een spelvoorbeeld dat op de achtergrond loopt en helpt bij het oplossen van desync.</MpArbiterDesc>
+  <MpGameName>Naam van dit spel</MpGameName>
+  <MpMaxPlayers>Limiet van spelers</MpMaxPlayers>
+  <MpAutosaveEvery>Automatisch elke</MpAutosaveEvery>
+  <MpAutosaveMinutes>Minuten</MpAutosaveMinutes>
+  <MpLanDesc1>Zend dit speel uit op uw lokale netwerk</MpLanDesc1>
+  <MpLanDesc2>Lokaal netwerkadres gevonden: {0}</MpLanDesc2>
+  <MpArbiterDesc>Een instantie die draait op de achtergrond en helpt met de voorlichting van desync</MpArbiterDesc>
   <MpAsyncTimeDesc>Afzonderlijke tijdcontroles voor elke kaart en de planeet.</MpAsyncTimeDesc>
-  <MpExperimentalFeature>Experimentele functie</MpExperimentalFeature>
+  <MpExperimentalFeature>Experimentele eigenschappen</MpExperimentalFeature>
   
-  <MpHostButton>Gastheer</MpHostButton>
-  <MpWatchReplay>Horloge</MpWatchReplay>
-  <MpNothingSelected>Niets geselecteerd</MpNothingSelected>
-  <MpNoSaves>Multiplayer kan alleen worden afgespeeld vanuit reeds bestaande saves</MpNoSaves>
+  <MpHostButton>Hosten</MpHostButton>
+  <MpWatchReplay>Kijken</MpWatchReplay>
+  <MpNothingSelected>Niets geselected</MpNothingSelected>
+  <MpNoSaves>Multiplayermodus kan alleen gebruikt worden bij spellen die al bestaan</MpNoSaves>
   
-  <MpHostIngame>Verhuurder van dit spel</MpHostIngame>
-  <MpHostReplay>Verhuurder van een replay</MpHostReplay>
-  <MpHostSavefile>Verhuurders van een spaarboekje</MpHostSavefile>
+  <MpHostIngame>Uit dit spel hosten</MpHostIngame>
+  <MpHostReplay>Uit een herhaling hosten</MpHostReplay>
+  <MpHostSavefile>Host een savefile</MpHostSavefile>
   
   <MpJoinButton>Word lid</MpJoinButton>
   <MpConnectButton>Verbinden</MpConnectButton>
-  <MpLanSearching>Zoeken</MpLanSearching>
+  <MpLanSearching>Aan het opzoeken</MpLanSearching>
   
-  <MpNotConnectedToSteam>Niet aangesloten op stoom</MpNotConnectedToSteam>
-  <MpNoFriendsPlaying>Geen vrienden die momenteel RimWorld spelen</MpNoFriendsPlaying>
-  <MpPlayingRimWorld>Spelen RimWorld spelen</MpPlayingRimWorld>
+  <MpNotConnectedToSteam>Niet verbonden met Steam</MpNotConnectedToSteam>
+  <MpNoFriendsPlaying>Geen vrienden die nu aan het spelen zijn</MpNoFriendsPlaying>
+  <MpPlayingRimWorld>RimWorld aan het spelen</MpPlayingRimWorld>
   <MpNotInMultiplayer>Niet in multiplayer</MpNotInMultiplayer>
   
   <MpPauseOnAutosave>Pauze op Autosave</MpPauseOnAutosave>
