@@ -3,8 +3,8 @@
 
   <MpSimulating>Simuleren</MpSimulating>
   <MpSimulatingServer>Simuleren van de server</MpSimulatingServer>
-  <MpLoading>Laden</MpLoading>
-  <MpSaving>Besparing</MpSaving>
+  <MpLoading>Bezig met oplsaan</MpLoading>
+  <MpSaving>Aan het opslaan</MpSaving>
   
   <MpInvalidPort>Ongeldige poort</MpInvalidPort>
   <MpInvalidAddress>Ongeldig adres</MpInvalidAddress>
@@ -13,7 +13,7 @@
   <MpWrongProtocol>Verkeerde protocolversie</MpWrongProtocol>
   <MpWrongMultiplayerVersionInfo>De server wordt gehost op Multiplayer {0} (protocol {1}).</MpWrongMultiplayerVersionInfo>
   
-  <MpWrongDefs>Modeldefinitie mismatch</MpWrongDefs>
+  <MpWrongDefs>Modeldefinitie komt niet overeen</MpWrongDefs>
   <MpWrongDefsInfo>Zorg ervoor dat de door u geïnstalleerde wijzigingen, de versies en de bestelling overeenkomen met die van de host.</MpWrongDefsInfo>
   <MpModList>Wijzigingslijst</MpModList>
   <MpSeeModList>Zie wijzigingslijst</MpSeeModList>
@@ -22,10 +22,10 @@
   <MpServerFull>De server is vol</MpServerFull>
   <MpKicked>Je bent geschopt...</MpKicked>
 
-  <MpInvalidUsernameAlreadyPlaying>Gebruiker al online</MpInvalidUsernameAlreadyPlaying>
-  <MpInvalidUsernameChars>Gebruiker heeft ongeldige tekens</MpInvalidUsernameChars>
-  <MpInvalidUsernameLength>Gebruiker heeft ongeldige lengte</MpInvalidUsernameLength>
-  <MpChangeUsernameInfo>U kunt uw gebruiker wijzigen in de wijzigingsinstellingen.</MpChangeUsernameInfo>
+  <MpInvalidUsernameAlreadyPlaying>Gebruiker is al aanwezig in de game</MpInvalidUsernameAlreadyPlaying>
+  <MpInvalidUsernameChars>Gebruikersnaam bevat ongeldige tekens</MpInvalidUsernameChars>
+  <MpInvalidUsernameLength>Gebruikersnaam heeft een ongeldige lengte</MpInvalidUsernameLength>
+  <MpChangeUsernameInfo>U kunt uw gebruikersnaam wijzigen in de wijzigingsinstellingen.</MpChangeUsernameInfo>
   
   <MpPlayerConnected>{0} heeft zich aangesloten</MpPlayerConnected>
   <MpPlayerDisconnected>{0} is vertrokken</MpPlayerDisconnected>
@@ -45,15 +45,15 @@
   <MpConverting>Het omzetten</MpConverting>
   
   <MpUsername>Gebruikersnaam</MpUsername>
-  <MpShowPlayerCursors>Toon speler cursors</MpShowPlayerCursors>
-  <MpAutoAcceptSteam>Auto-accepteren stoom</MpAutoAcceptSteam>
+  <MpShowPlayerCursors>Toon cursors van spelers</MpShowPlayerCursors>
+  <MpAutoAcceptSteam>Auto-accepteren Steam</MpAutoAcceptSteam>
   <MpAutoAcceptSteamDesc>Accepteer automatisch alle inkomende aanvragen voor een stoomverbinding.</MpAutoAcceptSteamDesc>
-  <MpTransparentChat>Transparant gesprek</MpTransparentChat>
+  <MpTransparentChat>Transparante chat</MpTransparentChat>
   
   <MpAutosaveSlots>Autosave groeven</MpAutosaveSlots>
   <MpAutosaveSlotsDesc>Hoeveel autosave-bestanden te bewaren.</MpAutosaveSlotsDesc>
   
-  <MpTraderLeavesIn>Blijft in {0}</MpTraderLeavesIn>
+  <MpTraderLeavesIn>Handelaar vertrekt in {0}</MpTraderLeavesIn>
   
   <MpChatButton>Chat</MpChatButton>
   <MpTradingButton>Handel</MpTradingButton>
@@ -64,12 +64,12 @@
   <MpSteamAcceptDesc>Klik om te accepteren</MpSteamAcceptDesc>
   <MpSteamAccepted>Speler is geaccepteerd</MpSteamAccepted>
   
-  <MpConnectingTo>Verbinding maken met {0}:{1}</MpConnectingTo>
+  <MpConnectingTo>Verbonden maken met {0}:{1}</MpConnectingTo>
   <MpConnected>Aangesloten.</MpConnected>
   <MpDownloading>Downloaden ({0}%)</MpDownloading>
   
   <MpSteamConnectingTo>Een verbinding met {0} aan het maken</MpSteamConnectingTo>
-  <MpSteamConnectingWaiting>We wachten op een acceptatie van de host</MpSteamConnectingWaiting>
+  <MpSteamConnectingWaiting>We wachten op een bevestiging van de host</MpSteamConnectingWaiting>
   
   <MpTicksBehind>U bent {0} ticks vroeger.</MpTicksBehind>
   <MpLowerGameSpeed>Overweeg het verlagen van de spelsnelheid.</MpLowerGameSpeed>
@@ -86,9 +86,9 @@
   <MpMaxPlayers>Limiet van spelers</MpMaxPlayers>
   <MpAutosaveEvery>Automatisch elke</MpAutosaveEvery>
   <MpAutosaveMinutes>Minuten</MpAutosaveMinutes>
-  <MpLanDesc1>Zend dit speel uit op uw lokale netwerk</MpLanDesc1>
+  <MpLanDesc1>Host dit spel uit op uw lokaal netwerk</MpLanDesc1>
   <MpLanDesc2>Lokaal netwerkadres gevonden: {0}</MpLanDesc2>
-  <MpArbiterDesc>Een instantie die draait op de achtergrond en helpt met de voorlichting van desync</MpArbiterDesc>
+  <MpArbiterDesc>Een proces dat draait op de achtergrond en helpt met de detectie van desyncs</MpArbiterDesc>
   <MpAsyncTimeDesc>Afzonderlijke tijdcontroles voor elke kaart en de planeet.</MpAsyncTimeDesc>
   <MpExperimentalFeature>Experimentele eigenschappen</MpExperimentalFeature>
   
@@ -103,7 +103,7 @@
   
   <MpJoinButton>Word lid</MpJoinButton>
   <MpConnectButton>Verbinden</MpConnectButton>
-  <MpLanSearching>Aan het opzoeken</MpLanSearching>
+  <MpLanSearching>Aan het zoeken</MpLanSearching>
   
   <MpNotConnectedToSteam>Niet verbonden met Steam</MpNotConnectedToSteam>
   <MpNoFriendsPlaying>Geen vrienden die nu aan het spelen zijn</MpNoFriendsPlaying>
@@ -120,7 +120,7 @@
   <MpSingleplayer>Singleplayermodus</MpSingleplayer>
   
   <MpNotAvailable>Niet beschikbaar in de meerspelerstand.</MpNotAvailable>
-  <MpCallingFactionNotAvailable>Andere facties bellen is momenteel niet beschikbaar in de multiplayer.</MpCallingFactionNotAvailable>
+  <MpCallingFactionNotAvailable>Andere facties contacteren is momenteel niet mogelijk in Multiplayer.</MpCallingFactionNotAvailable>
   
   <MpAggressiveTicking>Agressief tikken</MpAggressiveTicking>
   <MpAggressiveTickingDesc>Probeer altijd automatisch de server in te halen op kosten van de FPS.</MpAggressiveTickingDesc>
