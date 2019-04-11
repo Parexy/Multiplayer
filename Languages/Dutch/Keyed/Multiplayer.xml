@@ -3,7 +3,7 @@
 
   <MpSimulating>Simuleren</MpSimulating>
   <MpSimulatingServer>Simuleren van de server</MpSimulatingServer>
-  <MpLoading>Bezig met oplsaan</MpLoading>
+  <MpLoading>Bezig met opslaan</MpLoading>
   <MpSaving>Aan het opslaan</MpSaving>
   
   <MpInvalidPort>Ongeldige poort</MpInvalidPort>
@@ -42,7 +42,7 @@
   <MpSaveReplay>Opslaan van herhaling</MpSaveReplay>
   
   <MpConvert>Omzetten naar singleplayer</MpConvert>
-  <MpConverting>Het omzetten</MpConverting>
+  <MpConverting>Aan het omzetten</MpConverting>
   
   <MpUsername>Gebruikersnaam</MpUsername>
   <MpShowPlayerCursors>Toon cursors van spelers</MpShowPlayerCursors>
@@ -72,11 +72,11 @@
   <MpSteamConnectingWaiting>We wachten op een bevestiging van de host</MpSteamConnectingWaiting>
   
   <MpTicksBehind>U bent {0} ticks vroeger.</MpTicksBehind>
-  <MpLowerGameSpeed>Overweeg het verlagen van de spelsnelheid.</MpLowerGameSpeed>
-  <MpForceCatchUp>Klik om te dwingen de achterstand in te halen.</MpForceCatchUp>
+  <MpLowerGameSpeed>Overweeg de spelsnelheid te verlagen.</MpLowerGameSpeed>
+  <MpForceCatchUp>Klik om achterstand inhalen te forceren.</MpForceCatchUp>
   
-  <MpDesynced>De staat van het spel heeft het spel ontzenuwd.</MpDesynced>
-  <MpTryResync>Probeer resync</MpTryResync>
+  <MpDesynced>De staat van het spel is niet (meer) gesynchroniseerd.</MpDesynced>
+  <MpTryResync>Probeer hersynchronisatie</MpTryResync>
   
   <MpSaveReplayAs>Sla replay op als</MpSaveReplayAs>
   <MpWillOverwrite>Dit zal overschrijven</MpWillOverwrite>
@@ -84,7 +84,7 @@
   
   <MpGameName>Naam van dit spel</MpGameName>
   <MpMaxPlayers>Limiet van spelers</MpMaxPlayers>
-  <MpAutosaveEvery>Automatisch elke</MpAutosaveEvery>
+  <MpAutosaveEvery>Automatisch opslaan elke</MpAutosaveEvery>
   <MpAutosaveMinutes>Minuten</MpAutosaveMinutes>
   <MpLanDesc1>Host dit spel uit op uw lokaal netwerk</MpLanDesc1>
   <MpLanDesc2>Lokaal netwerkadres gevonden: {0}</MpLanDesc2>
