@@ -33,7 +33,7 @@
   <MpReplayOutdated>(Outdated)</MpReplayOutdated>
   <MpReplayOutdatedDesc1>Deze herhaling is gemaakt voor de protocolversie {0}, maar je bent bezig met de versie die je gebruikt... {1}.</MpReplayOutdatedDesc1>
   <MpReplayOutdatedDesc2>De herhalingen worden mogelijk niet correct afgespeeld.</MpReplayOutdatedDesc2>
-  <MpReplayOutdatedDesc3>Mogelijke onverenigbaarheden worden vermeld met de releaseverleden.</MpReplayOutdatedDesc3>
+  <MpReplayOutdatedDesc3>Mogelijke incompatibiliteiten worden vermeld in het releaseverleden.</MpReplayOutdatedDesc3>
   <MpReplayOutdatedDesc4>Dit bestand bevat aanvullende informatie en de hosting ervan zou goed moeten werken.</MpReplayOutdatedDesc4>
   
   <MpServerCloseConfirmation>Weet u zeker dat u de server wilt sluiten? Onbewaarde vooruitgang zal verloren gaan.</MpServerCloseConfirmation>
@@ -50,7 +50,7 @@
   <MpAutoAcceptSteamDesc>Accepteer automatisch alle inkomende aanvragen voor een stoomverbinding.</MpAutoAcceptSteamDesc>
   <MpTransparentChat>Transparante chat</MpTransparentChat>
   
-  <MpAutosaveSlots>Autosave groeven</MpAutosaveSlots>
+  <MpAutosaveSlots>Autosave Slots</MpAutosaveSlots>
   <MpAutosaveSlotsDesc>Hoeveel autosave-bestanden te bewaren.</MpAutosaveSlotsDesc>
   
   <MpTraderLeavesIn>Handelaar vertrekt in {0}</MpTraderLeavesIn>
