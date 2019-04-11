@@ -14,13 +14,13 @@
   <MpWrongMultiplayerVersionInfo>De server wordt gehost op Multiplayer {0} (protocol {1}).</MpWrongMultiplayerVersionInfo>
   
   <MpWrongDefs>Modeldefinitie komt niet overeen</MpWrongDefs>
-  <MpWrongDefsInfo>Zorg ervoor dat de door u geïnstalleerde wijzigingen, de versies en de bestelling overeenkomen met die van de host.</MpWrongDefsInfo>
+  <MpWrongDefsInfo>Zorg ervoor dat uw geïnstalleerde mods, hun versie en hun volgorde overeen komen met die van de host.</MpWrongDefsInfo>
   <MpModList>Wijzigingslijst</MpModList>
   <MpSeeModList>Zie wijzigingslijst</MpSeeModList>
   
   <MpServerClosed>Server gesloten</MpServerClosed>
   <MpServerFull>De server is vol</MpServerFull>
-  <MpKicked>Je bent geschopt...</MpKicked>
+  <MpKicked>Je bent gekickt van de server</MpKicked>
 
   <MpInvalidUsernameAlreadyPlaying>Gebruiker is al aanwezig in de game</MpInvalidUsernameAlreadyPlaying>
   <MpInvalidUsernameChars>Gebruikersnaam bevat ongeldige tekens</MpInvalidUsernameChars>
@@ -79,7 +79,7 @@
   <MpTryResync>Probeer resync</MpTryResync>
   
   <MpSaveReplayAs>Sla replay op als</MpSaveReplayAs>
-  <MpWillOverwrite>Zal overschrijven</MpWillOverwrite>
+  <MpWillOverwrite>Dit zal overschrijven</MpWillOverwrite>
   <MpReplaySaved>Replay opgeslagen</MpReplaySaved>
   
   <MpGameName>Naam van dit spel</MpGameName>
@@ -94,14 +94,14 @@
   
   <MpHostButton>Hosten</MpHostButton>
   <MpWatchReplay>Kijken</MpWatchReplay>
-  <MpNothingSelected>Niets geselected</MpNothingSelected>
+  <MpNothingSelected>Niets geselecteerd</MpNothingSelected>
   <MpNoSaves>Multiplayermodus kan alleen gebruikt worden bij spellen die al bestaan</MpNoSaves>
   
   <MpHostIngame>Uit dit spel hosten</MpHostIngame>
   <MpHostReplay>Uit een herhaling hosten</MpHostReplay>
-  <MpHostSavefile>Host een savefile</MpHostSavefile>
+  <MpHostSavefile>host vanuit bestaande savefile</MpHostSavefile>
   
-  <MpJoinButton>Word lid</MpJoinButton>
+  <MpJoinButton>Join</MpJoinButton>
   <MpConnectButton>Verbinden</MpConnectButton>
   <MpLanSearching>Aan het zoeken</MpLanSearching>
   
