@@ -10,7 +10,7 @@
   <MpInvalidAddress>Ugyldig addresse</MpInvalidAddress>
   <MpInvalidGameName>Ugyldig spil navn</MpInvalidGameName>
   
-  <MpWrongProtocol>Forkert protocol version</MpWrongProtocol>
+  <MpWrongProtocol>Forkert protokolversion</MpWrongProtocol>
   <MpWrongMultiplayerVersionInfo>Denne server er hostet på Multiplayer {0} (protocol {1}).</MpWrongMultiplayerVersionInfo>
   
   <MpWrongDefs>Mod definition matcher ikke</MpWrongDefs>
