@@ -6,7 +6,7 @@ To pull the project, issue these commands in the git shell:
 
 ```bash
 cd "/c/Program Files (x86)/Steam/steamapps/common/RimWorld/Mods"
-git clone git@github.com:Parexy/Multiplayer.git
+git clone https://github.com/Parexy/Multiplayer.git
 ```
 
 If your RimWorld installation is in a non-standard location, cd to that `Mods` directory first before cloning. 
