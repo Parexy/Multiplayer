@@ -31,7 +31,7 @@
   <MpPlayerDisconnected>{0} har forladt serveren</MpPlayerDisconnected>
   
   <MpReplayOutdated>(Forældet)</MpReplayOutdated>
-  <MpReplayOutdatedDesc1>Dette replay var lavet for protocol version {0}, men du bruger version {1}.</MpReplayOutdatedDesc1>
+  <MpReplayOutdatedDesc1>Dette replay var lavet til protocol version {0}, men du bruger version {1}.</MpReplayOutdatedDesc1>
   <MpReplayOutdatedDesc2>Dette replay vil måske ikke virke ordentligt.</MpReplayOutdatedDesc2>
   <MpReplayOutdatedDesc3>Der kan være mulige inkompatibiliteter som er er beskrevet sammen med frigivelseshistoriken af modden.</MpReplayOutdatedDesc3>
   <MpReplayOutdatedDesc4>Denne fil indeholder yderligere information og skulle gerne virke fint hvis der startes en server fra den.</MpReplayOutdatedDesc4>
@@ -99,7 +99,7 @@
   
   <MpHostIngame>Host dette spil</MpHostIngame>
   <MpHostReplay>Host et replay</MpHostReplay>
-  <MpHostSavefile>Host en gemt fil</MpHostSavefile>
+  <MpHostSavefile>Host et save</MpHostSavefile>
   
   <MpJoinButton>Tilslut</MpJoinButton>
   <MpConnectButton>Opret forbindelse</MpConnectButton>
