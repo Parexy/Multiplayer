@@ -53,7 +53,15 @@ namespace Multiplayer.Client
 
                 menu.DebugAction("Save game for everyone", SaveGameCmd);
                 menu.DebugAction("Advance time", AdvanceTime);
+                if(Multiplayer.game?.sync?.current != null)
+                    menu.DebugAction("Force Desync", ForceDesync);
             }
+        }
+
+        //No sync method here :)
+        private static void ForceDesync()
+        {
+            Multiplayer.game.sync.current.GetForMap(0).Add((uint) Rand.Value >> 32);
         }
 
         public static void EntryAction()
