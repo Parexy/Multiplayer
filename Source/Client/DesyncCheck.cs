@@ -427,7 +427,7 @@ namespace Multiplayer.Client
                     text.AppendLine("[desync_info]");
                     
                     //Backwards compatibility!
-                    if (zip["desync_info"].IsText)
+                    if (zip["desync_info"].GetString().StartsWith("###"))
                         text.AppendLine(zip["desync_info"].GetString());
                     else
                     {
