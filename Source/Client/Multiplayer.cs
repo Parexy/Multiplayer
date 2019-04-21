@@ -193,16 +193,19 @@ namespace Multiplayer.Client
         {
             if (GenCommandLine.TryGetCommandLineArg("connect", out string ip))
             {
-                int port = MultiplayerServer.DefaultPort;
+                int port;
 
-                var split = ip.Split(':');
-                if (split.Length == 0)
+                MatchCollection matches = Regex.Matches(ip, "(.*)((?::))((?:[0-9]+))$");
+                if (matches.Count == 1) // Port is included, use regex
+                {
+                    ip = matches[0].Groups[1].Value;
+                    int.TryParse(matches[0].Groups[3].Value, out port);
+                }
+                else // Port is excluded, use default port value
+                {
                     ip = "127.0.0.1";
-                else if (split.Length >= 1)
-                    ip = split[0];
-
-                if (split.Length == 2)
-                    int.TryParse(split[1], out port);
+                    port = MultiplayerServer.DefaultPort;
+                }
 
                 DoubleLongEvent(() => ClientUtil.TryConnect(ip, port), "Connecting");
             }

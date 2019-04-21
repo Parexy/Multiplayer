@@ -7,6 +7,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using UnityEngine;
 using Verse;
@@ -183,17 +184,25 @@ namespace Multiplayer.Client
             port = MultiplayerServer.DefaultPort;
             addr = null;
 
-            string[] parts = ip.Split(':');
+            MatchCollection matches = Regex.Matches(ip, "(.*)((?::))((?:[0-9]+))$");
+            if (matches.Count == 1) // Port is included, use regex
+            {
+                addr = matches[0].Groups[1].Value;
+                int.TryParse(matches[0].Groups[3].Value, out port);
+            }
+            else // Port is excluded, use default port value
+            {
+                addr = ip;
+                port = MultiplayerServer.DefaultPort;
+            }
 
-            if (!IPAddress.TryParse(parts[0], out IPAddress ipAddr))
+            if (!IPAddress.TryParse(addr, out IPAddress ipAddr))
             {
                 Messages.Message("MpInvalidAddress".Translate(), MessageTypeDefOf.RejectInput, false);
                 return false;
             }
 
-            addr = parts[0];
-
-            if (parts.Length >= 2 && (!int.TryParse(parts[1], out port) || port < 0 || port > ushort.MaxValue))
+            if (matches.Count == 1 && (int.TryParse(matches[0].Groups[3].Value, out port) || port < 0 || port > ushort.MaxValue))
             {
                 Messages.Message("MpInvalidPort".Translate(), MessageTypeDefOf.RejectInput, false);
                 return false;

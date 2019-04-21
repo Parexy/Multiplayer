@@ -11,6 +11,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Xml;
 using UnityEngine;
@@ -515,16 +516,25 @@ namespace Multiplayer.Client
             {
                 string addr = MultiplayerMod.settings.serverAddress.Trim();
                 int port = MultiplayerServer.DefaultPort;
-                string[] hostport = addr.Split(':');
-                if (hostport.Length == 2)
-                    int.TryParse(hostport[1], out port);
-                else
-                    port = MultiplayerServer.DefaultPort;
-
-                Log.Message("Connecting directly");
+                
                 try
                 {
-                    Find.WindowStack.Add(new ConnectingWindow(hostport[0], port) { returnToServerBrowser = true });
+                    string ip;
+                    MatchCollection matches = Regex.Matches(addr, "(.*)((?::))((?:[0-9]+))$");
+                    if (matches.Count == 1) // Port is included, use regex
+                    {
+                        ip = matches[0].Groups[1].Value;
+                        int.TryParse(matches[0].Groups[3].Value, out port);
+                    }
+                    else // Port is excluded, use default port value
+                    {
+                        ip = addr;
+                        port = MultiplayerServer.DefaultPort;
+                    }
+
+                    Log.Message("Connecting directly");
+
+                    Find.WindowStack.Add(new ConnectingWindow(ip, port) { returnToServerBrowser = true });
                     MultiplayerMod.settings.Write();
                     Close(false);
                 }

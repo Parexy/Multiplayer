@@ -86,18 +86,34 @@ namespace Multiplayer.Common
 
         public bool? StartListeningNet()
         {
-            return netManager?.Start(IPAddress.Parse(settings.bindAddress), IPAddress.IPv6Any, settings.bindPort);
+            IPAddress addr = IPAddress.Parse(settings.bindAddress);
+            if (addr.AddressFamily == AddressFamily.InterNetwork)
+            {
+                return netManager?.Start(IPAddress.Parse(settings.bindAddress), IPAddress.IPv6Any, settings.bindPort);
+            }
+            else
+            {
+                return netManager?.Start(IPAddress.Loopback, IPAddress.Parse(settings.bindAddress), settings.bindPort);
+            }
         }
 
         public bool? StartListeningLan()
         {
-            return lanManager?.Start(IPAddress.Parse(settings.lanAddress), IPAddress.IPv6Any, 0);
+            IPAddress addr = IPAddress.Parse(settings.bindAddress);
+            if (addr.AddressFamily == AddressFamily.InterNetwork)
+            {
+                return lanManager?.Start(IPAddress.Parse(settings.lanAddress), IPAddress.IPv6Any, 0);
+            }
+            else
+            {
+                return lanManager?.Start(IPAddress.Loopback, IPAddress.Parse(settings.lanAddress), 0);
+            }
         }
 
         public void SetupArbiterConnection()
         {
             arbiter = new NetManager(new MpNetListener(this, true));
-            arbiter.Start(IPAddress.Loopback, IPAddress.IPv6Any, 0);
+            arbiter.Start(IPAddress.Loopback, IPAddress.IPv6Loopback, 0);
         }
 
         public void Run()
