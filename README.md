@@ -1,4 +1,4 @@
-#Rimworld Multiplayer
+#Multiplayer
 Originally created by Zetrith, Rimworld Multiplayer is now being updated and maintained by community members.
 
 Please do all pull requests to the development branch
