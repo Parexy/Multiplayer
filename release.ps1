@@ -11,5 +11,8 @@ Copy-Item "About","Assemblies","Defs","Languages" -Destination ../MultiplayerRel
 $aboutFile = "../MultiplayerRelease/About/About.xml"
 (Get-Content $aboutFile) -replace "{{version}}", $version | Set-Content $aboutFile
 
+$aboutFile = "../MultiplayerRelease/About/Manifest.xml"
+(Get-Content $aboutFile) -replace "{{version}}", $version | Set-Content $aboutFile
+
 & 7z a ../$zipName ../MultiplayerRelease/
 & 7z rn ../$zipName MultiplayerRelease Multiplayer
