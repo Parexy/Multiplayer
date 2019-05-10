@@ -10,4 +10,5 @@ Thanks to Pardeike for making [Harmony](https://github.com/pardeike/Harmony) and
 [Download |](https://github.com/Parexy/Multiplayer/releases/download/v0.4.5/Multiplayer.zip)
 [ Installation |](https://github.com/Parexy/Multiplayer/wiki/Installation)
 [ Hosting |](https://github.com/Parexy/Multiplayer/wiki/Hosting-and-joining)
-[ FAQ](https://github.com/Parexy/Multiplayer/wiki/FAQ)
+[ FAQ |](https://github.com/Parexy/Multiplayer/wiki/FAQ)
+[ Contributing](https://github.com/Parexy/Multiplayer/blob/master/CONTRIBUTORS.md)
