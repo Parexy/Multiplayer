@@ -232,7 +232,7 @@ namespace Multiplayer.Client
             Scribe_Values.Look(ref autoAcceptSteam, "autoAcceptSteam");
             Scribe_Values.Look(ref transparentChat, "transparentChat");
             Scribe_Values.Look(ref autosaveSlots, "autosaveSlots", 5);
-            Scribe_Values.Look(ref aggressiveTicking, "aggressiveTicking");
+            Scribe_Values.Look(ref aggressiveTicking, "aggressiveTicking", true);
             Scribe_Values.Look(ref showDevInfo, "showDevInfo");
             Scribe_Values.Look(ref serverAddress, "serverAddress", "127.0.0.1");
             Scribe_Values.Look(ref appendNameToAutosave, "appendNameToAutosave", false);
