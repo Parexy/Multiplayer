@@ -218,7 +218,7 @@ namespace Multiplayer.Client
         public bool autoAcceptSteam;
         public bool transparentChat;
         public int autosaveSlots = 5;
-        public bool aggressiveTicking;
+        public bool aggressiveTicking = true;
         public bool showDevInfo;
         public string serverAddress = "127.0.0.1";
         public bool appendNameToAutosave;
