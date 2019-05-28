@@ -124,7 +124,7 @@
   <MpSingleplayer>Jeu solo</MpSingleplayer>
   
   <MpNotAvailable>Pas disponible en multijoueur.</MpNotAvailable>
-  <MpCallingFactionNotAvailable>Appeller d'autres factions est impossible en multijoueur.</MpCallingFactionNotAvailable>
+<MpCallingFactionNotAvailable>Appeler d'autres factions est impossible en multijoueur.</MpCallingFactionNotAvailable>
   
   <MpAggressiveTicking>Tick agressif</MpAggressiveTicking>
   <MpAggressiveTickingDesc>Rattrapper le retard sur le serveur, au prix de quelques FPS.</MpAggressiveTickingDesc>
