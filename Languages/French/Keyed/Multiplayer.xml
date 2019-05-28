@@ -71,7 +71,7 @@
   <MpSteamConnectingTo>Connexion à une partie hébergée par {0}</MpSteamConnectingTo>
   <MpSteamConnectingWaiting>En attente de l'acceptation de l'hote</MpSteamConnectingWaiting>
   
-  <MpTicksBehind>Tu es {0} ticks en retard.</MpTicksBehind>
+<MpTicksBehind>Tu as {0} ticks de retard.</MpTicksBehind>
   <MpLowerGameSpeed>Baissez la vitesse de jeu.</MpLowerGameSpeed>
   <MpForceCatchUp>Clickez pour rattraper votre retard.</MpForceCatchUp>
   
