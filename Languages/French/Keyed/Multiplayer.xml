@@ -61,7 +61,7 @@
   <MpChatPlayers>Joueurs ({0}):</MpChatPlayers>
   <MpSend>Envoyer</MpSend>
   <MpSteamAcceptTitle>Accepter les joueurs Steam</MpSteamAcceptTitle>
-  <MpSteamAcceptDesc>Clicker pour accepter</MpSteamAcceptDesc>
+  <MpSteamAcceptDesc>Cliquez pour accepter</MpSteamAcceptDesc>
   <MpSteamAccepted>Le joueur a été accepté</MpSteamAccepted>
   
   <MpConnectingTo>Connection à {0}:{1}</MpConnectingTo>
