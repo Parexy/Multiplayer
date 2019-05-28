@@ -73,7 +73,7 @@
   
 <MpTicksBehind>Tu as {0} ticks de retard.</MpTicksBehind>
   <MpLowerGameSpeed>Baissez la vitesse de jeu.</MpLowerGameSpeed>
-  <MpForceCatchUp>Clickez pour rattraper votre retard.</MpForceCatchUp>
+<MpForceCatchUp>Cliquez pour rattraper votre retard.</MpForceCatchUp>
   
   <MpDesynced>Vous êtes désynchronisé .</MpDesynced>
   <MpTryResync>Essayer de se resynchro</MpTryResync>
