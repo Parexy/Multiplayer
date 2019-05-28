@@ -127,6 +127,6 @@
 <MpCallingFactionNotAvailable>Appeler d'autres factions est impossible en multijoueur.</MpCallingFactionNotAvailable>
   
   <MpAggressiveTicking>Tick agressif</MpAggressiveTicking>
-  <MpAggressiveTickingDesc>Rattrapper le retard sur le serveur, au prix de quelques FPS.</MpAggressiveTickingDesc>
+<MpAggressiveTickingDesc>Rattraper le retard sur le serveur, au prix de quelques FPS.</MpAggressiveTickingDesc>
   
 </LanguageData>
