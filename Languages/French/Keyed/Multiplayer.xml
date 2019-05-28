@@ -34,7 +34,7 @@
   <MpReplayOutdatedDesc1>Cette sauvegarde a été faite dans la version {0}, mais vous utilisez la version {1}.</MpReplayOutdatedDesc1>
   <MpReplayOutdatedDesc2>Cette sauvegarde n'est pas valide.</MpReplayOutdatedDesc2>
   <MpReplayOutdatedDesc3>Les incompatibilités possibles sont sur le github.</MpReplayOutdatedDesc3>
-  <MpReplayOutdatedDesc4>This file contains additional information and hosting from it should work fine.</MpReplayOutdatedDesc4>
+  <MpReplayOutdatedDesc4>Ce fichier contient des informations supplémentaires, l'hébergement depuis celui-ci devrait fonctionner correctement.</MpReplayOutdatedDesc4>
   
   <MpServerCloseConfirmation>Voulez vous vraiment éteindre le serveur ? N'oubliez pas de sauvegarder.</MpServerCloseConfirmation>
   
