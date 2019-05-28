@@ -84,7 +84,7 @@
   
   <MpGameName>Nom de la partie</MpGameName>
   <MpMaxPlayers>Joueurs Max</MpMaxPlayers>
-  <MpAutosaveEvery>Autosauvegarde toute les</MpAutosaveEvery>
+  <MpAutosaveEvery>Sauvegarde automatique toute les</MpAutosaveEvery>
   <MpAutosaveDays>jours</MpAutosaveDays>
   <MpLanDesc1>Jouer en LAN.</MpLanDesc1>
   <MpLanDesc2>Adresse LAN: {0}</MpLanDesc2>
