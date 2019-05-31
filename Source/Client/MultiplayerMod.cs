@@ -91,12 +91,6 @@ namespace Multiplayer.Client
             );
 
             harmony.Patch(
-                AccessTools.Method(typeof(GenTypes), nameof(GenTypes.GetTypeInAnyAssembly)),
-                new HarmonyMethod(typeof(GetTypeInAnyAssemblyPatch), "Prefix"),
-                new HarmonyMethod(typeof(GetTypeInAnyAssemblyPatch), "Postfix")
-            );
-
-            harmony.Patch(
                 AccessTools.Method(typeof(LoadedModManager), nameof(LoadedModManager.ParseAndProcessXML)),
                 transpiler: new HarmonyMethod(typeof(ParseAndProcessXml_Patch), "Transpiler")
             );
@@ -115,11 +109,6 @@ namespace Multiplayer.Client
             harmony.Patch(
                 AccessTools.Constructor(typeof(LoadableXmlAsset), new[] { typeof(string), typeof(string), typeof(string) }),
                 new HarmonyMethod(typeof(LoadableXmlAssetCtorPatch), "Prefix")
-            );
-
-            harmony.Patch(
-                AccessTools.Method(typeof(ModMetaData), "<Init>m__1"),
-                new HarmonyMethod(typeof(ModPreviewImagePatch), "Prefix")
             );
 
             // Might fix some mod desyncs
@@ -145,6 +134,13 @@ namespace Multiplayer.Client
             listing.CheckboxLabeled("MpAutoAcceptSteam".Translate(), ref settings.autoAcceptSteam, "MpAutoAcceptSteamDesc".Translate());
             listing.CheckboxLabeled("MpTransparentChat".Translate(), ref settings.transparentChat);
             listing.CheckboxLabeled("MpAggressiveTicking".Translate(), ref settings.aggressiveTicking, "MpAggressiveTickingDesc".Translate());
+
+            var appendNameToAutosaveLabel = $"{"MpAppendNameToAutosave".Translate()}:  ";
+            var appendNameToAutosaveLabelWidth = Text.CalcSize(appendNameToAutosaveLabel).x;
+            var appendNameToAutosaveCheckboxWidth = appendNameToAutosaveLabelWidth + 30f;
+            listing.CheckboxLabeled(appendNameToAutosaveLabel, ref settings.appendNameToAutosave);
+
+            listing.CheckboxLabeled("MpPauseAutosaveCounter".Translate(), ref settings.pauseAutosaveCounter, "MpPauseAutosaveCounterDesc".Translate());
 
             if (Prefs.DevMode)
                 listing.CheckboxLabeled("Show debug info", ref settings.showDevInfo);
@@ -213,7 +209,10 @@ namespace Multiplayer.Client
         public int autosaveSlots = 5;
         public bool aggressiveTicking;
         public bool showDevInfo;
-        public string serverAddress;
+        public string serverAddress = "127.0.0.1";
+        public bool appendNameToAutosave;
+        public bool pauseAutosaveCounter = true;
+        public ServerSettings serverSettings;
 
         public override void ExposeData()
         {
@@ -225,6 +224,13 @@ namespace Multiplayer.Client
             Scribe_Values.Look(ref aggressiveTicking, "aggressiveTicking");
             Scribe_Values.Look(ref showDevInfo, "showDevInfo");
             Scribe_Values.Look(ref serverAddress, "serverAddress", "127.0.0.1");
+            Scribe_Values.Look(ref appendNameToAutosave, "appendNameToAutosave", false);
+            Scribe_Values.Look(ref pauseAutosaveCounter, "pauseAutosaveCounter", true);
+
+            Scribe_Deep.Look(ref serverSettings, "serverSettings");
+
+            if (serverSettings == null)
+                serverSettings = new ServerSettings();
         }
     }
 }

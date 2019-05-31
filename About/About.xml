@@ -4,5 +4,8 @@
   <supportedVersions><li>1.0</li></supportedVersions>
   <author>Zetrith</author>
   <url>https://github.com/Parexy/Multiplayer/</url>
-  <description>Multiplayer mod. This is version {{version}}</description>
+  <description>&lt;color=red&gt;&lt;b&gt;Important: &lt;/b&gt; This mod should be loaded right after Core and before HugsLib to work properly!&lt;/color&gt;\n
+Multiplayer mod for rimworld.
+This is version {{version}}
+  </description>
 </ModMetaData>
