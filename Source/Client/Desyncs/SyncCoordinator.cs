@@ -134,7 +134,7 @@ namespace Multiplayer.Client
                 replay.WriteCurrentData();
 
                 //Dump our current game object.
-                var savedGame = ScribeUtil.WriteExposable(Verse.Current.Game, "game", true, ScribeMetaHeaderUtility.WriteMetaHeader);
+                var savedGame = ScribeUtil.WriteExposable(Current.Game, "game", true, ScribeMetaHeaderUtility.WriteMetaHeader);
 
                 using (var zip = replay.ZipFile)
                 using (var desyncReport = new ZipFile()) //Create a desync report for uploading to the reports server.
@@ -153,13 +153,21 @@ namespace Multiplayer.Client
                     zip.AddEntry("game_snapshot", savedGame);
                     desyncReport.AddEntry("game_snapshot", savedGame);
 
+                    //Add local stack traces
+                    zip.AddEntry("local_stacks", GetDesyncStackTraces(local, remote, out _));
+                    desyncReport.AddEntry("local_stacks", GetDesyncStackTraces(local, remote, out _));
+                    
+                    //Add remote's stack traces
+                    zip.AddEntry("remote_stacks", GetDesyncStackTraces(remote, local, out _));
+                    desyncReport.AddEntry("remote_stacks", GetDesyncStackTraces(remote, local, out _));
+
                     //Prepare the desync info
                     var desyncInfo = new StringBuilder();
 
                     desyncInfo.AppendLine("###Tick Data###")
                         .AppendLine($"Arbiter Connected And Playing|||{Multiplayer.session.ArbiterPlaying}")
                         .AppendLine($"Last Valid Tick - Local|||{lastValidTick}")
-                        .AppendLine($"Last Valid Tick - Arbiter|||{arbiterWasPlayingOnLastValidTick}")
+                        .AppendLine($"Arbiter Present on Last Tick|||{arbiterWasPlayingOnLastValidTick}")
                         .AppendLine("\n###Version Data###")
                         .AppendLine($"Multiplayer Mod Version|||{MpVersion.Version}")
                         .AppendLine($"Rimworld Version and Rev|||{VersionControl.CurrentVersionStringWithRev}")
@@ -231,14 +239,30 @@ namespace Multiplayer.Client
         private void SaveStackTracesToDisk(ClientSyncOpinion local, ClientSyncOpinion remote)
         {
             Log.Message($"Saving {local.desyncStackTraces.Count} traces to disk");
+            
+            //Dump the stack traces to disk
+            File.WriteAllText("local_traces.txt", GetDesyncStackTraces(local, remote, out var diffAt));
 
+            //Trigger a call to ClientConnection#HandleDebug on the arbiter instance so that arbiter_traces.txt is saved too
+            Multiplayer.Client.Send(Packets.Client_Debug, local.startTick, diffAt - 40, diffAt + 40);
+        }
+
+        /// <summary>
+        /// Get a nicely formatted string containing local stack traces (saved by calls to <see cref="TryAddStackTraceForDesyncLog"/>)
+        /// around the area where a desync occurred
+        /// </summary>
+        /// <param name="dumpFrom">The client's opinion to dump the stacks from</param>
+        /// <param name="compareTo">Another client's opinion, used to find where the desync occurred</param>
+        /// <returns></returns>
+        private string GetDesyncStackTraces(ClientSyncOpinion dumpFrom, ClientSyncOpinion compareTo, out int diffAt)
+        {
             //Find the length of whichever stack trace is shorter.
-            int diffAt = -1;
-            int count = Math.Min(local.desyncStackTraceHashes.Count, remote.desyncStackTraceHashes.Count);
+            diffAt = -1;
+            int count = Math.Min(dumpFrom.desyncStackTraceHashes.Count, compareTo.desyncStackTraceHashes.Count);
 
             //Find the point at which the hashes differ - this is where the desync occurred.
             for (int i = 0; i < count; i++)
-                if (local.desyncStackTraceHashes[i] != remote.desyncStackTraceHashes[i])
+                if (dumpFrom.desyncStackTraceHashes[i] != compareTo.desyncStackTraceHashes[i])
                 {
                     diffAt = i;
                     break;
@@ -247,11 +271,7 @@ namespace Multiplayer.Client
             if (diffAt == -1)
                 diffAt = count;
 
-            //Dump the stack traces to disk
-            File.WriteAllText("local_traces.txt", local.GetFormattedStackTracesForRange(diffAt - 40, diffAt + 40));
-
-            //Trigger a call to ClientConnection#HandleDebug on the arbiter instance so that arbiter_traces.txt is saved too
-            Multiplayer.Client.Send(Packets.Client_Debug, local.startTick, diffAt - 40, diffAt + 40);
+            return dumpFrom.GetFormattedStackTracesForRange(diffAt - 40, diffAt + 40);
         }
 
         private string FindFileNameForNextDesyncFile()
