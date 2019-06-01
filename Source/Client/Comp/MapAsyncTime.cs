@@ -553,7 +553,7 @@ namespace Multiplayer.Client
             {
                 PostContext();
 
-                Multiplayer.game.sync.TryAddMap(map.uniqueID, randState);
+                Multiplayer.game.sync.TryAddMapRandomState(map.uniqueID, randState);
 
                 tickingMap = null;
 
@@ -761,7 +761,7 @@ namespace Multiplayer.Client
 
                 keepTheMap = false;
 
-                Multiplayer.game.sync.TryAddCmd(randState);
+                Multiplayer.game.sync.TryAddCommandRandomState(randState);
             }
         }
 
