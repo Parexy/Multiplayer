@@ -3,7 +3,6 @@ using Harmony;
 using Multiplayer.Common;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -151,7 +150,7 @@ namespace Multiplayer.Client
 
                     //Dump the entire save file to the zip.
                     zip.AddEntry("game_snapshot", savedGame);
-                    desyncReport.AddEntry("game_snapshot", savedGame);
+//                    desyncReport.AddEntry("game_snapshot", savedGame); //This ends up being about 15MB, we really don't want that. 
 
                     //Add local stack traces
                     zip.AddEntry("local_stacks", GetDesyncStackTraces(local, remote, out _));
@@ -197,10 +196,16 @@ namespace Multiplayer.Client
                     desyncReport.AddEntry("desync_info", desyncInfo.ToString());
 
                     zip.Save();
+                    
+                    //Add the basic info to the report
+                    desyncReport.AddEntry("info", zip["info"].GetBytes());
 
                     //Report desync to the server
                     var request = (HttpWebRequest) WebRequest.Create("https://multiplayer.samboycoding.me/api/desync/upload");
+//                    var request = (HttpWebRequest) WebRequest.Create("http://localhost:4193/api/desync/upload");
                     request.Method = "POST";
+                    request.ContentType = "application/zip";
+
                     using (var stream = new MemoryStream())
                     {
                         desyncReport.Save(stream);
@@ -214,11 +219,23 @@ namespace Multiplayer.Client
                             outStream.Write(data, 0, data.Length);
                     }
 
-                    //TODO: Re-enable when api written and show something to the user. Confirmation?
-//                    using (var response = (HttpWebResponse) request.GetResponse())
-//                    {
-//                        
-//                    }
+                    //TODO: Some user interaction here?
+                    using (var response = (HttpWebResponse) request.GetResponse())
+                    {
+                        if (response.StatusCode != HttpStatusCode.OK)
+                        {
+                            Log.Error("Failed to report desync; Status code " + response.StatusCode);
+                        }
+                        else
+                        {
+                            using(var stream = response.GetResponseStream())
+                            using (var reader = new StreamReader(stream))
+                            {
+                                var desyncReportId = reader.ReadToEnd();
+                                Log.Message("Debug Reported with ID " + desyncReportId);
+                            }
+                        }
+                    }
                 }
             }
             catch (Exception e)
