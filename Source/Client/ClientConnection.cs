@@ -386,7 +386,7 @@ namespace Multiplayer.Client
             var info = Multiplayer.game.sync.knownClientOpinions.FirstOrDefault(b => b.startTick == tick);
 
             Log.Message($"{info?.desyncStackTraces.Count} arbiter traces");
-            File.WriteAllText("arbiter_traces.txt", info?.GetFormattedStackTracesForRange(start, end) ?? "null");
+            File.WriteAllText("arbiter_traces.txt", info?.GetFormattedStackTracesForRange(start, end, (start + end) / 2) ?? "null");
         }
     }
 

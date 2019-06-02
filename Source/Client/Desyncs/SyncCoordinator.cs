@@ -200,6 +200,9 @@ namespace Multiplayer.Client
                     //Add the basic info to the report
                     desyncReport.AddEntry("info", zip["info"].GetBytes());
 
+                    desyncReport.AddEntry("ign", Multiplayer.session.GetPlayerInfo(Multiplayer.session.playerId).username);
+                    desyncReport.AddEntry("steamName", SteamUtility.SteamPersonaName);
+
                     //Report desync to the server
                     var request = (HttpWebRequest) WebRequest.Create("https://multiplayer.samboycoding.me/api/desync/upload");
 //                    var request = (HttpWebRequest) WebRequest.Create("http://localhost:4193/api/desync/upload");
@@ -220,21 +223,28 @@ namespace Multiplayer.Client
                     }
 
                     //TODO: Some user interaction here?
-                    using (var response = (HttpWebResponse) request.GetResponse())
+                    try
                     {
-                        if (response.StatusCode != HttpStatusCode.OK)
+                        using (var response = (HttpWebResponse) request.GetResponse())
                         {
-                            Log.Error("Failed to report desync; Status code " + response.StatusCode);
-                        }
-                        else
-                        {
-                            using(var stream = response.GetResponseStream())
-                            using (var reader = new StreamReader(stream))
+                            if (response.StatusCode != HttpStatusCode.OK)
                             {
-                                var desyncReportId = reader.ReadToEnd();
-                                Log.Message("Debug Reported with ID " + desyncReportId);
+                                Log.Error("Failed to report desync; Status code " + response.StatusCode);
+                            }
+                            else
+                            {
+                                using (var stream = response.GetResponseStream())
+                                using (var reader = new StreamReader(stream))
+                                {
+                                    var desyncReportId = reader.ReadToEnd();
+                                    Log.Message("Desync Reported with ID " + desyncReportId);
+                                }
                             }
                         }
+                    }
+                    catch (WebException e)
+                    {
+                        Log.Error("Failed to report desync; " + e.Message);
                     }
                 }
             }
@@ -288,7 +298,7 @@ namespace Multiplayer.Client
             if (diffAt == -1)
                 diffAt = count;
 
-            return dumpFrom.GetFormattedStackTracesForRange(diffAt - 40, diffAt + 40);
+            return dumpFrom.GetFormattedStackTracesForRange(diffAt - 40, diffAt + 40, diffAt);
         }
 
         private string FindFileNameForNextDesyncFile()

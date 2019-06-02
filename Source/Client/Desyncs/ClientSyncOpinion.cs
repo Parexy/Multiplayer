@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
+using System.Text;
 using Harmony;
 using Multiplayer.Common;
 using Verse;
@@ -118,13 +118,32 @@ namespace Multiplayer.Client
         /// </summary>
         /// <param name="start"></param>
         /// <param name="end"></param>
+        /// <param name="diffAt"></param>
         /// <returns></returns>
-        public string GetFormattedStackTracesForRange(int start, int end)
+        public string GetFormattedStackTracesForRange(int start, int end, int diffAt)
         {
-            return desyncStackTraces
+            var traces = desyncStackTraces
                 .Skip(Math.Max(0, start))
                 .Take(end - start)
-                .Join(a => a.additionalInfo + "\n" + a.stackTrace.Join(m => m.MethodDesc(), "\n"), delimiter: "\n\n");
+                .ToList();
+
+            diffAt -= start;
+
+            var builder = new StringBuilder();
+            for(var i = 0; i < traces.Count; i++)
+            {
+                var trace = traces[i];
+                
+                if (i == diffAt)
+                    builder.Append("===desynchere===\n\n");
+                
+                builder.Append(trace.additionalInfo + "\n" + trace.stackTrace.Join(m => m.MethodDesc(), "\n") + "\n\n");
+
+                if (i == diffAt)
+                    builder.Append("===desyncfin===\n\n");
+            }
+
+            return builder.ToString();
         }
     }
 }

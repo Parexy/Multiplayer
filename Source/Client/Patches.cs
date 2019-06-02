@@ -369,7 +369,7 @@ namespace Multiplayer.Client
             {
                 __result = Multiplayer.GlobalIdBlock.NextId();
 
-                Multiplayer.game.sync.TryAddStackTraceForDesyncLog();
+                Multiplayer.game.sync.TryAddStackTraceForDesyncLog($"GetNextID:{Multiplayer.game?.sync?.currentOpinion?.startTick}");
             }
 
             //MpLog.Log("got new id " + __result);
@@ -1338,7 +1338,7 @@ namespace Multiplayer.Client
                 !SteadyEnvironmentEffectsTickMarker.ticking &&
                 !FindBestStorageCellMarker.executing &&
                 ThingContext.Current?.def != ThingDefOf.SteamGeyser)
-                Multiplayer.game.sync.TryAddStackTraceForDesyncLog();
+                Multiplayer.game.sync.TryAddStackTraceForDesyncLog($"GetHash:{Multiplayer.game?.sync?.currentOpinion?.startTick}");
         }
     }
 
