@@ -61,6 +61,7 @@ namespace Multiplayer.Client
         //No sync method here :)
         private static void ForceDesync()
         {
+            Multiplayer.game.sync.TryAddStackTraceForDesyncLog("DebugDesync");
             Multiplayer.game.sync.currentOpinion.GetRandomStatesForMap(0).Add((uint) Rand.Value >> 32);
         }
 
