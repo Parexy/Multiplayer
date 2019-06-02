@@ -204,7 +204,7 @@ namespace Multiplayer.Client
                     desyncReport.AddEntry("steamName", SteamUtility.SteamPersonaName);
 
                     //Report desync to the server
-                    var request = (HttpWebRequest) WebRequest.Create("https://multiplayer.samboycoding.me/api/desync/upload");
+                    var request = (HttpWebRequest) WebRequest.Create("http://multiplayer.samboycoding.me/api/desync/upload");
 //                    var request = (HttpWebRequest) WebRequest.Create("http://localhost:4193/api/desync/upload");
                     request.Method = "POST";
                     request.ContentType = "application/zip";
