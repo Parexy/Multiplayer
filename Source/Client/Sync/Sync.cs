@@ -990,6 +990,8 @@ namespace Multiplayer.Client
             int syncId = data.ReadInt32();
             SyncHandler handler = handlers[syncId];
 
+            Multiplayer.game.sync.TryAddStackTraceForDesyncLog($"Executing synced command handler {handler}");
+            
             List<object> prevSelected = Find.Selector.selected;
             List<WorldObject> prevWorldSelected = Find.WorldSelector.selected;
 

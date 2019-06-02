@@ -1332,13 +1332,8 @@ namespace Multiplayer.Client
             if (TickPatch.Skipping || Multiplayer.IsReplay) return;
 
             if (!Multiplayer.Ticking && !Multiplayer.ExecutingCmds) return;
-
-            if (!WildAnimalSpawnerTickMarker.ticking &&
-                !WildPlantSpawnerTickMarker.ticking &&
-                !SteadyEnvironmentEffectsTickMarker.ticking &&
-                !FindBestStorageCellMarker.executing &&
-                ThingContext.Current?.def != ThingDefOf.SteamGeyser)
-                Multiplayer.game.sync.TryAddStackTraceForDesyncLog($"GetHash:{Multiplayer.game?.sync?.currentOpinion?.startTick}");
+            
+            Multiplayer.game.sync.TryAddStackTraceForDesyncLog($"GetHash:{Multiplayer.game?.sync?.currentOpinion?.startTick}");
         }
     }
 

@@ -280,6 +280,7 @@ namespace Multiplayer.Client
         /// </summary>
         /// <param name="dumpFrom">The client's opinion to dump the stacks from</param>
         /// <param name="compareTo">Another client's opinion, used to find where the desync occurred</param>
+        /// <param name="diffAt">The index at which the desync stack traces mismatch</param>
         /// <returns></returns>
         private string GetDesyncStackTraces(ClientSyncOpinion dumpFrom, ClientSyncOpinion compareTo, out int diffAt)
         {

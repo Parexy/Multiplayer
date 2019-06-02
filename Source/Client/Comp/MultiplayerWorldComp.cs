@@ -236,6 +236,7 @@ namespace Multiplayer.Client
                             lastSpeedChange = Time.realtimeSinceStartup;
                     }
 
+                    Multiplayer.game.sync.TryAddStackTraceForDesyncLog($"Set world speed {speed}");
                     MpLog.Log("Set world speed " + speed + " " + TickPatch.Timer + " " + Find.TickManager.TicksGame);
                 }
 
@@ -349,6 +350,8 @@ namespace Multiplayer.Client
         {
             int factionId = data.ReadInt32();
             Faction faction = Find.FactionManager.GetById(factionId);
+            
+            Multiplayer.game.sync.TryAddStackTraceForDesyncLog($"Setting up faction with ID {factionId}");
 
             if (faction == null)
             {

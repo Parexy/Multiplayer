@@ -199,6 +199,7 @@ namespace Multiplayer.Client
                     Find.WorldSelector.selected.Add(obj);
             }
 
+            Multiplayer.game.sync.TryAddStackTraceForDesyncLog($"Executing debug tool {source}");
             Log.Message($"Debug tool {source} ({cursorX}, {cursorZ}) {currentHash}");
 
             try
