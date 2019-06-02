@@ -1,14 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Harmony;
+using Multiplayer.Client.Sync;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Persistent
 {
     public class TransporterLoading : IExposable, ISessionWithTransferables
     {

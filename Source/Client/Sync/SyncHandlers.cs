@@ -1,19 +1,19 @@
-﻿using Harmony;
-using Multiplayer.Common;
-using RimWorld;
-using RimWorld.Planet;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using Harmony;
+using Multiplayer.Client.Comp;
+using Multiplayer.Client.Persistent;
+using Multiplayer.Common;
+using RimWorld;
+using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 using Verse.AI;
-using static Verse.Widgets;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Sync
 {
     public static class SyncHandlers
     {
@@ -161,25 +161,25 @@ namespace Multiplayer.Client
         }
 
         [MpPostfix(typeof(Dialog_BillConfig), nameof(Dialog_BillConfig.GeneratePawnRestrictionOptions))]
-        static IEnumerable<DropdownMenuElement<Pawn>> BillPawnRestrictions_Postfix(IEnumerable<DropdownMenuElement<Pawn>> __result, Bill ___bill)
+        static IEnumerable<Widgets.DropdownMenuElement<Pawn>> BillPawnRestrictions_Postfix(IEnumerable<Widgets.DropdownMenuElement<Pawn>> __result, Bill ___bill)
         {
             return WatchDropdowns(() => SyncBillPawnRestriction.Watch(___bill), __result);
         }
 
         [MpPostfix(typeof(HostilityResponseModeUtility), nameof(HostilityResponseModeUtility.DrawResponseButton_GenerateMenu))]
-        static IEnumerable<DropdownMenuElement<HostilityResponseMode>> HostilityResponse_Postfix(IEnumerable<DropdownMenuElement<HostilityResponseMode>> __result, Pawn p)
+        static IEnumerable<Widgets.DropdownMenuElement<HostilityResponseMode>> HostilityResponse_Postfix(IEnumerable<Widgets.DropdownMenuElement<HostilityResponseMode>> __result, Pawn p)
         {
             return WatchDropdowns(() => SyncHostilityResponse.Watch(p), __result);
         }
 
         [MpPostfix(typeof(MedicalCareUtility), nameof(MedicalCareUtility.MedicalCareSelectButton_GenerateMenu))]
-        static IEnumerable<DropdownMenuElement<MedicalCareCategory>> MedicalCare_Postfix(IEnumerable<DropdownMenuElement<MedicalCareCategory>> __result, Pawn p)
+        static IEnumerable<Widgets.DropdownMenuElement<MedicalCareCategory>> MedicalCare_Postfix(IEnumerable<Widgets.DropdownMenuElement<MedicalCareCategory>> __result, Pawn p)
         {
             return WatchDropdowns(() => SyncMedCare.Watch(p), __result);
         }
 
         [MpPostfix(typeof(Dialog_BillConfig), nameof(Dialog_BillConfig.GenerateStockpileInclusion))]
-        static IEnumerable<DropdownMenuElement<Zone_Stockpile>> BillIncludeZone_Postfix(IEnumerable<DropdownMenuElement<Zone_Stockpile>> __result, Bill ___bill)
+        static IEnumerable<Widgets.DropdownMenuElement<Zone_Stockpile>> BillIncludeZone_Postfix(IEnumerable<Widgets.DropdownMenuElement<Zone_Stockpile>> __result, Bill ___bill)
         {
             return WatchDropdowns(() => SyncBillIncludeZone.Watch(___bill), __result);
         }
@@ -350,7 +350,7 @@ namespace Multiplayer.Client
                 tr.session.Notify_CountChanged(tr.transferable);
         }
 
-        static IEnumerable<DropdownMenuElement<T>> WatchDropdowns<T>(Action watchAction, IEnumerable<DropdownMenuElement<T>> dropdowns)
+        static IEnumerable<Widgets.DropdownMenuElement<T>> WatchDropdowns<T>(Action watchAction, IEnumerable<Widgets.DropdownMenuElement<T>> dropdowns)
         {
             foreach (var entry in dropdowns)
             {

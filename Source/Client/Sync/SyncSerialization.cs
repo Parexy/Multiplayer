@@ -1,20 +1,21 @@
-﻿using Harmony;
-using Multiplayer.Common;
-using RimWorld;
-using RimWorld.Planet;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.Serialization;
 using System.Text;
+using Harmony;
+using Multiplayer.Client.Comp;
+using Multiplayer.Client.Persistent;
+using Multiplayer.Common;
+using RimWorld;
+using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 using Verse.AI;
 using Verse.AI.Group;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Sync
 {
     public static partial class Sync
     {

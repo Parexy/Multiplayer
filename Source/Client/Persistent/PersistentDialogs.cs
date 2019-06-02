@@ -1,16 +1,15 @@
-﻿using Harmony;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using Harmony;
+using Multiplayer.Client.Sync;
 using Multiplayer.Common;
 using RimWorld;
 using RimWorld.Planet;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Reflection;
-using System.Text;
 using Verse;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Persistent
 {
     public class PersistentDialog : IExposable
     {

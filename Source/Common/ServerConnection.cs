@@ -9,7 +9,7 @@ namespace Multiplayer.Common
     {
         public static Regex UsernamePattern = new Regex(@"^[a-zA-Z0-9_]+$");
 
-        public ServerJoiningState(IConnection conn) : base(conn)
+        public ServerJoiningState(IMultiplayerConnection conn) : base(conn)
         {
         }
 
@@ -184,7 +184,7 @@ namespace Multiplayer.Common
 
     public class ServerPlayingState : MpConnectionState
     {
-        public ServerPlayingState(IConnection conn) : base(conn)
+        public ServerPlayingState(IMultiplayerConnection conn) : base(conn)
         {
         }
 
@@ -351,7 +351,7 @@ namespace Multiplayer.Common
             Player.ticksBehind = ticksBehind;
 
             // Latency already handled by LiteNetLib
-            if (connection is MpNetConnection) return;
+            if (connection is MpNetMultiplayerConnection) return;
 
             if (MultiplayerServer.instance.keepAliveId == id)
                 connection.Latency = (int)MultiplayerServer.instance.lastKeepAlive.ElapsedMilliseconds / 2;
@@ -404,7 +404,7 @@ namespace Multiplayer.Common
     // Unused
     public class ServerSteamState : MpConnectionState
     {
-        public ServerSteamState(IConnection conn) : base(conn)
+        public ServerSteamState(IMultiplayerConnection conn) : base(conn)
         {
         }
 

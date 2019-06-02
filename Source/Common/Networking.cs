@@ -11,12 +11,12 @@ namespace Multiplayer.Common
 {
     public abstract class MpConnectionState
     {
-        public readonly IConnection connection;
+        public readonly IMultiplayerConnection connection;
 
         protected ServerPlayer Player => connection.serverPlayer;
         protected MultiplayerServer Server => MultiplayerServer.instance;
 
-        public MpConnectionState(IConnection connection)
+        public MpConnectionState(IMultiplayerConnection connection)
         {
             this.connection = connection;
         }
@@ -71,7 +71,7 @@ namespace Multiplayer.Common
         }
     }
 
-    public abstract class IConnection
+    public abstract class IMultiplayerConnection
     {
         public string username;
         public ServerPlayer serverPlayer;
@@ -270,11 +270,11 @@ namespace Multiplayer.Common
         }
     }
 
-    public class MpNetConnection : IConnection
+    public class MpNetMultiplayerConnection : IMultiplayerConnection
     {
         public readonly NetPeer peer;
 
-        public MpNetConnection(NetPeer peer)
+        public MpNetMultiplayerConnection(NetPeer peer)
         {
             this.peer = peer;
         }

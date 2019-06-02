@@ -1,15 +1,13 @@
-﻿using Multiplayer.Common;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using Multiplayer.Common;
 using RimWorld;
 using Steamworks;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using UnityEngine;
 using Verse;
-using Verse.Steam;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Windows
 {
     [StaticConstructorOnStartup]
     [HotSwappable]

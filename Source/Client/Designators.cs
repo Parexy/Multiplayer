@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using Multiplayer.Client.Comp;
+using Multiplayer.Client.Sync;
 using Verse;
 
 namespace Multiplayer.Client
@@ -35,7 +37,7 @@ namespace Multiplayer.Client
             writer.LogNode("Designate single cell: " + designator.GetType());
 
             WriteData(writer, DesignatorMode.SingleCell, designator);
-            Sync.WriteSync(writer, __0);
+            Sync.Sync.WriteSync(writer, __0);
 
             Multiplayer.Client.SendCommand(CommandType.Designator, map.uniqueID, writer.ToArray());
             Multiplayer.PacketLog.nodes.Add(writer.current);
@@ -58,7 +60,7 @@ namespace Multiplayer.Client
             IntVec3[] cellArray = __0.ToArray();
 
             WriteData(writer, DesignatorMode.MultiCell, designator);
-            Sync.WriteSync(writer, cellArray);
+            Sync.Sync.WriteSync(writer, cellArray);
 
             Multiplayer.Client.SendCommand(CommandType.Designator, map.uniqueID, writer.ToArray());
             Multiplayer.PacketLog.nodes.Add(writer.current);
@@ -77,7 +79,7 @@ namespace Multiplayer.Client
             writer.LogNode("Designate thing: " + __0 + " " + designator.GetType());
 
             WriteData(writer, DesignatorMode.Thing, designator);
-            Sync.WriteSync(writer, __0);
+            Sync.Sync.WriteSync(writer, __0);
 
             Multiplayer.Client.SendCommand(CommandType.Designator, map.uniqueID, writer.ToArray());
             Multiplayer.PacketLog.nodes.Add(writer.current);
@@ -89,23 +91,23 @@ namespace Multiplayer.Client
 
         private static void WriteData(ByteWriter data, DesignatorMode mode, Designator designator)
         {
-            Sync.WriteSync(data, mode);
-            Sync.WriteSync(data, designator);
+            Sync.Sync.WriteSync(data, mode);
+            Sync.Sync.WriteSync(data, designator);
 
             if (designator is Designator_AreaAllowed)
-                Sync.WriteSync(data, Designator_AreaAllowed.SelectedArea);
+                Sync.Sync.WriteSync(data, Designator_AreaAllowed.SelectedArea);
 
             if (designator is Designator_Place place)
-                Sync.WriteSync(data, place.placingRot);
+                Sync.Sync.WriteSync(data, place.placingRot);
 
             if (designator is Designator_Build build && build.PlacingDef.MadeFromStuff)
-                Sync.WriteSync(data, build.stuffDef);
+                Sync.Sync.WriteSync(data, build.stuffDef);
 
             if (designator is Designator_Install)
-                Sync.WriteSync(data, ThingToInstall());
+                Sync.Sync.WriteSync(data, ThingToInstall());
 
             if (designator is Designator_Zone)
-                Sync.WriteSync(data, Find.Selector.SelectedZone);
+                Sync.Sync.WriteSync(data, Find.Selector.SelectedZone);
         }
 
         private static Thing ThingToInstall()

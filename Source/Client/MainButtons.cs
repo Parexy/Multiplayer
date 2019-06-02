@@ -6,6 +6,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using Multiplayer.Client.Comp;
+using Multiplayer.Client.Persistent;
+using Multiplayer.Client.Windows;
 using UnityEngine;
 using Verse;
 
@@ -75,7 +78,7 @@ namespace Multiplayer.Client
 
                 text.Append($" {Multiplayer.GlobalIdBlock.blockStart + Multiplayer.GlobalIdBlock.current}");
 
-                text.Append($"\n{Sync.bufferedChanges.Sum(kv => kv.Value.Count)}");
+                text.Append($"\n{Sync.Sync.bufferedChanges.Sum(kv => kv.Value.Count)}");
                 text.Append($"\n{((uint)async.randState)} {(uint)(async.randState >> 32)}");
                 text.Append($"\n{(uint)Multiplayer.WorldComp.randState} {(uint)(Multiplayer.WorldComp.randState >> 32)}");
                 text.Append($"\n{async.cmds.Count} {Multiplayer.WorldComp.cmds.Count} {async.slower.forceNormalSpeedUntil} {Multiplayer.WorldComp.asyncTime}");

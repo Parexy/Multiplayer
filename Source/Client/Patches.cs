@@ -14,6 +14,8 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
+using Multiplayer.Client.Comp;
+using Multiplayer.Client.Windows;
 using UnityEngine;
 using Verse;
 using Verse.AI;
@@ -107,7 +109,7 @@ namespace Multiplayer.Client
                     optList.Insert(0, new ListableOption("MpHostServer".Translate(), () => Find.WindowStack.Add(new HostWindow())));
 
                 if (MpVersion.IsDebug && Multiplayer.IsReplay)
-                    optList.Insert(0, new ListableOption("MpHostServer".Translate(), () => Find.WindowStack.Add(new HostWindow(withSimulation: true))));
+                    optList.Insert(0, new ListableOption("MpHostServer".Translate(), () => Find.WindowStack.Add(new HostWindow(watchMode: true))));
 
                 if (Multiplayer.Client != null)
                 {

@@ -5,6 +5,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using Multiplayer.Client.Sync;
+using Multiplayer.Client.Windows;
+using Multiplayer.Common.Networking;
 using UnityEngine;
 using Verse;
 using Verse.Steam;
@@ -39,9 +42,9 @@ namespace Multiplayer.Client
             if (!MultiplayerMod.arbiterInstance && Application.isFocused && !TickPatch.Skipping && !Multiplayer.session.desynced)
                 SendVisuals();
 
-            if (Multiplayer.Client is SteamBaseConn steamConn && SteamManager.Initialized)
+            if (Multiplayer.Client is SteamBaseConnection steamConn && SteamManager.Initialized)
                 foreach (var packet in SteamIntegration.ReadPackets())
-                    if (steamConn.remoteId == packet.remote)
+                    if (steamConn.remoteSteamId == packet.remote)
                         Multiplayer.HandleReceive(packet.data, packet.reliable);
         }
 
@@ -131,11 +134,11 @@ namespace Multiplayer.Client
 
         private void UpdateSync()
         {
-            foreach (SyncField f in Sync.bufferedFields)
+            foreach (SyncField f in Sync.Sync.bufferedFields)
             {
                 if (f.inGameLoop) continue;
 
-                Sync.bufferedChanges[f].RemoveAll((k, data) =>
+                Sync.Sync.bufferedChanges[f].RemoveAll((k, data) =>
                 {
                     if (CheckShouldRemove(f, k, data))
                         return true;
@@ -193,7 +196,7 @@ namespace Multiplayer.Client
 
             Find.WindowStack?.WindowOfType<ServerBrowser>()?.Cleanup(true);
 
-            foreach (var entry in Sync.bufferedChanges)
+            foreach (var entry in Sync.Sync.bufferedChanges)
                 entry.Value.Clear();
 
             ClearCaches();

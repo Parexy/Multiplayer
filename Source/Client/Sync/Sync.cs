@@ -1,20 +1,15 @@
-﻿using Harmony;
-using Multiplayer.Common;
-using RimWorld;
-using RimWorld.Planet;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
-using System.Text;
+using Harmony;
+using Multiplayer.Common;
+using RimWorld;
+using RimWorld.Planet;
 using Verse;
-using Verse.AI;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Sync
 {
     public abstract class SyncHandler
     {

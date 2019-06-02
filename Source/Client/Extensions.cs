@@ -14,6 +14,8 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml;
+using Multiplayer.Client.Comp;
+using Multiplayer.Client.Sync;
 using UnityEngine;
 using Verse;
 using zip::Ionic.Zip;
@@ -213,7 +215,7 @@ namespace Multiplayer.Client
             return manager.AllFactionsListForReading.Find(f => f.loadID == factionId);
         }
 
-        public static void SendCommand(this IConnection conn, CommandType type, int mapId, byte[] data)
+        public static void SendCommand(this IMultiplayerConnection conn, CommandType type, int mapId, byte[] data)
         {
             ByteWriter writer = new ByteWriter();
             writer.WriteInt32(Convert.ToInt32(type));
@@ -223,7 +225,7 @@ namespace Multiplayer.Client
             conn.Send(Packets.Client_Command, writer.ToArray());
         }
 
-        public static void SendCommand(this IConnection conn, CommandType type, int mapId, params object[] data)
+        public static void SendCommand(this IMultiplayerConnection conn, CommandType type, int mapId, params object[] data)
         {
             SendCommand(conn, type, mapId, ByteWriter.GetBytes(data));
         }

@@ -13,6 +13,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
 using System.Xml.Linq;
+using Multiplayer.Client.Sync;
 using Verse;
 
 namespace Multiplayer.Client

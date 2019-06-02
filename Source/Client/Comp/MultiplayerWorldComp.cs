@@ -1,18 +1,17 @@
-﻿using Harmony;
-using Multiplayer.Common;
-using RimWorld;
-using RimWorld.Planet;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Xml;
+using Multiplayer.Client.Persistent;
+using Multiplayer.Client.Sync;
+using Multiplayer.Common;
+using RimWorld;
+using RimWorld.Planet;
 using UnityEngine;
 using Verse;
-using Verse.AI;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Comp
 {
     public class MultiplayerWorldComp : IExposable, ITickable
     {
@@ -213,7 +212,7 @@ namespace Multiplayer.Client
             {
                 if (cmdType == CommandType.Sync)
                 {
-                    Sync.HandleCmd(data);
+                    Sync.Sync.HandleCmd(data);
                 }
 
                 if (cmdType == CommandType.DebugTools)

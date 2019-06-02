@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using Multiplayer.Common.Networking;
+using Multiplayer.Server.Networking;
 using UnityEngine;
 using Verse;
 
@@ -63,7 +65,7 @@ namespace Multiplayer.Client
                 var remoteId = fail.m_steamIDRemote;
                 var error = (EP2PSessionError)fail.m_eP2PSessionError;
 
-                if (Multiplayer.Client is SteamBaseConn clientConn && clientConn.remoteId == remoteId)
+                if (Multiplayer.Client is SteamBaseConnection clientConn && clientConn.remoteSteamId == remoteId)
                     clientConn.OnError(error);
 
                 var server = Multiplayer.LocalServer;
@@ -71,7 +73,7 @@ namespace Multiplayer.Client
 
                 server.Enqueue(() =>
                 {
-                    var conn = server.players.Select(p => p.conn).OfType<SteamBaseConn>().FirstOrDefault(c => c.remoteId == remoteId);
+                    var conn = server.players.Select(p => p.conn).OfType<SteamBaseConnection>().FirstOrDefault(c => c.remoteSteamId == remoteId);
                     if (conn != null)
                         conn.OnError(error);
                 });
@@ -109,11 +111,11 @@ namespace Multiplayer.Client
                 if (packet.joinPacket)
                     ClearChannel(0);
 
-                var player = server.players.FirstOrDefault(p => p.conn is SteamBaseConn conn && conn.remoteId == packet.remote);
+                var player = server.players.FirstOrDefault(p => p.conn is SteamBaseConnection conn && conn.remoteSteamId == packet.remote);
 
                 if (packet.joinPacket && player == null)
                 {
-                    IConnection conn = new SteamServerConn(packet.remote);
+                    IMultiplayerConnection conn = new SteamServerToClientConnection(packet.remote);
                     conn.State = ConnectionStateEnum.ServerJoining;
                     player = server.OnConnected(conn);
                     player.type = PlayerType.Steam;

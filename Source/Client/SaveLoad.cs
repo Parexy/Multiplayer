@@ -10,6 +10,9 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Xml;
+using Multiplayer.Client.Comp;
+using Multiplayer.Client.Sync;
+using Multiplayer.Client.Windows;
 using UnityEngine;
 using Verse;
 using Verse.Profile;
@@ -32,7 +35,7 @@ namespace Multiplayer.Client
             var chatWindow = ChatWindow.Opened;
 
             var selectedData = new ByteWriter();
-            Sync.WriteSync(selectedData, Find.Selector.selected.OfType<ISelectable>().ToList());
+            Sync.Sync.WriteSync(selectedData, Find.Selector.selected.OfType<ISelectable>().ToList());
 
             //RealPlayerFaction = DummyFaction;
 
@@ -79,7 +82,7 @@ namespace Multiplayer.Client
                 Find.WindowStack.Add_KeepRect(chatWindow);
 
             var selectedReader = new ByteReader(selectedData.ToArray()) { context = new MpContext() { map = Find.CurrentMap } };
-            Find.Selector.selected = Sync.ReadSync<List<ISelectable>>(selectedReader).NotNull().Cast<object>().ToList();
+            Find.Selector.selected = Sync.Sync.ReadSync<List<ISelectable>>(selectedReader).NotNull().Cast<object>().ToList();
 
             Find.World.renderer.wantedMode = planetRenderMode;
             Multiplayer.WorldComp.cmds = mapCmds[ScheduledCommand.Global];

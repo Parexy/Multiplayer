@@ -228,7 +228,7 @@ namespace Multiplayer.Common
 
         private int nextPlayerId;
 
-        public ServerPlayer OnConnected(IConnection conn)
+        public ServerPlayer OnConnected(IMultiplayerConnection conn)
         {
             if (conn.serverPlayer != null)
                 MpLog.Error($"Connection {conn} already has a server player");
@@ -240,7 +240,7 @@ namespace Multiplayer.Common
             return conn.serverPlayer;
         }
 
-        public void OnDisconnected(IConnection conn, MpDisconnectReason reason)
+        public void OnDisconnected(IMultiplayerConnection conn, MpDisconnectReason reason)
         {
             if (conn.State == ConnectionStateEnum.Disconnected) return;
 
@@ -368,7 +368,7 @@ namespace Multiplayer.Common
         {
             if (!arbiter && server.settings.maxPlayers > 0 && server.players.Count(p => !p.IsArbiter) >= server.settings.maxPlayers)
             {
-                req.Reject(IConnection.GetDisconnectBytes(MpDisconnectReason.ServerFull));
+                req.Reject(IMultiplayerConnection.GetDisconnectBytes(MpDisconnectReason.ServerFull));
                 return;
             }
 
@@ -377,7 +377,7 @@ namespace Multiplayer.Common
 
         public void OnPeerConnected(NetPeer peer)
         {
-            IConnection conn = new MpNetConnection(peer);
+            IMultiplayerConnection conn = new MpNetMultiplayerConnection(peer);
             conn.State = ConnectionStateEnum.ServerJoining;
             peer.Tag = conn;
 
@@ -390,7 +390,7 @@ namespace Multiplayer.Common
 
         public void OnPeerDisconnected(NetPeer peer, DisconnectInfo disconnectInfo)
         {
-            IConnection conn = peer.GetConnection();
+            IMultiplayerConnection conn = peer.GetConnection();
             server.OnDisconnected(conn, MpDisconnectReason.ClientLeft);
         }
 
@@ -462,7 +462,7 @@ namespace Multiplayer.Common
     public class ServerPlayer
     {
         public int id;
-        public IConnection conn;
+        public IMultiplayerConnection conn;
         public PlayerType type;
         public PlayerStatus status;
         public int ticksBehind;
@@ -481,7 +481,7 @@ namespace Multiplayer.Common
 
         public MultiplayerServer Server => MultiplayerServer.instance;
 
-        public ServerPlayer(int id, IConnection connection)
+        public ServerPlayer(int id, IMultiplayerConnection connection)
         {
             this.id = id;
             conn = connection;

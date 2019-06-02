@@ -1,6 +1,4 @@
 ﻿extern alias zip;
-using Harmony;
-using Multiplayer.Common;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -8,12 +6,15 @@ using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Text;
+using Harmony;
+using Multiplayer.Client.Windows;
+using Multiplayer.Common;
 using RimWorld;
 using UnityEngine;
 using Verse;
-using zip::Ionic.Zip;
+using ZipFile = zip::Ionic.Zip.ZipFile;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Desyncs
 {
     public class SyncCoordinator
     {

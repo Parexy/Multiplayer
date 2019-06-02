@@ -64,9 +64,9 @@ namespace Multiplayer.Common
             return result;
         }
 
-        public static MpNetConnection GetConnection(this NetPeer peer)
+        public static MpNetMultiplayerConnection GetConnection(this NetPeer peer)
         {
-            return (MpNetConnection)peer.Tag;
+            return (MpNetMultiplayerConnection)peer.Tag;
         }
 
         public static void Write(this MemoryStream stream, byte[] arr)

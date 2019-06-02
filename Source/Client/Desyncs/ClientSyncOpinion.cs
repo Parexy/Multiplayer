@@ -6,7 +6,7 @@ using Harmony;
 using Multiplayer.Common;
 using Verse;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Desyncs
 {
     public class ClientSyncOpinion
     {

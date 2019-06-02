@@ -4,6 +4,8 @@ using Harmony;
 using Multiplayer.Common;
 using RimWorld;
 using System.Linq;
+using Multiplayer.Client.Comp;
+using Multiplayer.Client.Sync;
 using Verse;
 
 namespace Multiplayer.Client
@@ -58,11 +60,11 @@ namespace Multiplayer.Client
 
         private static void TickSync()
         {
-            foreach (SyncField f in Sync.bufferedFields)
+            foreach (SyncField f in Sync.Sync.bufferedFields)
             {
                 if (!f.inGameLoop) continue;
 
-                Sync.bufferedChanges[f].RemoveAll((k, data) =>
+                Sync.Sync.bufferedChanges[f].RemoveAll((k, data) =>
                 {
                     if (OnMainThread.CheckShouldRemove(f, k, data))
                         return true;

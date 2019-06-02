@@ -6,9 +6,9 @@ using System.Text;
 using System.Xml;
 using Multiplayer.Common;
 using Verse;
-using zip::Ionic.Zip;
+using ZipFile = zip::Ionic.Zip.ZipFile;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Desyncs
 {
     public static class UserReadableDesyncInfo
     {
@@ -174,7 +174,7 @@ namespace Multiplayer.Client
 
             //If this is a sync command, add data on the handler used.
             if (cmd.type == CommandType.Sync)
-                builder.Append($" {Sync.handlers[BitConverter.ToInt32(cmd.data, 0)]}");
+                builder.Append($" {Sync.Sync.handlers[BitConverter.ToInt32(cmd.data, 0)]}");
 
             builder.AppendLine();
         }

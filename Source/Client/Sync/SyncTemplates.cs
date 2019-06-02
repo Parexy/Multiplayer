@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
+﻿using System.Reflection;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Sync
 {
     public static class SyncTemplates
     {

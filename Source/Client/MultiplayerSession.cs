@@ -10,6 +10,9 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using Multiplayer.Client.Comp;
+using Multiplayer.Client.Desyncs;
+using Multiplayer.Client.Windows;
 using UnityEngine;
 using Verse;
 using Verse.Sound;
@@ -22,7 +25,7 @@ namespace Multiplayer.Client
         public string gameName;
         public int playerId;
 
-        public IConnection client;
+        public IMultiplayerConnection client;
         public NetManager netClient;
         public PacketLogWindow packetLog = new PacketLogWindow();
         public int myFactionId;

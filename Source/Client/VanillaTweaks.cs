@@ -7,6 +7,8 @@ using System.Linq;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Text;
+using Multiplayer.Client.Persistent;
+using Multiplayer.Client.Windows;
 using UnityEngine;
 using Verse;
 

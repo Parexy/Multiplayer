@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Desyncs
 {
     public class StackTraceLogItem
     {

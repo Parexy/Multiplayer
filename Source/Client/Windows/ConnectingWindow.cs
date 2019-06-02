@@ -1,14 +1,9 @@
-﻿using Multiplayer.Common;
+﻿using Multiplayer.Client.Networking;
 using Steamworks;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Text;
 using UnityEngine;
 using Verse;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Windows
 {
     public abstract class BaseConnectingWindow : Window, IConnectionStatusListener
     {
@@ -76,7 +71,7 @@ namespace Multiplayer.Client
             this.address = address;
             this.port = port;
 
-            ClientUtil.TryConnect(address, port);
+            ClientUtil.TryConnectDirect(address, port);
         }
     }
 

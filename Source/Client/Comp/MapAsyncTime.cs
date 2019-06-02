@@ -1,22 +1,16 @@
 ﻿extern alias zip;
-
-using Harmony;
-using Multiplayer.Common;
-using RimWorld;
-using RimWorld.Planet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
+using Harmony;
+using Multiplayer.Client.Sync;
+using Multiplayer.Common;
+using RimWorld;
+using RimWorld.Planet;
 using UnityEngine;
 using Verse;
-using Verse.AI;
-using Verse.Sound;
-using zip::Ionic.Zip;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Comp
 {
     [MpPatch(typeof(Map), nameof(Map.MapPreTick))]
     [MpPatch(typeof(Map), nameof(Map.MapPostTick))]
@@ -684,7 +678,7 @@ namespace Multiplayer.Client
             {
                 if (cmdType == CommandType.Sync)
                 {
-                    Sync.HandleCmd(data);
+                    Sync.Sync.HandleCmd(data);
                 }
 
                 if (cmdType == CommandType.DebugTools)
@@ -816,8 +810,8 @@ namespace Multiplayer.Client
 
         private void HandleDesignator(ScheduledCommand command, ByteReader data)
         {
-            DesignatorMode mode = Sync.ReadSync<DesignatorMode>(data);
-            Designator designator = Sync.ReadSync<Designator>(data);
+            DesignatorMode mode = Sync.Sync.ReadSync<DesignatorMode>(data);
+            Designator designator = Sync.Sync.ReadSync<Designator>(data);
             if (designator == null) return;
 
             try
@@ -826,20 +820,20 @@ namespace Multiplayer.Client
 
                 if (mode == DesignatorMode.SingleCell)
                 {
-                    IntVec3 cell = Sync.ReadSync<IntVec3>(data);
+                    IntVec3 cell = Sync.Sync.ReadSync<IntVec3>(data);
 
                     designator.DesignateSingleCell(cell);
                     designator.Finalize(true);
                 }
                 else if (mode == DesignatorMode.MultiCell)
                 {
-                    IntVec3[] cells = Sync.ReadSync<IntVec3[]>(data);
+                    IntVec3[] cells = Sync.Sync.ReadSync<IntVec3[]>(data);
 
                     designator.DesignateMultiCell(cells);
                 }
                 else if (mode == DesignatorMode.Thing)
                 {
-                    Thing thing = Sync.ReadSync<Thing>(data);
+                    Thing thing = Sync.Sync.ReadSync<Thing>(data);
                     if (thing == null) return;
 
                     designator.DesignateThing(thing);
@@ -856,33 +850,33 @@ namespace Multiplayer.Client
         {
             if (designator is Designator_AreaAllowed)
             {
-                Area area = Sync.ReadSync<Area>(data);
+                Area area = Sync.Sync.ReadSync<Area>(data);
                 if (area == null) return false;
                 Designator_AreaAllowed.selectedArea = area;
             }
 
             if (designator is Designator_Place place)
             {
-                place.placingRot = Sync.ReadSync<Rot4>(data);
+                place.placingRot = Sync.Sync.ReadSync<Rot4>(data);
             }
 
             if (designator is Designator_Build build && build.PlacingDef.MadeFromStuff)
             {
-                ThingDef stuffDef = Sync.ReadSync<ThingDef>(data);
+                ThingDef stuffDef = Sync.Sync.ReadSync<ThingDef>(data);
                 if (stuffDef == null) return false;
                 build.stuffDef = stuffDef;
             }
 
             if (designator is Designator_Install)
             {
-                Thing thing = Sync.ReadSync<Thing>(data);
+                Thing thing = Sync.Sync.ReadSync<Thing>(data);
                 if (thing == null) return false;
                 DesignatorInstallPatch.thingToInstall = thing;
             }
 
             if (designator is Designator_Zone)
             {
-                Zone zone = Sync.ReadSync<Zone>(data);
+                Zone zone = Sync.Sync.ReadSync<Zone>(data);
                 if (zone != null)
                     Find.Selector.selected.Add(zone);
             }

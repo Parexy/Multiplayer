@@ -24,6 +24,10 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Xml;
+using Multiplayer.Client.Comp;
+using Multiplayer.Client.Networking;
+using Multiplayer.Client.Sync;
+using Multiplayer.Client.Windows;
 using UnityEngine;
 using Verse;
 using Verse.Profile;
@@ -38,7 +42,7 @@ namespace Multiplayer.Client
         public static MultiplayerSession session;
         public static MultiplayerGame game;
 
-        public static IConnection Client => session?.client;
+        public static IMultiplayerConnection Client => session?.client;
         public static MultiplayerServer LocalServer => session?.localServer;
         public static PacketLogWindow PacketLog => session?.packetLog;
         public static bool IsReplay => session?.replay ?? false;
@@ -117,7 +121,7 @@ namespace Multiplayer.Client
             MpConnectionState.SetImplementation(ConnectionStateEnum.ClientPlaying, typeof(ClientPlayingState));
 
             CollectCursorIcons();
-            Sync.CollectTypes();
+            Sync.Sync.CollectTypes();
 
             try
             {
@@ -131,7 +135,7 @@ namespace Multiplayer.Client
             try
             {
                 SyncHandlers.Init();
-                Sync.RegisterAllSyncMethods();
+                Sync.Sync.RegisterAllSyncMethods();
             }
             catch (Exception e)
             {
@@ -150,7 +154,7 @@ namespace Multiplayer.Client
             Log.messageQueue.maxMessages = 1000;
 
             // todo run it later
-            Sync.InitHandlers();
+            Sync.Sync.InitHandlers();
 
             DoubleLongEvent(() =>
             {
@@ -204,7 +208,7 @@ namespace Multiplayer.Client
                 if (split.Length == 2)
                     int.TryParse(split[1], out port);
 
-                DoubleLongEvent(() => ClientUtil.TryConnect(ip, port), "Connecting");
+                DoubleLongEvent(() => ClientUtil.TryConnectDirect(ip, port), "Connecting");
             }
 
             if (GenCommandLine.CommandLineArgPassed("arbiter"))
@@ -240,7 +244,7 @@ namespace Multiplayer.Client
 
         public class SyncContainer
         {
-            public List<SyncHandler> handlers = Sync.handlers;
+            public List<SyncHandler> handlers = Sync.Sync.handlers;
         }
 
         private static void DoPatches()
@@ -409,15 +413,15 @@ namespace Multiplayer.Client
 
             int TypeHash(Type type) => GenText.StableStringHash(type.FullName);
 
-            dict["ThingComp"] = GetDefInfo(Sync.thingCompTypes, TypeHash);
-            dict["Designator"] = GetDefInfo(Sync.designatorTypes, TypeHash);
-            dict["WorldObjectComp"] = GetDefInfo(Sync.worldObjectCompTypes, TypeHash);
-            dict["IStoreSettingsParent"] = GetDefInfo(Sync.storageParents, TypeHash);
-            dict["IPlantToGrowSettable"] = GetDefInfo(Sync.plantToGrowSettables, TypeHash);
+            dict["ThingComp"] = GetDefInfo(Sync.Sync.thingCompTypes, TypeHash);
+            dict["Designator"] = GetDefInfo(Sync.Sync.designatorTypes, TypeHash);
+            dict["WorldObjectComp"] = GetDefInfo(Sync.Sync.worldObjectCompTypes, TypeHash);
+            dict["IStoreSettingsParent"] = GetDefInfo(Sync.Sync.storageParents, TypeHash);
+            dict["IPlantToGrowSettable"] = GetDefInfo(Sync.Sync.plantToGrowSettables, TypeHash);
 
-            dict["GameComponent"] = GetDefInfo(Sync.gameCompTypes, TypeHash);
-            dict["WorldComponent"] = GetDefInfo(Sync.worldCompTypes, TypeHash);
-            dict["MapComponent"] = GetDefInfo(Sync.mapCompTypes, TypeHash);
+            dict["GameComponent"] = GetDefInfo(Sync.Sync.gameCompTypes, TypeHash);
+            dict["WorldComponent"] = GetDefInfo(Sync.Sync.worldCompTypes, TypeHash);
+            dict["MapComponent"] = GetDefInfo(Sync.Sync.mapCompTypes, TypeHash);
 
             dict["PawnBio"] = GetDefInfo(SolidBioDatabase.allBios, b => b.name.GetHashCode());
             dict["Backstory"] = GetDefInfo(BackstoryDatabase.allBackstories.Keys, b => b.GetHashCode());

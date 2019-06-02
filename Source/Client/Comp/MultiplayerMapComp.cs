@@ -1,15 +1,12 @@
-﻿using Harmony;
-using Multiplayer.Common;
-using RimWorld;
-using RimWorld.Planet;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Text;
+using Harmony;
+using Multiplayer.Client.Persistent;
+using RimWorld;
 using Verse;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Comp
 {
     public class MultiplayerMapComp : IExposable
     {

@@ -11,6 +11,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
+using Multiplayer.Client.Desyncs;
 using UnityEngine;
 using Verse;
 using Verse.Profile;
@@ -21,7 +22,7 @@ namespace Multiplayer.Client
     {
         public JoiningState state = JoiningState.Connected;
 
-        public ClientJoiningState(IConnection connection) : base(connection)
+        public ClientJoiningState(IMultiplayerConnection connection) : base(connection)
         {
             connection.Send(Packets.Client_Protocol, MpVersion.Protocol);
 
@@ -193,7 +194,7 @@ namespace Multiplayer.Client
 
     public class ClientPlayingState : MpConnectionState
     {
-        public ClientPlayingState(IConnection connection) : base(connection)
+        public ClientPlayingState(IMultiplayerConnection connection) : base(connection)
         {
         }
 
@@ -392,7 +393,7 @@ namespace Multiplayer.Client
 
     public class ClientSteamState : MpConnectionState
     {
-        public ClientSteamState(IConnection connection) : base(connection)
+        public ClientSteamState(IMultiplayerConnection connection) : base(connection)
         {
             //connection.Send(Packets.Client_SteamRequest);
         }

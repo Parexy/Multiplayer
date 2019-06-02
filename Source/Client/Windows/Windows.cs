@@ -1,13 +1,14 @@
-﻿using Multiplayer.Common;
-using RimWorld;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Multiplayer.Client.Sync;
+using Multiplayer.Common;
+using RimWorld;
 using UnityEngine;
 using Verse;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Windows
 {
     public class PacketLogWindow : Window
     {

@@ -150,7 +150,7 @@ namespace Multiplayer.Client
         public static void LoadReplay(FileInfo file, bool toEnd = false, Action after = null, Action cancel = null, string simTextKey = null)
         {
             var session = Multiplayer.session = new MultiplayerSession();
-            session.client = new ReplayConnection();
+            session.client = new ReplayMultiplayerConnection();
             session.client.State = ConnectionStateEnum.ClientPlaying;
             session.replay = true;
 
@@ -213,7 +213,7 @@ namespace Multiplayer.Client
         public Color color;
     }
 
-    public class ReplayConnection : IConnection
+    public class ReplayMultiplayerConnection : IMultiplayerConnection
     {
         protected override void SendRaw(byte[] raw, bool reliable)
         {

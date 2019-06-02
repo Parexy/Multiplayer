@@ -1,25 +1,24 @@
 ﻿extern alias zip;
-
-using LiteNetLib;
-using Multiplayer.Common;
-using RimWorld;
-using Steamworks;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
 using System.Xml;
+using Harmony;
+using LiteNetLib;
+using Multiplayer.Client.Desyncs;
+using Multiplayer.Client.Networking;
+using Multiplayer.Common;
+using RimWorld;
+using Steamworks;
 using UnityEngine;
 using Verse;
 using Verse.Steam;
-using Harmony;
-using zip::Ionic.Zip;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Windows
 {
     [HotSwappable]
     public class ServerBrowser : Window
@@ -504,7 +503,7 @@ namespace Multiplayer.Client
 
                         Find.WindowStack.Add(new SteamConnectingWindow(friend.serverHost) { returnToServerBrowser = true });
 
-                        var conn = new SteamClientConn(friend.serverHost);
+                        var conn = new SteamClientToServerConnection(friend.serverHost);
                         conn.username = Multiplayer.username;
                         Multiplayer.session = new MultiplayerSession();
 
