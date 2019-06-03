@@ -2,8 +2,14 @@ using Steamworks;
 
 namespace Multiplayer.Common.Networking
 {
+    /// <summary>
+    /// Base class for either client -> server or server -> client connections that are routed through the steam friends network.
+    /// </summary>
     public abstract class SteamBaseConnection : IMultiplayerConnection
     {
+        /// <summary>
+        /// The steam ID of the remote.
+        /// </summary>
         public readonly CSteamID remoteSteamId;
 
         public SteamBaseConnection(CSteamID remoteId)
@@ -11,6 +17,11 @@ namespace Multiplayer.Common.Networking
             remoteSteamId = remoteId;
         }
 
+        /// <summary>
+        /// Sends packets through the steam network
+        /// </summary>
+        /// <param name="raw">The raw data contained within the packet</param>
+        /// <param name="reliable">Set to true to tell steam to send this packet reliably.</param>
         protected override void SendRaw(byte[] raw, bool reliable)
         {
             byte[] packet = new byte[1 + raw.Length];
@@ -20,11 +31,19 @@ namespace Multiplayer.Common.Networking
             SteamNetworking.SendP2PPacket(remoteSteamId, packet, (uint)packet.Length, reliable ? EP2PSend.k_EP2PSendReliable : EP2PSend.k_EP2PSendUnreliable, 0);
         }
 
+        /// <summary>
+        /// Overriden to send a <see cref="Packets.Special_Steam_Disconnect"/> packet instead of just closing the connection
+        /// </summary>
+        /// <param name="reason">Why we're closing this connection</param>
+        /// <param name="data">Additional data to send with the DC packet.</param>
         public override void Close(MpDisconnectReason reason, byte[] data)
         {
             Send(Packets.Special_Steam_Disconnect, GetDisconnectBytes(reason, data));
         }
 
+        /// <summary>
+        /// Overriden to handle <see cref="Packets.Special_Steam_Disconnect"/> packets.
+        /// </summary>
         protected override void HandleReceive(int msgId, int fragState, ByteReader reader, bool reliable)
         {
             if (msgId == (int)Packets.Special_Steam_Disconnect)

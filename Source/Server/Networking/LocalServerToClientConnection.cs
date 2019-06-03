@@ -6,6 +6,10 @@ using Verse;
 
 namespace Multiplayer.Server.Networking
 {
+    /// <summary>
+    /// Class for handling a connection to the "client" side of a game instance, when said instance is hosting a server.
+    /// Doesn't actually send any information across the network, even locally, just calls into the client thread. 
+    /// </summary>
     public class ServerToClientLocalhostConnection : IMultiplayerConnection
     {
         public ClientToServerLocalhostConnection clientSide;
