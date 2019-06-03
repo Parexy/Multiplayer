@@ -16,6 +16,7 @@ using System.Text;
 using System.Xml;
 using Multiplayer.Client.Comp;
 using Multiplayer.Client.Sync;
+using Multiplayer.Common.Networking;
 using UnityEngine;
 using Verse;
 using zip::Ionic.Zip;

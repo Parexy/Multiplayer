@@ -8,6 +8,8 @@ using LiteNetLib;
 using Multiplayer.Client.Comp;
 using Multiplayer.Client.Windows;
 using Multiplayer.Common;
+using Multiplayer.Common.Networking;
+using Multiplayer.Server;
 using Multiplayer.Server.Networking;
 using RimWorld;
 using Verse;
@@ -228,7 +230,7 @@ namespace Multiplayer.Client.Networking
             serverPlayer.SendPlayerList();
 
             Multiplayer.session.client = client2Server;
-            Multiplayer.session.ReapplyPrefs();
+            Multiplayer.session.ForceAllowRunInBackground();
         }
 
         /// <summary>

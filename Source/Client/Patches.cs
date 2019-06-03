@@ -16,6 +16,8 @@ using System.Xml;
 using System.Xml.Linq;
 using Multiplayer.Client.Comp;
 using Multiplayer.Client.Windows;
+using Multiplayer.Common.Networking;
+using Multiplayer.Server;
 using UnityEngine;
 using Verse;
 using Verse.AI;

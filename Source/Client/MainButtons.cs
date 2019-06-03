@@ -9,6 +9,7 @@ using System.Text;
 using Multiplayer.Client.Comp;
 using Multiplayer.Client.Persistent;
 using Multiplayer.Client.Windows;
+using Multiplayer.Server;
 using UnityEngine;
 using Verse;
 
@@ -126,7 +127,7 @@ namespace Multiplayer.Client
                     var biggerRect = new Rect(btnRect.x - 25f - 5f + 2f / 2f, btnRect.y + 2f / 2f, 23f, 23f);
 
                     if (slow && Widgets.ButtonInvisible(biggerRect))
-                        TickPatch.SkipTo(toTickUntil: true, canESC: true);
+                        TickPatch.SkipTo(tickUntilCaughtUp: true, canESC: true);
 
                     Widgets.DrawRectFast(biggerRect, new Color(color.r * 0.6f, color.g * 0.6f, color.b * 0.6f));
                     Widgets.DrawRectFast(indRect, color);

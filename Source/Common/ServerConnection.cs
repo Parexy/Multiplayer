@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Multiplayer.Common.Networking;
+using Multiplayer.Server;
 
 namespace Multiplayer.Common
 {

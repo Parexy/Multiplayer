@@ -25,7 +25,7 @@ namespace Multiplayer.Client
 
         public static TimeSpeed replayTimeSpeed;
 
-        static bool skipToTickUntil;
+        static bool skipUntilCaughtUp;
         public static int skipTo = -1;
         static Action afterSkip;
         public static bool canESCSkip;
@@ -75,7 +75,7 @@ namespace Multiplayer.Client
             if (Multiplayer.IsReplay && replayTimeSpeed == TimeSpeed.Paused)
                 accumulator = 0;
 
-            if (skipToTickUntil)
+            if (skipUntilCaughtUp)
                 skipTo = tickUntil;
 
             CheckFinishSkipping();
@@ -100,10 +100,10 @@ namespace Multiplayer.Client
             }
         }
 
-        public static void SkipTo(int ticks = 0, bool toTickUntil = false, Action onFinish = null, Action onCancel = null, string cancelButtonKey = null, bool canESC = false, string simTextKey = null)
+        public static void SkipTo(int ticks = 0, bool tickUntilCaughtUp = false, Action onFinish = null, Action onCancel = null, string cancelButtonKey = null, bool canESC = false, string simTextKey = null)
         {
             skipTo = ticks;
-            skipToTickUntil = toTickUntil;
+            skipUntilCaughtUp = tickUntilCaughtUp;
             afterSkip = onFinish;
             cancelSkip = onCancel;
             canESCSkip = canESC;
@@ -114,7 +114,7 @@ namespace Multiplayer.Client
         public static void ClearSkipping()
         {
             skipTo = -1;
-            skipToTickUntil = false;
+            skipUntilCaughtUp = false;
             accumulator = 0;
             afterSkip = null;
             cancelSkip = null;

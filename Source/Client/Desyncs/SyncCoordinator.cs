@@ -9,6 +9,7 @@ using System.Text;
 using Harmony;
 using Multiplayer.Client.Windows;
 using Multiplayer.Common;
+using Multiplayer.Common.Networking;
 using RimWorld;
 using UnityEngine;
 using Verse;

@@ -4,8 +4,15 @@ using Steamworks;
 
 namespace Multiplayer.Client.Networking
 {
+    /// <summary>
+    /// Class for handling the client -> server connection across steam. Uses <see cref="SteamNetworking"/>'s functions to transmit data.
+    /// </summary>
     public class SteamClientToServerConnection : SteamBaseConnection
     {
+        /// <summary>
+        /// Constructor that clears the steam p2p channel and sends an initial test packet.
+        /// </summary>
+        /// <param name="remoteId">The steam id of the player hosting the server.</param>
         public SteamClientToServerConnection(CSteamID remoteId) : base(remoteId)
         {
             SteamIntegration.ClearChannel(0);
@@ -13,6 +20,9 @@ namespace Multiplayer.Client.Networking
             SteamNetworking.SendP2PPacket(remoteId, new byte[] { 1 }, 1, EP2PSend.k_EP2PSendReliable, 0);
         }
 
+        /// <summary>
+        ///  Override to handle the <see cref="Packets.Special_Steam_Disconnect"/> packet to terminate the connection.
+        /// </summary>
         protected override void HandleReceive(int msgId, int fragState, ByteReader reader, bool reliable)
         {
             if (msgId == (int)Packets.Special_Steam_Disconnect)

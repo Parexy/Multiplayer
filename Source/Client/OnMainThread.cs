@@ -8,6 +8,7 @@ using System.Linq;
 using Multiplayer.Client.Sync;
 using Multiplayer.Client.Windows;
 using Multiplayer.Common.Networking;
+using Multiplayer.Server;
 using UnityEngine;
 using Verse;
 using Verse.Steam;

@@ -5,10 +5,17 @@ using Verse;
 
 namespace Multiplayer.Client.Networking
 {
+    /// <summary>
+    /// Class for handling a connection to the local server, when our instance of the game hosting a server.
+    /// Doesn't actually send any information across the network, even locally, just calls into the server thread. 
+    /// </summary>
     public class ClientToServerLocalhostConnection : IMultiplayerConnection
     {
         public ServerToClientLocalhostConnection serverSide;
 
+        /// <summary>
+        /// Latency to localhost is always 0
+        /// </summary>
         public override int Latency { get => 0; set { } }
 
         public ClientToServerLocalhostConnection(string username)
@@ -16,6 +23,11 @@ namespace Multiplayer.Client.Networking
             this.username = username;
         }
 
+        /// <summary>
+        /// "Send" data to the server by calling <see cref="IMultiplayerConnection.HandleReceive"/> on the server thread with the data.
+        /// </summary>
+        /// <param name="raw">The data to send</param>
+        /// <param name="reliable">If this data should be sent reliably.</param>
         protected override void SendRaw(byte[] raw, bool reliable)
         {
             Multiplayer.LocalServer.Enqueue(() =>
@@ -31,7 +43,10 @@ namespace Multiplayer.Client.Networking
             });
         }
 
-        public override void Close(MpDisconnectReason reason, byte[] data)
+        /// <summary>
+        /// Does nothing, as you can't close the local connection
+        /// </summary>
+        public override void Close(MpDisconnectReason reason = MpDisconnectReason.Generic, byte[] data = null)
         {
         }
 

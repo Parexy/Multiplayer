@@ -12,6 +12,8 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Xml;
 using Multiplayer.Client.Desyncs;
+using Multiplayer.Common.Networking;
+using Multiplayer.Server;
 using UnityEngine;
 using Verse;
 using Verse.Profile;
@@ -106,7 +108,7 @@ namespace Multiplayer.Client
             TickPatch.tickUntil = tickUntil;
 
             TickPatch.SkipTo(
-                toTickUntil: true,
+                tickUntilCaughtUp: true,
                 onFinish: () => Multiplayer.Client.Send(Packets.Client_WorldReady),
                 cancelButtonKey: "Quit",
                 onCancel: GenScene.GoToMainMenu

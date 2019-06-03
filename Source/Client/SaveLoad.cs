@@ -13,6 +13,7 @@ using System.Xml;
 using Multiplayer.Client.Comp;
 using Multiplayer.Client.Sync;
 using Multiplayer.Client.Windows;
+using Multiplayer.Common.Networking;
 using UnityEngine;
 using Verse;
 using Verse.Profile;

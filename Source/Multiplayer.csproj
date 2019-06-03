@@ -134,13 +134,14 @@
     <Compile Include="Common\Commands.cs" />
     <Compile Include="Common\Extensions.cs" />
     <Compile Include="Common\MpLog.cs" />
-    <Compile Include="Common\MultiplayerServer.cs" />
     <Compile Include="Common\Networking.cs" />
+    <Compile Include="Common\Networking\ConnectionStateEnum.cs" />
+    <Compile Include="Common\Networking\Packets.cs" />
     <Compile Include="Common\Networking\SteamBaseConnection.cs" />
-    <Compile Include="Common\Packets.cs" />
     <Compile Include="Common\ServerConnection.cs" />
     <Compile Include="Common\Version.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Server\MultiplayerServer.cs" />
     <Compile Include="Server\Networking\LocalServerToClientConnection.cs" />
     <Compile Include="Server\Networking\SteamServerToClientConnection.cs" />
   </ItemGroup>

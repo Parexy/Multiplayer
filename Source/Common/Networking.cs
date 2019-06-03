@@ -6,6 +6,8 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using Multiplayer.Common.Networking;
+using Multiplayer.Server;
 
 namespace Multiplayer.Common
 {

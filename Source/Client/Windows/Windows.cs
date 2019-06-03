@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Multiplayer.Client.Sync;
 using Multiplayer.Common;
+using Multiplayer.Common.Networking;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -105,7 +106,7 @@ namespace Multiplayer.Client.Windows
                 Multiplayer.session.resyncing = true;
 
                 TickPatch.SkipTo(
-                    toTickUntil: true,
+                    tickUntilCaughtUp: true,
                     onFinish: () =>
                     {
                         Multiplayer.session.resyncing = false;

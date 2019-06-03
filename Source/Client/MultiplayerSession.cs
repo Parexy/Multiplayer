@@ -13,6 +13,8 @@ using System.Threading;
 using Multiplayer.Client.Comp;
 using Multiplayer.Client.Desyncs;
 using Multiplayer.Client.Windows;
+using Multiplayer.Common.Networking;
+using Multiplayer.Server;
 using UnityEngine;
 using Verse;
 using Verse.Sound;
@@ -175,7 +177,7 @@ namespace Multiplayer.Client
                 Find.WindowStack.Add(new DefMismatchWindow(mods));
         }
 
-        public void ReapplyPrefs()
+        public void ForceAllowRunInBackground()
         {
             Application.runInBackground = true;
         }

@@ -6,6 +6,7 @@ using RimWorld;
 using System.Linq;
 using Multiplayer.Client.Comp;
 using Multiplayer.Client.Sync;
+using Multiplayer.Common.Networking;
 using Verse;
 
 namespace Multiplayer.Client

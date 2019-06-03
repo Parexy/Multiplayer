@@ -12,6 +12,8 @@ using LiteNetLib;
 using Multiplayer.Client.Desyncs;
 using Multiplayer.Client.Networking;
 using Multiplayer.Common;
+using Multiplayer.Common.Networking;
+using Multiplayer.Server;
 using RimWorld;
 using Steamworks;
 using UnityEngine;
@@ -508,7 +510,7 @@ namespace Multiplayer.Client.Windows
                         Multiplayer.session = new MultiplayerSession();
 
                         Multiplayer.session.client = conn;
-                        Multiplayer.session.ReapplyPrefs();
+                        Multiplayer.session.ForceAllowRunInBackground();
 
                         conn.State = ConnectionStateEnum.ClientSteam;
                     }

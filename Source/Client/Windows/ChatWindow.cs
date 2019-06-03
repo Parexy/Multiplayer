@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Text;
 using Multiplayer.Common;
+using Multiplayer.Common.Networking;
+using Multiplayer.Server;
 using RimWorld;
 using Steamworks;
 using UnityEngine;
