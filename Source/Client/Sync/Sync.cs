@@ -1063,7 +1063,7 @@ namespace Multiplayer.Client
         public static void Watch(this SyncField[] group, object target = null, int index = -1)
         {
             foreach (SyncField field in group)
-                if (field.targetType == null || field.targetType.IsAssignableFrom(target.GetType()))
+                if (field.targetType == null || (target != null && field.targetType.IsAssignableFrom(target.GetType())))
                     field.Watch(target, index);
         }
 
