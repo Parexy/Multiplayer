@@ -3,7 +3,7 @@
 <Manifest>
 
   <identifier>Multiplayer</identifier>
-  <version>{{version}}</version>
+  <version>0.4.7.1</version>
   <manifestUri>https://raw.githubusercontent.com/Parexy/Multiplayer/master/About/Manifest.xml</manifestUri>
   <downloadUri>https://github.com/Parexy/Multiplayer/releases/latest</downloadUri>
 
