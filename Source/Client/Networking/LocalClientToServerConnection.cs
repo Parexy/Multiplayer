@@ -1,5 +1,4 @@
 using System;
-using Multiplayer.Common;
 using Multiplayer.Common.Networking;
 using Multiplayer.Common.Networking.Connection;
 using Multiplayer.Server.Networking;

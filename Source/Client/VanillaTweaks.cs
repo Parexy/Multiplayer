@@ -1,12 +1,9 @@
 ﻿using Harmony;
 using RimWorld;
-using RimWorld.Planet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
-using System.Text;
 using Multiplayer.Client.Persistent;
 using Multiplayer.Client.Windows;
 using UnityEngine;

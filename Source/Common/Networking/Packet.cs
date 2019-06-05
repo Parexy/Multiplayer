@@ -69,6 +69,14 @@
         /// Used once per frame to tell the server what we have selected.
         /// </summary>
         Client_Selected,
+        /// <summary>
+        /// Used in the event of a desync to request the remote stacks from a player.
+        /// </summary>
+        Client_RequestRemoteStacks,
+        /// <summary>
+        /// Used by the disagreeing player in a desync to return their local stacks so the desynced player can save them as remote stacks.
+        /// </summary>
+        Client_ResponseRemoteStacks,
 
         /// <summary>
         /// Used to tell the client the server's rimworld version and the names of mods
@@ -134,6 +142,14 @@
         /// Used to tell clients what a client has selected after a <see cref="Client_Selected"/> packet.
         /// </summary>
         Server_Selected,
+        /// <summary>
+        /// Sent by the server to the disagreeing client in a desync to get their stacktraces at a certain index.
+        /// </summary>
+        Server_RequestRemoteStacks,
+        /// <summary>
+        /// Sent by the server to a desynced player to give them their disagreeing player's remote stacks.
+        /// </summary>
+        Server_ResponseRemoteStacks,
 
         /// <summary>
         /// Special field used to keep track of how many packets there are.

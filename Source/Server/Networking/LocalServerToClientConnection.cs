@@ -1,7 +1,6 @@
 using System;
 using Multiplayer.Client;
 using Multiplayer.Client.Networking;
-using Multiplayer.Common;
 using Multiplayer.Common.Networking;
 using Multiplayer.Common.Networking.Connection;
 using Verse;

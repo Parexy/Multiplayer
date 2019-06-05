@@ -30,7 +30,8 @@ namespace Multiplayer.Client.Desyncs
 
                 currentOpinion = new ClientSyncOpinion(TickPatch.Timer)
                 {
-                    isLocalClientsOpinion = true
+                    isLocalClientsOpinion = true,
+                    username = "Local Client"
                 };
 
                 return currentOpinion;
@@ -41,8 +42,8 @@ namespace Multiplayer.Client.Desyncs
 
         public ClientSyncOpinion currentOpinion;
 
-        private int lastValidTick = -1;
-        private bool arbiterWasPlayingOnLastValidTick;
+        internal int lastValidTick = -1;
+        internal bool arbiterWasPlayingOnLastValidTick;
 
         /// <summary>
         /// Adds a client opinion to the <see cref="knownClientOpinions"/> list and checks that it matches the most recent currently in there. If not, a desync event is fired.
@@ -106,6 +107,23 @@ namespace Multiplayer.Client.Desyncs
         }
 
         /// <summary>
+        /// Saves the local stack traces (saved by calls to <see cref="TryAddStackTraceForDesyncLog"/>) around the area
+        /// where a desync occurred to disk, and sends a packet to the arbiter (via the host) to make it do the same
+        /// </summary>
+        /// <param name="local">The local client's opinion, to dump the stacks from</param>
+        /// <param name="remote">A remote client's opinion, used to find where the desync occurred</param>
+        private void SaveStackTracesToDisk(ClientSyncOpinion local, ClientSyncOpinion remote)
+        {
+            Log.Message($"Saving {local.desyncStackTraces.Count} traces to disk");
+
+            //Dump the stack traces to disk
+            File.WriteAllText("local_traces.txt", GetDesyncStackTraces(local, remote, out var diffAt));
+
+            //Trigger a call to ClientConnection#HandleDebug on the arbiter instance so that arbiter_traces.txt is saved too
+            Multiplayer.Client.Send(Packet.Client_Debug, local.startTick, diffAt - 40, diffAt + 40);
+        }
+
+        /// <summary>
         /// Called by <see cref="AddClientOpinionAndCheckDesync"/> if the newly added opinion doesn't match with what other ones.
         /// </summary>
         /// <param name="oldOpinion">The first up-to-date client opinion present in <see cref="knownClientOpinions"/>, that disagreed with the new one</param>
@@ -115,165 +133,21 @@ namespace Multiplayer.Client.Desyncs
         {
             Multiplayer.Client.Send(Packet.Client_Desynced);
 
-            //Identify which of the two sync infos is local, and which is the remote.
-            var local = oldOpinion.isLocalClientsOpinion ? oldOpinion : newOpinion;
-            var remote = !oldOpinion.isLocalClientsOpinion ? oldOpinion : newOpinion;
+            Log.Message($"Desynced; old opinion from {oldOpinion.username} doesn't agree with new one from {newOpinion.username}");
 
-            //Print arbiter desync stacktrace if it exists
-            if (local.desyncStackTraces.Any())
-                SaveStackTracesToDisk(local, remote);
+            var disagreeingPlayer = Multiplayer.session.players.Find(player => player.username == newOpinion.username);
 
-            try
-            {
-                //Get the filename of the next desync file to create.
-                var desyncFilePath = FindFileNameForNextDesyncFile();
+            DesyncReporter.oldOpinion = oldOpinion;
+            DesyncReporter.newOpinion = newOpinion;
 
-                //Initialize the Replay object.
-                var replay = Replay.ForSaving(Replay.ReplayFile(desyncFilePath, Multiplayer.DesyncsDir));
+            DesyncReporter.window = new DesyncedWindow(desyncMessage);
 
-                //Write the universal replay data (i.e. world and map folders, and the info file) so this desync can be reviewed as a standard replay.
-                replay.WriteCurrentData();
-
-                //Dump our current game object.
-                var savedGame = ScribeUtil.WriteExposable(Current.Game, "game", true, ScribeMetaHeaderUtility.WriteMetaHeader);
-
-                using (var zip = replay.ZipFile)
-                using (var desyncReport = new ZipFile()) //Create a desync report for uploading to the reports server.
-                {
-                    //Write the local sync data
-                    var syncLocal = local.Serialize();
-                    zip.AddEntry("sync_local", syncLocal);
-                    desyncReport.AddEntry("sync_local", syncLocal);
-
-                    //Write the remote sync data
-                    var syncRemote = remote.Serialize();
-                    zip.AddEntry("sync_remote", syncRemote);
-                    desyncReport.AddEntry("sync_remote", syncRemote);
-
-                    //Dump the entire save file to the zip.
-                    zip.AddEntry("game_snapshot", savedGame);
-//                    desyncReport.AddEntry("game_snapshot", savedGame); //This ends up being about 15MB, we really don't want that. 
-
-                    //Add local stack traces
-                    zip.AddEntry("local_stacks", GetDesyncStackTraces(local, remote, out _));
-                    desyncReport.AddEntry("local_stacks", GetDesyncStackTraces(local, remote, out _));
-                    
-                    //Add remote's stack traces
-                    zip.AddEntry("remote_stacks", GetDesyncStackTraces(remote, local, out _));
-                    desyncReport.AddEntry("remote_stacks", GetDesyncStackTraces(remote, local, out _));
-
-                    //Prepare the desync info
-                    var desyncInfo = new StringBuilder();
-
-                    desyncInfo.AppendLine("###Tick Data###")
-                        .AppendLine($"Arbiter Connected And Playing|||{Multiplayer.session.ArbiterPlaying}")
-                        .AppendLine($"Last Valid Tick - Local|||{lastValidTick}")
-                        .AppendLine($"Arbiter Present on Last Tick|||{arbiterWasPlayingOnLastValidTick}")
-                        .AppendLine("\n###Version Data###")
-                        .AppendLine($"Multiplayer Mod Version|||{MpVersion.Version}")
-                        .AppendLine($"Rimworld Version and Rev|||{VersionControl.CurrentVersionStringWithRev}")
-                        .AppendLine("\n###Debug Options###")
-                        .AppendLine($"Multiplayer Debug Build - Client|||{MpVersion.IsDebug}")
-                        .AppendLine($"Multiplayer Debug Build - Host|||{Multiplayer.WorldComp.debugMode}")
-                        .AppendLine($"Rimworld Developer Mode - Client|||{Prefs.DevMode}")
-                        .AppendLine("\n###Server Info###")
-                        .AppendLine($"Player Count|||{Multiplayer.session.players.Count}")
-                        .AppendLine("\n###CPU Info###")
-                        .AppendLine($"Processor Name|||{SystemInfo.processorType}")
-                        .AppendLine($"Processor Speed (MHz)|||{SystemInfo.processorFrequency}")
-                        .AppendLine($"Thread Count|||{SystemInfo.processorCount}")
-                        .AppendLine("\n###GPU Info###")
-                        .AppendLine($"GPU Family|||{SystemInfo.graphicsDeviceVendor}")
-                        .AppendLine($"GPU Type|||{SystemInfo.graphicsDeviceType}")
-                        .AppendLine($"GPU Name|||{SystemInfo.graphicsDeviceName}")
-                        .AppendLine($"GPU VRAM|||{SystemInfo.graphicsMemorySize}")
-                        .AppendLine("\n###RAM Info###")
-                        .AppendLine($"Physical Memory Present|||{SystemInfo.systemMemorySize}")
-                        .AppendLine("\n###OS Info###")
-                        .AppendLine($"OS Type|||{SystemInfo.operatingSystemFamily}")
-                        .AppendLine($"OS Name and Version|||{SystemInfo.operatingSystem}");
-
-                    //Save debug info to the zip
-                    zip.AddEntry("desync_info", desyncInfo.ToString());
-                    desyncReport.AddEntry("desync_info", desyncInfo.ToString());
-
-                    zip.Save();
-                    
-                    //Add the basic info to the report
-                    desyncReport.AddEntry("info", zip["info"].GetBytes());
-
-                    desyncReport.AddEntry("ign", Multiplayer.session.GetPlayerInfo(Multiplayer.session.playerId).username);
-                    desyncReport.AddEntry("steamName", SteamUtility.SteamPersonaName);
-
-                    //Report desync to the server
-                    var request = (HttpWebRequest) WebRequest.Create("http://multiplayer.samboycoding.me/api/desync/upload");
-//                    var request = (HttpWebRequest) WebRequest.Create("http://localhost:4193/api/desync/upload");
-                    request.Method = "POST";
-                    request.ContentType = "application/zip";
-
-                    using (var stream = new MemoryStream())
-                    {
-                        desyncReport.Save(stream);
-                        
-                        stream.Seek(0, SeekOrigin.Begin);
-                        request.ContentLength = stream.Length;
-                        var data = new byte[stream.Length];
-                        stream.Read(data, 0, data.Length);
-                        
-                        using(var outStream = request.GetRequestStream())
-                            outStream.Write(data, 0, data.Length);
-                    }
-
-                    //TODO: Some user interaction here?
-                    try
-                    {
-                        using (var response = (HttpWebResponse) request.GetResponse())
-                        {
-                            if (response.StatusCode != HttpStatusCode.OK)
-                            {
-                                Log.Error("Failed to report desync; Status code " + response.StatusCode);
-                            }
-                            else
-                            {
-                                using (var stream = response.GetResponseStream())
-                                using (var reader = new StreamReader(stream))
-                                {
-                                    var desyncReportId = reader.ReadToEnd();
-                                    Log.Message("Desync Reported with ID " + desyncReportId);
-                                }
-                            }
-                        }
-                    }
-                    catch (WebException e)
-                    {
-                        Log.Error("Failed to report desync; " + e.Message);
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error($"Exception writing desync info: {e}");
-            }
-
-            Find.WindowStack.windows.Clear();
-            Find.WindowStack.Add(new DesyncedWindow(desyncMessage));
-        }
-
-        /// <summary>
-        /// Saves the local stack traces (saved by calls to <see cref="TryAddStackTraceForDesyncLog"/>) around the area
-        /// where a desync occurred to disk, and sends a packet to the arbiter (via the host) to make it do the same
-        /// </summary>
-        /// <param name="local">The local client's opinion, to dump the stacks from</param>
-        /// <param name="remote">A remote client's opinion, used to find where the desync occurred</param>
-        private void SaveStackTracesToDisk(ClientSyncOpinion local, ClientSyncOpinion remote)
-        {
-            Log.Message($"Saving {local.desyncStackTraces.Count} traces to disk");
+            GetDesyncStackTraces(oldOpinion, newOpinion, out var diffAt);
             
-            //Dump the stack traces to disk
-            File.WriteAllText("local_traces.txt", GetDesyncStackTraces(local, remote, out var diffAt));
+            Find.WindowStack.windows.Clear();
+            Find.WindowStack.Add(DesyncReporter.window);
 
-            //Trigger a call to ClientConnection#HandleDebug on the arbiter instance so that arbiter_traces.txt is saved too
-            Multiplayer.Client.Send(Packet.Client_Debug, local.startTick, diffAt - 40, diffAt + 40);
+            Multiplayer.Client.Send(Packet.Client_RequestRemoteStacks, disagreeingPlayer.id, Multiplayer.session.playerId, diffAt);
         }
 
         /// <summary>
@@ -284,7 +158,7 @@ namespace Multiplayer.Client.Desyncs
         /// <param name="compareTo">Another client's opinion, used to find where the desync occurred</param>
         /// <param name="diffAt">The index at which the desync stack traces mismatch</param>
         /// <returns></returns>
-        private string GetDesyncStackTraces(ClientSyncOpinion dumpFrom, ClientSyncOpinion compareTo, out int diffAt)
+        public string GetDesyncStackTraces(ClientSyncOpinion dumpFrom, ClientSyncOpinion compareTo, out int diffAt)
         {
             //Find the length of whichever stack trace is shorter.
             diffAt = -1;
@@ -304,25 +178,6 @@ namespace Multiplayer.Client.Desyncs
             return dumpFrom.GetFormattedStackTracesForRange(diffAt - 40, diffAt + 40, diffAt);
         }
 
-        private string FindFileNameForNextDesyncFile()
-        {
-            //Find all current existing desync zips
-            var files = new DirectoryInfo(Multiplayer.DesyncsDir).GetFiles("Desync-*.zip");
-
-            const int MaxFiles = 10;
-
-            //Delete any pushing us over the limit, and reserve room for one more
-            if (files.Length > MaxFiles - 1)
-                files.OrderByDescending(f => f.LastWriteTime).Skip(MaxFiles - 1).Do(f => f.Delete());
-
-            //Find the current max desync number
-            int max = 0;
-            foreach (var f in files)
-                if (int.TryParse(f.Name.Substring(7, f.Name.Length - 7 - 4), out int result) && result > max)
-                    max = result;
-
-            return $"Desync-{max + 1:00}";
-        }
 
         /// <summary>
         /// Adds a random state to the commandRandomStates list

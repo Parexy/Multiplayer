@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Harmony;
-using Multiplayer.Common;
 using Multiplayer.Common.Networking;
 using Verse;
 
@@ -21,6 +20,7 @@ namespace Multiplayer.Client.Desyncs
         public List<StackTraceLogItem> desyncStackTraces = new List<StackTraceLogItem>();
         public List<int> desyncStackTraceHashes = new List<int>();
         public bool simulating;
+        public string username;
 
         public ClientSyncOpinion(int startTick)
         {
@@ -76,6 +76,9 @@ namespace Multiplayer.Client.Desyncs
             writer.WritePrefixedInts(desyncStackTraceHashes);
             writer.WriteBool(simulating);
 
+            //Write our name for debugging purposes
+            writer.WriteString(Multiplayer.username);
+
             return writer.ToArray();
         }
 
@@ -98,13 +101,16 @@ namespace Multiplayer.Client.Desyncs
             var traceHashes = new List<int>(data.ReadPrefixedInts());
             var playing = data.ReadBool();
 
+            var name = data.ReadString();
+
             return new ClientSyncOpinion(startTick)
             {
                 commandRandomStates = cmds,
                 worldRandomStates = world,
                 mapStates = maps,
                 desyncStackTraceHashes = traceHashes,
-                simulating = playing
+                simulating = playing,
+                username = name
             };
         }
 

@@ -1,7 +1,6 @@
 ﻿extern alias zip;
 
 using Harmony;
-using Multiplayer.Common;
 using RimWorld;
 using System.Linq;
 using Multiplayer.Client.Comp;

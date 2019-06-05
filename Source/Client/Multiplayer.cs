@@ -1,29 +1,16 @@
 ﻿extern alias zip;
 
 using Harmony;
-using Harmony.ILCopying;
-using Ionic.Crc;
-using Ionic.Zlib;
-using LiteNetLib;
 using Multiplayer.Common;
 using RimWorld;
-using RimWorld.Planet;
-using Steamworks;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Pipes;
 using System.Linq;
-using System.Net;
-using System.Net.Sockets;
 using System.Reflection;
-using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Text.RegularExpressions;
-using System.Threading;
-using System.Xml;
 using Multiplayer.Client.Comp;
 using Multiplayer.Client.Networking;
 using Multiplayer.Client.Networking.Handler;
@@ -35,7 +22,6 @@ using Multiplayer.Common.Networking.Handler;
 using Multiplayer.Server;
 using UnityEngine;
 using Verse;
-using Verse.Profile;
 using Verse.Sound;
 using Verse.Steam;
 

@@ -73,6 +73,7 @@
     <Compile Include="Client\CacheForReloading.cs" />
     <Compile Include="Client\ConstantTicker.cs" />
     <Compile Include="Client\Desyncs\ClientSyncOpinion.cs" />
+    <Compile Include="Client\Desyncs\DesyncReporter.cs" />
     <Compile Include="Client\Desyncs\MapRandomStateData.cs" />
     <Compile Include="Client\Desyncs\StackTraceLogItem.cs" />
     <Compile Include="Client\Desyncs\SyncCoordinator.cs" />
@@ -100,6 +101,7 @@
     <Compile Include="Client\DebugTools.cs" />
     <Compile Include="Client\Designators.cs" />
     <Compile Include="Client\Extensions.cs" />
+    <Compile Include="Client\Windows\DesyncedWindow.cs" />
     <Compile Include="Client\Windows\DisconnectedWindow.cs" />
     <Compile Include="Client\Windows\HostWindow.cs" />
     <Compile Include="Client\MainButtons.cs" />
@@ -162,8 +164,8 @@
     <Compile Include="Server\IdBlock.cs" />
     <Compile Include="Server\MultiplayerServer.cs" />
     <Compile Include="Server\Networking\LocalServerToClientConnection.cs" />
-    <Compile Include="Server\Networking\State\ServerHandshakePacketHandler.cs" />
-    <Compile Include="Server\Networking\State\ServerGameplayPacketHandler.cs" />
+    <Compile Include="Server\Networking\Handler\ServerHandshakePacketHandler.cs" />
+    <Compile Include="Server\Networking\Handler\ServerGameplayPacketHandler.cs" />
     <Compile Include="Server\Networking\SteamServerToClientConnection.cs" />
     <Compile Include="Server\ServerNetListener.cs" />
     <Compile Include="Server\ServerPlayer.cs" />

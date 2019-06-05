@@ -10,7 +10,7 @@ using Multiplayer.Common;
 using Multiplayer.Common.Networking;
 using Multiplayer.Common.Networking.Connection;
 using Multiplayer.Common.Networking.Handler;
-using Multiplayer.Server.Networking.State;
+using Multiplayer.Server.Networking.Handler;
 using Verse;
 
 namespace Multiplayer.Server

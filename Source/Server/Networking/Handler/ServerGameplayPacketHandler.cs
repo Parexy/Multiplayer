@@ -4,7 +4,7 @@ using Multiplayer.Common.Networking;
 using Multiplayer.Common.Networking.Connection;
 using Multiplayer.Common.Networking.Handler;
 
-namespace Multiplayer.Server.Networking.State
+namespace Multiplayer.Server.Networking.Handler
 {
     public class ServerGameplayPacketHandler : MpPacketHandler
     {
@@ -27,7 +27,7 @@ namespace Multiplayer.Server.Networking.State
         [HandlesPacket(Packet.Client_Command)]
         public void HandleClientCommand(ByteReader data)
         {
-            CommandType cmd = (CommandType)data.ReadInt32();
+            CommandType cmd = (CommandType) data.ReadInt32();
             int mapId = data.ReadInt32();
             byte[] extra = data.ReadPrefixedBytes(32767);
 
@@ -178,7 +178,7 @@ namespace Multiplayer.Server.Networking.State
             if (connection is MpNetMultiplayerConnection) return;
 
             if (MultiplayerServer.instance.keepAliveId == id)
-                connection.Latency = (int)MultiplayerServer.instance.lastKeepAlive.ElapsedMilliseconds / 2;
+                connection.Latency = (int) MultiplayerServer.instance.lastKeepAlive.ElapsedMilliseconds / 2;
             else
                 connection.Latency = 2000;
         }
@@ -204,7 +204,7 @@ namespace Multiplayer.Server.Networking.State
             if (Server.paused == pause) return;
 
             Server.paused = pause;
-            Server.SendToAll(Packet.Server_Pause, new object[] { pause });
+            Server.SendToAll(Packet.Server_Pause, new object[] {pause});
         }
 
         [HandlesPacket(Packet.Client_Debug)]
@@ -213,6 +213,23 @@ namespace Multiplayer.Server.Networking.State
             if (!MpVersion.IsDebug) return;
 
             Server.PlayingPlayers.FirstOrDefault(p => p.IsArbiter)?.SendPacket(Packet.Server_Debug, data.ReadRaw(data.Left));
+        }
+
+        [HandlesPacket(Packet.Client_RequestRemoteStacks)]
+        public void ForwardRemoteStacksRequest(ByteReader data)
+        {
+            var id = data.ReadInt32();
+            var requesterId = data.ReadInt32(); 
+            var diffAt = data.ReadInt32();
+
+            Server.PlayingPlayers.FirstOrDefault(p => p.id == id)?.SendPacket(Packet.Server_RequestRemoteStacks, new object[] {requesterId, diffAt});
+        }
+
+        [HandlesPacket(Packet.Client_ResponseRemoteStacks)]
+        public void ForwardRemoteStacksResponse(ByteReader data)
+        {
+            var destId = data.ReadInt32();
+            Server.PlayingPlayers.FirstOrDefault(p => p.id == destId)?.SendPacket(Packet.Server_ResponseRemoteStacks, data.ReadRaw(data.Left));
         }
     }
 }

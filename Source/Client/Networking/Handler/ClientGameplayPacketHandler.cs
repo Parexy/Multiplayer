@@ -212,5 +212,28 @@ namespace Multiplayer.Client.Networking.Handler
             Log.Message($"{info?.desyncStackTraces.Count} arbiter traces");
             File.WriteAllText("arbiter_traces.txt", info?.GetFormattedStackTracesForRange(start, end, (start + end) / 2) ?? "null");
         }
+
+        [HandlesPacket(Packet.Server_RequestRemoteStacks)]
+        public void DumpStacksForRemoteDesyncedPlayer(ByteReader data)
+        {
+            var requesterId = data.ReadInt32();
+            var index = data.ReadInt32();
+            
+            var writer = new ByteWriter();
+            writer.WriteInt32(requesterId);
+            writer.WritePrefixedBytes(GZipStream.CompressString(Multiplayer.game.sync.currentOpinion.GetFormattedStackTracesForRange(index - 40, index + 40, index)));
+            
+            Multiplayer.Client.Send(Packet.Client_ResponseRemoteStacks, writer.ToArray());
+        }
+
+        [HandlesPacket(Packet.Server_ResponseRemoteStacks)]
+        public void OnReceiveRemoteStacks(ByteReader data)
+        {
+            var compressed = data.ReadPrefixedBytes();
+            var stacks = GZipStream.UncompressString(compressed);
+
+            DesyncReporter.remoteStacks = stacks;
+            DesyncReporter.SaveLocalAndPromptUpload();
+        }
     }
 }

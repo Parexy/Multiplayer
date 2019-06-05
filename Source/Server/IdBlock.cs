@@ -1,4 +1,3 @@
-using Multiplayer.Common;
 using Multiplayer.Common.Networking;
 
 namespace Multiplayer.Server

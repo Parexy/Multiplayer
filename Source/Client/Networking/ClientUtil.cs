@@ -7,8 +7,6 @@ using Ionic.Zlib;
 using LiteNetLib;
 using Multiplayer.Client.Comp;
 using Multiplayer.Client.Windows;
-using Multiplayer.Common;
-using Multiplayer.Common.Networking;
 using Multiplayer.Common.Networking.Handler;
 using Multiplayer.Server;
 using Multiplayer.Server.Networking;

@@ -2,10 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using Multiplayer.Client.Networking.Handler;
 using Multiplayer.Client.Sync;
-using Multiplayer.Common;
-using Multiplayer.Common.Networking;
 using RimWorld;
 using UnityEngine;
 using Verse;
@@ -69,72 +66,6 @@ namespace Multiplayer.Client.Windows
             if (node.expand)
                 foreach (LogNode child in node.children)
                     Draw(child, depth + 1, ref rect);
-        }
-    }
-
-    public class DesyncedWindow : Window
-    {
-        public override Vector2 InitialSize => new Vector2(550, 110);
-
-        private string text;
-
-        public DesyncedWindow(string text)
-        {
-            this.text = text;
-
-            closeOnClickedOutside = false;
-            closeOnAccept = false;
-            closeOnCancel = false;
-            absorbInputAroundWindow = true;
-        }
-
-        public override void DoWindowContents(Rect inRect)
-        {
-            Text.Font = GameFont.Small;
-
-            Text.Anchor = TextAnchor.UpperCenter;
-            Widgets.Label(new Rect(0, 0, inRect.width, 40), $"{"MpDesynced".Translate()}\n{text}");
-            Text.Anchor = TextAnchor.UpperLeft;
-
-            float buttonWidth = 120 * 4 + 10 * 3;
-            var buttonRect = new Rect((inRect.width - buttonWidth) / 2, 40, buttonWidth, 35);
-
-            GUI.BeginGroup(buttonRect);
-
-            float x = 0;
-            if (Widgets.ButtonText(new Rect(x, 0, 120, 35), "MpTryResync".Translate()))
-            {
-                Multiplayer.session.resyncing = true;
-
-                TickPatch.SkipTo(
-                    tickUntilCaughtUp: true,
-                    onFinish: () =>
-                    {
-                        Multiplayer.session.resyncing = false;
-                        Multiplayer.Client.Send(Packet.Client_WorldReady);
-                    },
-                    cancelButtonKey: "Quit",
-                    onCancel: GenScene.GoToMainMenu
-                );
-
-                Multiplayer.session.desynced = false;
-
-                ClientHandshakePacketHandler.ReloadGame(OnMainThread.cachedMapData.Keys.ToList(), false);
-            }
-            x += 120 + 10;
-
-            if (Widgets.ButtonText(new Rect(x, 0, 120, 35), "Save".Translate()))
-                Find.WindowStack.Add(new Dialog_SaveReplay());
-            x += 120 + 10;
-
-            if (Widgets.ButtonText(new Rect(x, 0, 120, 35), "MpChatButton".Translate()))
-                Find.WindowStack.Add(new ChatWindow() { closeOnClickedOutside = true, absorbInputAroundWindow = true });
-            x += 120 + 10;
-
-            if (Widgets.ButtonText(new Rect(x, 0, 120, 35), "Quit".Translate()))
-                MainMenuPatch.AskQuitToMainMenu();
-
-            GUI.EndGroup();
         }
     }
 

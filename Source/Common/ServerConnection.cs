@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Multiplayer.Common
+﻿namespace Multiplayer.Common
 {
     public enum DefCheckStatus : byte
     {

@@ -1,17 +1,14 @@
 ﻿using Multiplayer.Common;
 using Steamworks;
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using Multiplayer.Common.Networking;
 using Multiplayer.Common.Networking.Connection;
 using Multiplayer.Common.Networking.Handler;
 using Multiplayer.Server;
 using Multiplayer.Server.Networking;
 using UnityEngine;
-using Verse;
 
 namespace Multiplayer.Client
 {

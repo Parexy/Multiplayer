@@ -6,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using Multiplayer.Client.Networking.Handler;
 using Multiplayer.Common.Networking;
 using Multiplayer.Common.Networking.Connection;

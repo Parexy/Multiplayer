@@ -2,7 +2,6 @@
 using Multiplayer.Common;
 using RimWorld;
 using RimWorld.Planet;
-using Steamworks;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,7 +11,6 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading;
-using System.Xml.Linq;
 using Multiplayer.Client.Sync;
 using Multiplayer.Common.Networking;
 using Verse;

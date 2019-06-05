@@ -6,7 +6,7 @@ using Multiplayer.Common.Networking;
 using Multiplayer.Common.Networking.Connection;
 using Multiplayer.Common.Networking.Handler;
 
-namespace Multiplayer.Server.Networking.State
+namespace Multiplayer.Server.Networking.Handler
 {
     public class ServerHandshakePacketHandler : MpPacketHandler
     {
