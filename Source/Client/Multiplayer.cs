@@ -26,9 +26,12 @@ using System.Threading;
 using System.Xml;
 using Multiplayer.Client.Comp;
 using Multiplayer.Client.Networking;
+using Multiplayer.Client.Networking.Handler;
 using Multiplayer.Client.Sync;
 using Multiplayer.Client.Windows;
 using Multiplayer.Common.Networking;
+using Multiplayer.Common.Networking.Connection;
+using Multiplayer.Common.Networking.Handler;
 using Multiplayer.Server;
 using UnityEngine;
 using Verse;
@@ -44,7 +47,7 @@ namespace Multiplayer.Client
         public static MultiplayerSession session;
         public static MultiplayerGame game;
 
-        public static IMultiplayerConnection Client => session?.client;
+        public static BaseMultiplayerConnection Client => session?.client;
         public static MultiplayerServer LocalServer => session?.localServer;
         public static PacketLogWindow PacketLog => session?.packetLog;
         public static bool IsReplay => session?.replay ?? false;
@@ -85,7 +88,7 @@ namespace Multiplayer.Client
 
         public static HashSet<string> xmlMods = new HashSet<string>();
         public static List<ModHashes> enabledModAssemblyHashes = new List<ModHashes>();
-        public static Dictionary<string, DefInfo> localDefInfos;
+        public static Dictionary<string, DefDatabaseInfo> localDefInfos;
 
         static Multiplayer()
         {
@@ -118,9 +121,9 @@ namespace Multiplayer.Client
             gameobject.AddComponent<OnMainThread>();
             UnityEngine.Object.DontDestroyOnLoad(gameobject);
 
-            MpConnectionState.SetImplementation(ConnectionStateEnum.ClientSteam, typeof(ClientSteamState));
-            MpConnectionState.SetImplementation(ConnectionStateEnum.ClientJoining, typeof(ClientJoiningState));
-            MpConnectionState.SetImplementation(ConnectionStateEnum.ClientPlaying, typeof(ClientPlayingState));
+            MpPacketHandler.SetPacketHandlerForState(ConnectionStateEnum.ClientSteam, typeof(ClientSteamRequestPacketHandler));
+            MpPacketHandler.SetPacketHandlerForState(ConnectionStateEnum.ClientJoining, typeof(ClientHandshakePacketHandler));
+            MpPacketHandler.SetPacketHandlerForState(ConnectionStateEnum.ClientPlaying, typeof(ClientGameplayPacketHandler));
 
             CollectCursorIcons();
             Sync.Sync.CollectTypes();
@@ -411,7 +414,7 @@ namespace Multiplayer.Client
 
         private static void CollectDefInfos()
         {
-            var dict = new Dictionary<string, DefInfo>();
+            var dict = new Dictionary<string, DefDatabaseInfo>();
 
             int TypeHash(Type type) => GenText.StableStringHash(type.FullName);
 
@@ -456,9 +459,9 @@ namespace Multiplayer.Client
             LoadableXmlAssetCtorPatch.xmlAssetHashes.Clear();
         }
 
-        private static DefInfo GetDefInfo<T>(IEnumerable<T> types, Func<T, int> hash)
+        private static DefDatabaseInfo GetDefInfo<T>(IEnumerable<T> types, Func<T, int> hash)
         {
-            return new DefInfo()
+            return new DefDatabaseInfo()
             {
                 count = types.Count(),
                 hash = types.Select(t => hash(t)).AggregateHash()

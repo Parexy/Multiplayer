@@ -1,5 +1,6 @@
 using Multiplayer.Common;
 using Multiplayer.Common.Networking;
+using Multiplayer.Common.Networking.Connection;
 using Steamworks;
 
 namespace Multiplayer.Client.Networking
@@ -21,11 +22,11 @@ namespace Multiplayer.Client.Networking
         }
 
         /// <summary>
-        ///  Override to handle the <see cref="Packets.Special_Steam_Disconnect"/> packet to terminate the connection.
+        ///  Override to handle the <see cref="Packet.Special_Steam_Disconnect"/> packet to terminate the connection.
         /// </summary>
         protected override void HandleReceive(int msgId, int fragState, ByteReader reader, bool reliable)
         {
-            if (msgId == (int)Packets.Special_Steam_Disconnect)
+            if (msgId == (int)Packet.Special_Steam_Disconnect)
                 Multiplayer.session.HandleDisconnectReason((MpDisconnectReason)reader.ReadByte(), reader.ReadPrefixedBytes());
 
             base.HandleReceive(msgId, fragState, reader, reliable);

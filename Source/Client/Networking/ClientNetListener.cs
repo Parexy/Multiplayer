@@ -3,6 +3,8 @@ using System.Net.Sockets;
 using LiteNetLib;
 using Multiplayer.Common;
 using Multiplayer.Common.Networking;
+using Multiplayer.Common.Networking.Connection;
+using Multiplayer.Common.Networking.Handler;
 using Verse;
 
 namespace Multiplayer.Client.Networking
@@ -10,7 +12,7 @@ namespace Multiplayer.Client.Networking
     /// <summary>
     /// Client-side listener for LiteNetLib events
     /// </summary>
-    public class MpClientNetListener : INetEventListener
+    public class ClientNetListener : INetEventListener
     {
         /// <summary>
         /// Called by LitNetLib when the client successfully establishes a connection to the server
@@ -19,7 +21,7 @@ namespace Multiplayer.Client.Networking
         public void OnPeerConnected(NetPeer peer)
         {
             //Set up a connection instance for this connection
-            IMultiplayerConnection conn = new MpNetMultiplayerConnection(peer);
+            BaseMultiplayerConnection conn = new MpNetMultiplayerConnection(peer);
             conn.username = Multiplayer.username;
             conn.State = ConnectionStateEnum.ClientJoining;
 

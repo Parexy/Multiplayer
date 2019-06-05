@@ -15,6 +15,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Xml;
 using Multiplayer.Server;
+using Multiplayer.Server.Networking.State;
 using UnityEngine;
 using Verse;
 
@@ -156,7 +157,7 @@ namespace Multiplayer.Client
             GUI.SetNextControlName(UsernameField);
 
             string username = listing.TextEntryLabeled("MpUsername".Translate() + ":  ", settings.username);
-            if (username.Length <= 15 && ServerJoiningState.UsernamePattern.IsMatch(username))
+            if (username.Length <= 15 && ServerHandshakePacketHandler.UsernamePattern.IsMatch(username))
             {
                 settings.username = username;
                 Multiplayer.username = username;

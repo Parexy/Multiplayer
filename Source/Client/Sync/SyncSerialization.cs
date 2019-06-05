@@ -8,6 +8,7 @@ using Harmony;
 using Multiplayer.Client.Comp;
 using Multiplayer.Client.Persistent;
 using Multiplayer.Common;
+using Multiplayer.Common.Networking;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;

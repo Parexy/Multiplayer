@@ -6,6 +6,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Multiplayer.Common.Networking;
+using Multiplayer.Common.Networking.Connection;
+using Multiplayer.Common.Networking.Handler;
 using Multiplayer.Server;
 using Multiplayer.Server.Networking;
 using UnityEngine;
@@ -116,17 +118,17 @@ namespace Multiplayer.Client
 
                 if (packet.joinPacket && player == null)
                 {
-                    IMultiplayerConnection conn = new SteamServerToClientConnection(packet.remote);
+                    BaseMultiplayerConnection conn = new SteamServerToClientConnection(packet.remote);
                     conn.State = ConnectionStateEnum.ServerJoining;
                     player = server.OnConnected(conn);
-                    player.type = PlayerType.Steam;
+                    player.type = ServerPlayer.Type.Steam;
 
                     player.steamId = (ulong)packet.remote;
                     player.steamPersonaName = SteamFriends.GetFriendPersonaName(packet.remote);
                     if (player.steamPersonaName.Length == 0)
                         player.steamPersonaName = "[unknown]";
 
-                    conn.Send(Packets.Server_SteamAccept);
+                    conn.Send(Packet.Server_SteamAccept);
                 }
 
                 if (!packet.joinPacket && player != null)

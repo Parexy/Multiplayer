@@ -9,6 +9,7 @@ using Multiplayer.Client.Comp;
 using Multiplayer.Client.Windows;
 using Multiplayer.Common;
 using Multiplayer.Common.Networking;
+using Multiplayer.Common.Networking.Handler;
 using Multiplayer.Server;
 using Multiplayer.Server.Networking;
 using RimWorld;
@@ -26,7 +27,7 @@ namespace Multiplayer.Client.Networking
         public static void TryConnectDirect(string address, int port)
         {
             Multiplayer.session = new MultiplayerSession();
-            NetManager netClient = new NetManager(new MpClientNetListener());
+            NetManager netClient = new NetManager(new ClientNetListener());
 
             netClient.Start();
             netClient.ReconnectDelay = 300;
@@ -226,7 +227,7 @@ namespace Multiplayer.Client.Networking
             server2Client.State = ConnectionStateEnum.ServerPlaying;
 
             var serverPlayer = Multiplayer.LocalServer.OnConnected(server2Client);
-            serverPlayer.status = PlayerStatus.Playing;
+            serverPlayer.status = ServerPlayer.Status.Playing;
             serverPlayer.SendPlayerList();
 
             Multiplayer.session.client = client2Server;

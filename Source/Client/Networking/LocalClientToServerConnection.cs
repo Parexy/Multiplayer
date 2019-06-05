@@ -1,5 +1,7 @@
 using System;
 using Multiplayer.Common;
+using Multiplayer.Common.Networking;
+using Multiplayer.Common.Networking.Connection;
 using Multiplayer.Server.Networking;
 using Verse;
 
@@ -9,7 +11,7 @@ namespace Multiplayer.Client.Networking
     /// Class for handling a connection to the local server, when our instance of the game is hosting a server.
     /// Doesn't actually send any information across the network, even locally, just calls into the server thread. 
     /// </summary>
-    public class ClientToServerLocalhostConnection : IMultiplayerConnection
+    public class ClientToServerLocalhostConnection : BaseMultiplayerConnection
     {
         public ServerToClientLocalhostConnection serverSide;
 
@@ -24,7 +26,7 @@ namespace Multiplayer.Client.Networking
         }
 
         /// <summary>
-        /// "Send" data to the server by calling <see cref="IMultiplayerConnection.HandleReceive"/> on the server thread with the data.
+        /// "Send" data to the server by calling <see cref="BaseMultiplayerConnection.HandleReceive"/> on the server thread with the data.
         /// </summary>
         /// <param name="raw">The data to send</param>
         /// <param name="reliable">If this data should be sent reliably.</param>

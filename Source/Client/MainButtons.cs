@@ -1,12 +1,11 @@
 ﻿using Harmony;
-using Multiplayer.Common;
 using RimWorld;
 using RimWorld.Planet;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Multiplayer.Client.Comp;
+using Multiplayer.Client.Networking.Handler;
 using Multiplayer.Client.Persistent;
 using Multiplayer.Client.Windows;
 using Multiplayer.Server;
@@ -112,7 +111,7 @@ namespace Multiplayer.Client
             {
                 var btnRect = new Rect(x, y, btnWidth, btnHeight);
 
-                var chatColor = session.players.Any(p => p.status == PlayerStatus.Desynced) ? "#ff5555" : "#dddddd";
+                var chatColor = session.players.Any(p => p.status == ServerPlayer.Status.Desynced) ? "#ff5555" : "#dddddd";
                 var hasUnread = session.hasUnread ? "*" : "";
                 var chatLabel = $"{"MpChatButton".Translate()} <color={chatColor}>({session.players.Count})</color>{hasUnread}";
 
@@ -245,7 +244,7 @@ namespace Multiplayer.Client
 
                     if (mouseTimer < TickPatch.Timer)
                     {
-                        ClientJoiningState.ReloadGame(OnMainThread.cachedMapData.Keys.ToList(), false);
+                        ClientHandshakePacketHandler.ReloadGame(OnMainThread.cachedMapData.Keys.ToList(), false);
                     }
                 }
 

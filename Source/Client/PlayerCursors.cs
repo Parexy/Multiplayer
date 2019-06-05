@@ -42,7 +42,7 @@ namespace Multiplayer.Client
 
                 GUI.DrawTexture(iconRect, drawIcon);
 
-                if (player.dragStart != PlayerInfo.Invalid)
+                if (player.dragStart != PlayerListEntry.Invalid)
                 {
                     GUI.color = new Color(1, 1, 1, 0.2f);
                     Widgets.DrawBox(new Rect() { min = player.dragStart.MapToUIPosition(), max = pos }, 2);

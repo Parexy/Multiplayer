@@ -8,6 +8,7 @@ using System.Linq;
 using Multiplayer.Client.Sync;
 using Multiplayer.Client.Windows;
 using Multiplayer.Common.Networking;
+using Multiplayer.Common.Networking.Connection;
 using Multiplayer.Server;
 using UnityEngine;
 using Verse;
@@ -92,7 +93,7 @@ namespace Multiplayer.Client
                 writer.WriteByte(byte.MaxValue);
             }
 
-            Multiplayer.Client.Send(Packets.Client_Cursor, writer.ToArray(), reliable: false);
+            Multiplayer.Client.Send(Packet.Client_Cursor, writer.ToArray(), reliable: false);
         }
 
         private HashSet<int> lastSelected = new HashSet<int>();
@@ -130,7 +131,7 @@ namespace Multiplayer.Client
 
             lastSelected = selected;
 
-            Multiplayer.Client.Send(Packets.Client_Selected, writer.ToArray());
+            Multiplayer.Client.Send(Packet.Client_Selected, writer.ToArray());
         }
 
         private void UpdateSync()

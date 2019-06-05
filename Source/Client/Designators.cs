@@ -8,6 +8,7 @@ using System.Reflection;
 using System.Reflection.Emit;
 using Multiplayer.Client.Comp;
 using Multiplayer.Client.Sync;
+using Multiplayer.Common.Networking;
 using Verse;
 
 namespace Multiplayer.Client

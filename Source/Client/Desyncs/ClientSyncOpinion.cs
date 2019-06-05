@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using Harmony;
 using Multiplayer.Common;
+using Multiplayer.Common.Networking;
 using Verse;
 
 namespace Multiplayer.Client.Desyncs

@@ -1,4 +1,5 @@
 ﻿using Multiplayer.Client.Networking;
+using Multiplayer.Client.Networking.Handler;
 using Steamworks;
 using UnityEngine;
 using Verse;
@@ -27,7 +28,7 @@ namespace Multiplayer.Client.Windows
         {
             string label = IsConnecting ? (ConnectingString + MpUtil.FixedEllipsis()) : result;
 
-            if (Multiplayer.Client?.StateObj is ClientJoiningState joining && joining.state == JoiningState.Downloading)
+            if (Multiplayer.Client?.PacketHandler is ClientHandshakePacketHandler joining && joining.state == JoiningState.Downloading)
                 label = $"MpDownloading".Translate(Multiplayer.Client.FragmentProgress);
 
             const float buttonHeight = 40f;

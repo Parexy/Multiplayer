@@ -113,7 +113,7 @@ namespace Multiplayer.Client.Desyncs
         /// <param name="desyncMessage">The error message that explains exactly what desynced.</param>
         private void HandleDesync(ClientSyncOpinion oldOpinion, ClientSyncOpinion newOpinion, string desyncMessage)
         {
-            Multiplayer.Client.Send(Packets.Client_Desynced);
+            Multiplayer.Client.Send(Packet.Client_Desynced);
 
             //Identify which of the two sync infos is local, and which is the remote.
             var local = oldOpinion.isLocalClientsOpinion ? oldOpinion : newOpinion;
@@ -273,7 +273,7 @@ namespace Multiplayer.Client.Desyncs
             File.WriteAllText("local_traces.txt", GetDesyncStackTraces(local, remote, out var diffAt));
 
             //Trigger a call to ClientConnection#HandleDebug on the arbiter instance so that arbiter_traces.txt is saved too
-            Multiplayer.Client.Send(Packets.Client_Debug, local.startTick, diffAt - 40, diffAt + 40);
+            Multiplayer.Client.Send(Packet.Client_Debug, local.startTick, diffAt - 40, diffAt + 40);
         }
 
         /// <summary>

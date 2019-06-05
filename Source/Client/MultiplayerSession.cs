@@ -14,6 +14,8 @@ using Multiplayer.Client.Comp;
 using Multiplayer.Client.Desyncs;
 using Multiplayer.Client.Windows;
 using Multiplayer.Common.Networking;
+using Multiplayer.Common.Networking.Connection;
+using Multiplayer.Common.Networking.Handler;
 using Multiplayer.Server;
 using UnityEngine;
 using Verse;
@@ -27,11 +29,11 @@ namespace Multiplayer.Client
         public string gameName;
         public int playerId;
 
-        public IMultiplayerConnection client;
+        public BaseMultiplayerConnection client;
         public NetManager netClient;
         public PacketLogWindow packetLog = new PacketLogWindow();
         public int myFactionId;
-        public List<PlayerInfo> players = new List<PlayerInfo>();
+        public List<PlayerListEntry> players = new List<PlayerListEntry>();
 
         public bool replay;
         public int replayTimerStart = -1;
@@ -62,7 +64,7 @@ namespace Multiplayer.Client
         public ServerSettings localSettings;
 
         public Process arbiter;
-        public bool ArbiterPlaying => players.Any(p => p.type == PlayerType.Arbiter && p.status == PlayerStatus.Playing);
+        public bool ArbiterPlaying => players.Any(p => p.type == ServerPlayer.Type.Arbiter && p.status == ServerPlayer.Status.Playing);
 
         public void Stop()
         {
@@ -90,7 +92,7 @@ namespace Multiplayer.Client
             Log.Message("Multiplayer session stopped.");
         }
 
-        public PlayerInfo GetPlayerInfo(int id)
+        public PlayerListEntry GetPlayerInfo(int id)
         {
             return players.Find(p => p.id == id);
         }
@@ -187,63 +189,7 @@ namespace Multiplayer.Client
     {
         public string remoteRwVersion;
         public string[] remoteModNames;
-        public Dictionary<string, DefInfo> defInfo;
-    }
-
-    public class PlayerInfo
-    {
-        public static readonly Vector3 Invalid = new Vector3(-1, 0, -1);
-
-        public int id;
-        public string username;
-        public int latency;
-        public int ticksBehind;
-        public PlayerType type;
-        public PlayerStatus status;
-
-        public ulong steamId;
-        public string steamPersonaName;
-
-        public byte cursorSeq;
-        public byte map = byte.MaxValue;
-        public Vector3 cursor;
-        public Vector3 lastCursor;
-        public double updatedAt;
-        public double lastDelta;
-        public byte cursorIcon;
-        public Vector3 dragStart = Invalid;
-
-        public Dictionary<int, float> selectedThings = new Dictionary<int, float>();
-
-        private PlayerInfo(int id, string username, int latency, PlayerType type)
-        {
-            this.id = id;
-            this.username = username;
-            this.latency = latency;
-            this.type = type;
-        }
-
-        public static PlayerInfo Read(ByteReader data)
-        {
-            int id = data.ReadInt32();
-            string username = data.ReadString();
-            int latency = data.ReadInt32();
-            var type = (PlayerType)data.ReadByte();
-            var status = (PlayerStatus)data.ReadByte();
-
-            var steamId = data.ReadULong();
-            var steamName = data.ReadString();
-
-            var ticksBehind = data.ReadInt32();
-
-            return new PlayerInfo(id, username, latency, type)
-            {
-                status = status,
-                steamId = steamId,
-                steamPersonaName = steamName,
-                ticksBehind = ticksBehind
-            };
-        }
+        public Dictionary<string, DefDatabaseInfo> defInfo;
     }
 
     public class MultiplayerGame
@@ -311,7 +257,7 @@ namespace Multiplayer.Client
 
             foreach (var resolver in DefDatabase<RuleDef>.AllDefs.SelectMany(r => r.resolvers))
                 if (resolver is SymbolResolver_EdgeThing edgeThing)
-                    edgeThing.randomRotations = new List<int>() { 0, 1, 2, 3 };
+                    edgeThing.randomRotations = new List<int> { 0, 1, 2, 3 };
 
             typeof(SymbolResolver_SingleThing).TypeInitializer.Invoke(null, null);
         }

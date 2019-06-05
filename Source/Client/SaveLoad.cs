@@ -198,7 +198,7 @@ namespace Multiplayer.Client
 
                 byte[] data = writer.ToArray();
 
-                OnMainThread.Enqueue(() => Multiplayer.Client.SendFragmented(Packets.Client_AutosavedData, data));
+                OnMainThread.Enqueue(() => Multiplayer.Client.SendFragmented(Packet.Client_AutosavedData, data));
             };
 
             if (async)

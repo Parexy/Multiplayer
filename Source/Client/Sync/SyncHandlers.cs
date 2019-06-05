@@ -954,7 +954,7 @@ namespace Multiplayer.Client.Sync
         // Set by faction context
         public static ResearchSpeed researchSpeed;
         public static SyncField SyncResearchSpeed =
-            Sync.Field(null, "Multiplayer.Client.SyncResearch/researchSpeed/[]").SetBufferChanges().InGameLoop();
+            Sync.Field(null, "Multiplayer.Client.Sync.SyncResearch/researchSpeed/[]").SetBufferChanges().InGameLoop();
 
         public static void ConstantTick()
         {

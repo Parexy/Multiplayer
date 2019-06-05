@@ -3,7 +3,7 @@
     /// <summary>
     /// Packets prefixed with Client_ are sent by the client, those prefixed with Server_ are sent by the server
     /// </summary>
-    public enum Packets : byte
+    public enum Packet : byte
     {
         /// <summary>
         /// Used to send the client's <see cref="MpVersion.Protocol"/> version

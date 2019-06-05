@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using Multiplayer.Common;
+using Multiplayer.Common.Networking;
 using Verse;
 using ZipFile = zip::Ionic.Zip.ZipFile;
 

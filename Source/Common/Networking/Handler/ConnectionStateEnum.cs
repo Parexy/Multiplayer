@@ -1,5 +1,8 @@
-namespace Multiplayer.Common.Networking
+namespace Multiplayer.Common.Networking.Handler
 {
+    /// <summary>
+    /// Used to indicate which packet handler should be used at the current moment.
+    /// </summary>
     public enum ConnectionStateEnum : byte
     {
         /// <summary>
@@ -11,7 +14,7 @@ namespace Multiplayer.Common.Networking
         /// </summary>
         ClientPlaying,
         /// <summary>
-        /// Used in client code to indicate we're playing through a steam connection
+        /// Used in client code to indicate we're waiting for acceptance over steam.
         /// </summary>
         ClientSteam,
 
@@ -23,10 +26,6 @@ namespace Multiplayer.Common.Networking
         /// Used on the server to indicate a connection is a client playing on the server
         /// </summary>
         ServerPlaying,
-        /// <summary>
-        /// Unused
-        /// </summary>
-        ServerSteam,
 
         /// <summary>
         /// Special field to contain the number of values this enum has

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using Harmony;
 using Multiplayer.Common;
+using Multiplayer.Common.Networking;
 using RimWorld;
 using RimWorld.Planet;
 using Verse;

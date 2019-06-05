@@ -6,6 +6,7 @@ using System.Xml;
 using Multiplayer.Client.Persistent;
 using Multiplayer.Client.Sync;
 using Multiplayer.Common;
+using Multiplayer.Common.Networking;
 using Multiplayer.Server;
 using RimWorld;
 using RimWorld.Planet;

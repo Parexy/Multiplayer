@@ -1293,7 +1293,7 @@ namespace Multiplayer.Client
             if (Multiplayer.Client == null) return;
 
             if (__state && MarkLongEvents.IsTickMarked(LongEventHandler.currentEvent?.eventAction))
-                Multiplayer.Client.Send(Packets.Client_Pause, new object[] {true});
+                Multiplayer.Client.Send(Packet.Client_Pause, new object[] {true});
         }
     }
 
@@ -1303,7 +1303,7 @@ namespace Multiplayer.Client
         static void Postfix()
         {
             if (Multiplayer.Client != null && NewLongEvent.currentEventWasMarked)
-                Multiplayer.Client.Send(Packets.Client_Pause, new object[] {false});
+                Multiplayer.Client.Send(Packet.Client_Pause, new object[] {false});
         }
     }
 

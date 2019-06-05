@@ -1,11 +1,11 @@
 using Steamworks;
 
-namespace Multiplayer.Common.Networking
+namespace Multiplayer.Common.Networking.Connection
 {
     /// <summary>
     /// Base class for either client -> server or server -> client connections that are routed through the steam friends network.
     /// </summary>
-    public abstract class SteamBaseConnection : IMultiplayerConnection
+    public abstract class SteamBaseConnection : BaseMultiplayerConnection
     {
         /// <summary>
         /// The steam ID of the remote.
@@ -32,21 +32,21 @@ namespace Multiplayer.Common.Networking
         }
 
         /// <summary>
-        /// Overriden to send a <see cref="Packets.Special_Steam_Disconnect"/> packet instead of just closing the connection
+        /// Overriden to send a <see cref="Packet.Special_Steam_Disconnect"/> packet instead of just closing the connection
         /// </summary>
         /// <param name="reason">Why we're closing this connection</param>
         /// <param name="data">Additional data to send with the DC packet.</param>
         public override void Close(MpDisconnectReason reason, byte[] data)
         {
-            Send(Packets.Special_Steam_Disconnect, GetDisconnectBytes(reason, data));
+            Send(Packet.Special_Steam_Disconnect, GetDisconnectBytes(reason, data));
         }
 
         /// <summary>
-        /// Overriden to handle <see cref="Packets.Special_Steam_Disconnect"/> packets.
+        /// Overriden to handle <see cref="Packet.Special_Steam_Disconnect"/> packets.
         /// </summary>
         protected override void HandleReceive(int msgId, int fragState, ByteReader reader, bool reliable)
         {
-            if (msgId == (int)Packets.Special_Steam_Disconnect)
+            if (msgId == (int)Packet.Special_Steam_Disconnect)
             {
                 OnDisconnect();
             }

@@ -35,7 +35,7 @@ namespace Multiplayer.Client
                 if (sync.ShouldCollect && TickPatch.Timer % 30 == 0 && sync.currentOpinion != null)
                 {
                     if (!TickPatch.Skipping && (Multiplayer.LocalServer != null || MultiplayerMod.arbiterInstance))
-                        Multiplayer.Client.SendFragmented(Packets.Client_SyncInfo, sync.currentOpinion.Serialize());
+                        Multiplayer.Client.SendFragmented(Packet.Client_SyncInfo, sync.currentOpinion.Serialize());
 
                     sync.AddClientOpinionAndCheckDesync(sync.currentOpinion);
                     sync.currentOpinion = null;

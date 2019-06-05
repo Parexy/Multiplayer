@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Multiplayer.Client.Networking.Handler;
 using Multiplayer.Client.Sync;
 using Multiplayer.Common;
 using Multiplayer.Common.Networking;
@@ -110,7 +111,7 @@ namespace Multiplayer.Client.Windows
                     onFinish: () =>
                     {
                         Multiplayer.session.resyncing = false;
-                        Multiplayer.Client.Send(Packets.Client_WorldReady);
+                        Multiplayer.Client.Send(Packet.Client_WorldReady);
                     },
                     cancelButtonKey: "Quit",
                     onCancel: GenScene.GoToMainMenu
@@ -118,7 +119,7 @@ namespace Multiplayer.Client.Windows
 
                 Multiplayer.session.desynced = false;
 
-                ClientJoiningState.ReloadGame(OnMainThread.cachedMapData.Keys.ToList(), false);
+                ClientHandshakePacketHandler.ReloadGame(OnMainThread.cachedMapData.Keys.ToList(), false);
             }
             x += 120 + 10;
 

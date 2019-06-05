@@ -4,6 +4,7 @@ using System.Text;
 using Multiplayer.Common;
 using Multiplayer.Common.Networking;
 using Multiplayer.Server;
+using Multiplayer.Server.Networking.State;
 using RimWorld;
 using Steamworks;
 using UnityEngine;
@@ -109,7 +110,7 @@ namespace Multiplayer.Client.Windows
                 ClickPlayer,
                 extra: (p, rect) =>
                 {
-                    if (p.type == PlayerType.Steam)
+                    if (p.type == ServerPlayer.Type.Steam)
                     {
                         var steamIcon = new Rect(rect.xMax - 24f, 0, 24f, 24f);
                         rect.width -= 24f;
@@ -140,7 +141,7 @@ namespace Multiplayer.Client.Windows
             );
         }
 
-        private void ClickPlayer(PlayerInfo p)
+        private void ClickPlayer(PlayerListEntry p)
         {
             if (p.id == 0 && Event.current.button == 1)
             {
@@ -159,12 +160,12 @@ namespace Multiplayer.Client.Windows
             Messages.Message("MpSteamAccepted".Translate(), MessageTypeDefOf.PositiveEvent, false);
         }
 
-        private Color GetColor(PlayerStatus status)
+        private Color GetColor(ServerPlayer.Status status)
         {
             switch (status)
             {
-                case PlayerStatus.Simulating: return new Color(1, 1, 1, 0.6f);
-                case PlayerStatus.Desynced: return new Color(0.8f, 0.4f, 0.4f, 0.8f);
+                case ServerPlayer.Status.Simulating: return new Color(1, 1, 1, 0.6f);
+                case ServerPlayer.Status.Desynced: return new Color(0.8f, 0.4f, 0.4f, 0.8f);
                 default: return new Color(1, 1, 1, 0.8f);
             }
         }
@@ -257,7 +258,7 @@ namespace Multiplayer.Client.Windows
 
             GUI.SetNextControlName("chat_input");
             currentMsg = Widgets.TextField(textField, currentMsg);
-            currentMsg = currentMsg.Substring(0, Math.Min(currentMsg.Length, ServerPlayingState.MaxChatMsgLength));
+            currentMsg = currentMsg.Substring(0, Math.Min(currentMsg.Length, ServerGameplayPacketHandler.MaxChatMsgLength));
 
             Widgets.BeginScrollView(outRect, ref chatScroll, viewRect);
 
@@ -344,7 +345,7 @@ namespace Multiplayer.Client.Windows
             else if (Multiplayer.Client == null)
                 Multiplayer.session.AddMsg(Multiplayer.username + ": " + currentMsg);
             else
-                Multiplayer.Client.Send(Packets.Client_Chat, currentMsg);
+                Multiplayer.Client.Send(Packet.Client_Chat, currentMsg);
 
             currentMsg = "";
         }

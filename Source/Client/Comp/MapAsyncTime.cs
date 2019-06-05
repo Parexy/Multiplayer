@@ -5,6 +5,7 @@ using System.Linq;
 using Harmony;
 using Multiplayer.Client.Sync;
 using Multiplayer.Common;
+using Multiplayer.Common.Networking;
 using Multiplayer.Server;
 using RimWorld;
 using RimWorld.Planet;
