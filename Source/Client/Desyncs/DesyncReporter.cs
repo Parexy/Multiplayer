@@ -48,7 +48,8 @@ namespace Multiplayer.Client.Desyncs
                 replay.WriteCurrentData();
 
                 //Dump our current game object.
-                var savedGame = ScribeUtil.WriteExposable(Current.Game, "game", true, ScribeMetaHeaderUtility.WriteMetaHeader);
+                var savedGame =
+                    ScribeUtil.WriteExposable(Current.Game, "game", true, ScribeMetaHeaderUtility.WriteMetaHeader);
 
                 desyncReport = new ZipFile();
                 using (var zip = replay.ZipFile)
@@ -68,8 +69,8 @@ namespace Multiplayer.Client.Desyncs
 //                    desyncReport.AddEntry("game_snapshot", savedGame); //This ends up being about 15MB, we really don't want that. 
 
                     //Add local stack traces
-                    zip.AddEntry("local_stacks", GetDesyncStackTraces(local, remote, out _));
-                    desyncReport.AddEntry("local_stacks", GetDesyncStackTraces(local, remote, out _));
+                    zip.AddEntry("local_stacks", GetDesyncStackTraces(local, remote, out _, out _));
+                    desyncReport.AddEntry("local_stacks", GetDesyncStackTraces(local, remote, out _, out _));
 
                     //Add remote's stack traces
                     zip.AddEntry("remote_stacks", remoteStacks);
@@ -81,7 +82,8 @@ namespace Multiplayer.Client.Desyncs
                     desyncInfo.AppendLine("###Tick Data###")
                         .AppendLine($"Arbiter Connected And Playing|||{Multiplayer.session.ArbiterPlaying}")
                         .AppendLine($"Last Valid Tick - Local|||{Multiplayer.game.sync.lastValidTick}")
-                        .AppendLine($"Arbiter Present on Last Tick|||{Multiplayer.game.sync.arbiterWasPlayingOnLastValidTick}")
+                        .AppendLine(
+                            $"Arbiter Present on Last Tick|||{Multiplayer.game.sync.arbiterWasPlayingOnLastValidTick}")
                         .AppendLine("\n###Version Data###")
                         .AppendLine($"Multiplayer Mod Version|||{MpVersion.Version}")
                         .AppendLine($"Rimworld Version and Rev|||{VersionControl.CurrentVersionStringWithRev}")
@@ -115,7 +117,8 @@ namespace Multiplayer.Client.Desyncs
                     //Add the basic info to the report
                     desyncReport.AddEntry("info", zip["info"].GetBytes());
 
-                    desyncReport.AddEntry("ign", Multiplayer.session.GetPlayerInfo(Multiplayer.session.playerId).username);
+                    desyncReport.AddEntry("ign",
+                        Multiplayer.session.GetPlayerInfo(Multiplayer.session.playerId).username);
                     desyncReport.AddEntry("steamName", SteamUtility.SteamPersonaName);
                 }
             }
@@ -143,7 +146,9 @@ namespace Multiplayer.Client.Desyncs
                 stream.Read(data, 0, data.Length);
 
                 using (var outStream = request.GetRequestStream())
+                {
                     outStream.Write(data, 0, data.Length);
+                }
             }
 
             //TODO: Some user interaction here?
@@ -152,11 +157,8 @@ namespace Multiplayer.Client.Desyncs
                 using (var response = (HttpWebResponse) request.GetResponse())
                 {
                     if (response.StatusCode != HttpStatusCode.OK)
-                    {
                         Log.Error("Failed to report desync; Status code " + response.StatusCode);
-                    }
                     else
-                    {
                         using (var stream = response.GetResponseStream())
                         using (var reader = new StreamReader(stream))
                         {
@@ -164,7 +166,6 @@ namespace Multiplayer.Client.Desyncs
                             Log.Message("Desync Reported with ID " + desyncReportId);
                             window.reportId = desyncReportId;
                         }
-                    }
                 }
             }
             catch (WebException e)
@@ -176,9 +177,10 @@ namespace Multiplayer.Client.Desyncs
             window.reporting = false;
         }
 
-        private static string GetDesyncStackTraces(ClientSyncOpinion local, ClientSyncOpinion remote, out int index)
+        private static string GetDesyncStackTraces(ClientSyncOpinion local, ClientSyncOpinion remote, out int diffTick,
+            out int offsetInTick)
         {
-            return Multiplayer.game.sync.GetDesyncStackTraces(local, remote, out index);
+            return Multiplayer.game.sync.GetDesyncStackTraces(local, remote, out diffTick, out offsetInTick);
         }
 
         private static string FindFileNameForNextDesyncFile()
@@ -193,9 +195,9 @@ namespace Multiplayer.Client.Desyncs
                 files.OrderByDescending(f => f.LastWriteTime).Skip(MaxFiles - 1).Do(f => f.Delete());
 
             //Find the current max desync number
-            int max = 0;
+            var max = 0;
             foreach (var f in files)
-                if (int.TryParse(f.Name.Substring(7, f.Name.Length - 7 - 4), out int result) && result > max)
+                if (int.TryParse(f.Name.Substring(7, f.Name.Length - 7 - 4), out var result) && result > max)
                     max = result;
 
             return $"Desync-{max + 1:00}";

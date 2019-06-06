@@ -10,17 +10,17 @@ namespace Multiplayer.Client.Desyncs
 {
     public class ClientSyncOpinion
     {
-        public bool isLocalClientsOpinion;
-
-        public int startTick;
         public List<uint> commandRandomStates = new List<uint>();
-        public List<uint> worldRandomStates = new List<uint>();
-        public List<MapRandomStateData> mapStates = new List<MapRandomStateData>();
+        public List<int> desyncStackTraceHashes = new List<int>();
 
         public List<StackTraceLogItem> desyncStackTraces = new List<StackTraceLogItem>();
-        public List<int> desyncStackTraceHashes = new List<int>();
+        public bool isLocalClientsOpinion;
+        public List<MapRandomStateData> mapStates = new List<MapRandomStateData>();
         public bool simulating;
+
+        public int startTick;
         public string username;
+        public List<uint> worldRandomStates = new List<uint>();
 
         public ClientSyncOpinion(int startTick)
         {
@@ -33,10 +33,8 @@ namespace Multiplayer.Client.Desyncs
                 return "Map instances don't match";
 
             for (var i = 0; i < mapStates.Count; i++)
-            {
                 if (!mapStates[i].randomStates.SequenceEqual(other.mapStates[i].randomStates))
                     return $"Wrong random state on map {mapStates[i].mapId}";
-            }
 
             if (!worldRandomStates.SequenceEqual(other.worldRandomStates))
                 return "Wrong random state for the world";
@@ -44,7 +42,9 @@ namespace Multiplayer.Client.Desyncs
             if (!commandRandomStates.SequenceEqual(other.commandRandomStates))
                 return "Random state from commands doesn't match";
 
-            if (!simulating && !other.simulating && desyncStackTraceHashes.Any() && other.desyncStackTraceHashes.Any() && !desyncStackTraceHashes.SequenceEqual(other.desyncStackTraceHashes))
+            if (!simulating && !other.simulating && desyncStackTraceHashes.Any() &&
+                other.desyncStackTraceHashes.Any() &&
+                !desyncStackTraceHashes.SequenceEqual(other.desyncStackTraceHashes))
                 return "Trace hashes don't match";
 
             return null;
@@ -90,12 +90,12 @@ namespace Multiplayer.Client.Desyncs
             var world = new List<uint>(data.ReadPrefixedUInts());
 
             var maps = new List<MapRandomStateData>();
-            int mapCount = data.ReadInt32();
-            for (int i = 0; i < mapCount; i++)
+            var mapCount = data.ReadInt32();
+            for (var i = 0; i < mapCount; i++)
             {
-                int mapId = data.ReadInt32();
+                var mapId = data.ReadInt32();
                 var mapData = new List<uint>(data.ReadPrefixedUInts());
-                maps.Add(new MapRandomStateData(mapId) { randomStates = mapData });
+                maps.Add(new MapRandomStateData(mapId) {randomStates = mapData});
             }
 
             var traceHashes = new List<int>(data.ReadPrefixedInts());
@@ -121,7 +121,7 @@ namespace Multiplayer.Client.Desyncs
         }
 
         /// <summary>
-        /// Returns a string form of 
+        ///     Returns a string form of
         /// </summary>
         /// <param name="start"></param>
         /// <param name="end"></param>
@@ -137,14 +137,15 @@ namespace Multiplayer.Client.Desyncs
             diffAt -= start;
 
             var builder = new StringBuilder();
-            for(var i = 0; i < traces.Count; i++)
+            for (var i = 0; i < traces.Count; i++)
             {
                 var trace = traces[i];
-                
+
                 if (i == diffAt)
                     builder.Append("===desynchere===\n\n");
-                
-                builder.Append(trace.additionalInfo + "\n" + trace.stackTrace.Join(m => m.MethodDesc(), "\n") + "\n\n");
+
+                builder.Append("LVT: " + trace.lastValidTick + " " + trace.additionalInfo + "\n" +
+                               trace.stackTrace.Join(m => m.MethodDesc(), "\n") + "\n\n");
 
                 if (i == diffAt)
                     builder.Append("===desyncfin===\n\n");

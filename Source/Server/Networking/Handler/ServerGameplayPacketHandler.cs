@@ -8,6 +8,8 @@ namespace Multiplayer.Server.Networking.Handler
 {
     public class ServerGameplayPacketHandler : MpPacketHandler
     {
+        public const int MaxChatMsgLength = 128;
+
         public ServerGameplayPacketHandler(BaseMultiplayerConnection conn) : base(conn)
         {
         }
@@ -27,22 +29,20 @@ namespace Multiplayer.Server.Networking.Handler
         [HandlesPacket(Packet.Client_Command)]
         public void HandleClientCommand(ByteReader data)
         {
-            CommandType cmd = (CommandType) data.ReadInt32();
-            int mapId = data.ReadInt32();
-            byte[] extra = data.ReadPrefixedBytes(32767);
+            var cmd = (CommandType) data.ReadInt32();
+            var mapId = data.ReadInt32();
+            var extra = data.ReadPrefixedBytes(32767);
 
             // todo check if map id is valid for the player
 
-            int factionId = MultiplayerServer.instance.playerFactions[connection.username];
+            var factionId = MultiplayerServer.instance.playerFactions[connection.username];
             MultiplayerServer.instance.SendCommand(cmd, factionId, mapId, extra, Player);
         }
-
-        public const int MaxChatMsgLength = 128;
 
         [HandlesPacket(Packet.Client_Chat)]
         public void HandleChat(ByteReader data)
         {
-            string msg = data.ReadString();
+            var msg = data.ReadString();
             msg = msg.Trim();
 
             // todo handle max length
@@ -80,10 +80,10 @@ namespace Multiplayer.Server.Networking.Handler
             if (arbiter && !Player.IsArbiter) return;
             if (!arbiter && Player.Username != Server.hostUsername) return;
 
-            int maps = data.ReadInt32();
-            for (int i = 0; i < maps; i++)
+            var maps = data.ReadInt32();
+            for (var i = 0; i < maps; i++)
             {
-                int mapId = data.ReadInt32();
+                var mapId = data.ReadInt32();
                 Server.mapData[mapId] = data.ReadPrefixedBytes();
             }
 
@@ -103,8 +103,8 @@ namespace Multiplayer.Server.Networking.Handler
 
             var writer = new ByteWriter();
 
-            byte seq = data.ReadByte();
-            byte map = data.ReadByte();
+            var seq = data.ReadByte();
+            var map = data.ReadByte();
 
             writer.WriteInt32(Player.id);
             writer.WriteByte(seq);
@@ -112,33 +112,33 @@ namespace Multiplayer.Server.Networking.Handler
 
             if (map < byte.MaxValue)
             {
-                byte icon = data.ReadByte();
-                short x = data.ReadShort();
-                short z = data.ReadShort();
+                var icon = data.ReadByte();
+                var x = data.ReadShort();
+                var z = data.ReadShort();
 
                 writer.WriteByte(icon);
                 writer.WriteShort(x);
                 writer.WriteShort(z);
 
-                short dragX = data.ReadShort();
+                var dragX = data.ReadShort();
                 writer.WriteShort(dragX);
 
                 if (dragX != -1)
                 {
-                    short dragZ = data.ReadShort();
+                    var dragZ = data.ReadShort();
                     writer.WriteShort(dragZ);
                 }
             }
 
             Player.lastCursorTick = Server.netTimer;
 
-            Server.SendToAll(Packet.Server_Cursor, writer.ToArray(), reliable: false, excluding: Player);
+            Server.SendToAll(Packet.Server_Cursor, writer.ToArray(), false, Player);
         }
 
         [HandlesPacket(Packet.Client_Selected)]
         public void HandleSelected(ByteReader data)
         {
-            bool reset = data.ReadBool();
+            var reset = data.ReadBool();
 
             var writer = new ByteWriter();
 
@@ -153,24 +153,20 @@ namespace Multiplayer.Server.Networking.Handler
         [HandlesPacket(Packet.Client_IdBlockRequest)]
         public void HandleIdBlockRequest(ByteReader data)
         {
-            int mapId = data.ReadInt32();
+            var mapId = data.ReadInt32();
 
             if (mapId == ScheduledCommand.Global)
             {
                 //IdBlock nextBlock = MultiplayerServer.instance.NextIdBlock();
                 //MultiplayerServer.instance.SendCommand(CommandType.GlobalIdBlock, ScheduledCommand.NoFaction, ScheduledCommand.Global, nextBlock.Serialize());
             }
-            else
-            {
-                // todo
-            }
         }
 
         [HandlesPacket(Packet.Client_KeepAlive)]
         public void HandleClientKeepAlive(ByteReader data)
         {
-            int id = data.ReadInt32();
-            int ticksBehind = data.ReadInt32();
+            var id = data.ReadInt32();
+            var ticksBehind = data.ReadInt32();
 
             Player.ticksBehind = ticksBehind;
 
@@ -199,7 +195,7 @@ namespace Multiplayer.Server.Networking.Handler
         [HandlesPacket(Packet.Client_Pause)]
         public void HandlePause(ByteReader data)
         {
-            bool pause = data.ReadBool();
+            var pause = data.ReadBool();
             if (pause && Player.Username != Server.hostUsername) return;
             if (Server.paused == pause) return;
 
@@ -212,24 +208,28 @@ namespace Multiplayer.Server.Networking.Handler
         {
             if (!MpVersion.IsDebug) return;
 
-            Server.PlayingPlayers.FirstOrDefault(p => p.IsArbiter)?.SendPacket(Packet.Server_Debug, data.ReadRaw(data.Left));
+            Server.PlayingPlayers.FirstOrDefault(p => p.IsArbiter)
+                ?.SendPacket(Packet.Server_Debug, data.ReadRaw(data.Left));
         }
 
         [HandlesPacket(Packet.Client_RequestRemoteStacks)]
         public void ForwardRemoteStacksRequest(ByteReader data)
         {
             var id = data.ReadInt32();
-            var requesterId = data.ReadInt32(); 
-            var diffAt = data.ReadInt32();
+            var requesterId = data.ReadInt32();
+            var diffTick = data.ReadInt32();
+            var offsetInTick = data.ReadInt32();
 
-            Server.PlayingPlayers.FirstOrDefault(p => p.id == id)?.SendPacket(Packet.Server_RequestRemoteStacks, new object[] {requesterId, diffAt});
+            Server.PlayingPlayers.FirstOrDefault(p => p.id == id)?.SendPacket(Packet.Server_RequestRemoteStacks,
+                new object[] {requesterId, diffTick, offsetInTick});
         }
 
         [HandlesPacket(Packet.Client_ResponseRemoteStacks)]
         public void ForwardRemoteStacksResponse(ByteReader data)
         {
             var destId = data.ReadInt32();
-            Server.PlayingPlayers.FirstOrDefault(p => p.id == destId)?.SendPacket(Packet.Server_ResponseRemoteStacks, data.ReadRaw(data.Left));
+            Server.PlayingPlayers.FirstOrDefault(p => p.id == destId)
+                ?.SendPacket(Packet.Server_ResponseRemoteStacks, data.ReadRaw(data.Left));
         }
     }
 }

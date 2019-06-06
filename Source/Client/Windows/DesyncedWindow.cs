@@ -10,13 +10,11 @@ namespace Multiplayer.Client.Windows
 {
     public class DesyncedWindow : Window
     {
-        public override Vector2 InitialSize => new Vector2(550, 110);
-
-        private string text;
+        private readonly string text;
         public bool dataObtained = false;
-        public bool reportQuestionAnswered;
-        public bool reporting;
         public string reportId;
+        public bool reporting;
+        public bool reportQuestionAnswered;
 
         public DesyncedWindow(string text)
         {
@@ -27,6 +25,8 @@ namespace Multiplayer.Client.Windows
             closeOnCancel = false;
             absorbInputAroundWindow = true;
         }
+
+        public override Vector2 InitialSize => new Vector2(550, 150);
 
         public override void DoWindowContents(Rect inRect)
         {
@@ -72,7 +72,7 @@ namespace Multiplayer.Client.Windows
 
                 if (Widgets.ButtonText(new Rect(x, 0, 120, 35), "No"))
                     reportQuestionAnswered = true; //Just skip this
-                
+
                 GUI.EndGroup();
             }
             else if (reporting)
@@ -87,7 +87,10 @@ namespace Multiplayer.Client.Windows
                 if (reportId != null)
                 {
                     Text.Anchor = TextAnchor.MiddleCenter;
-                    Widgets.Label(new Rect(0, 40, inRect.width, 40), reportId.NullOrEmpty() ? "Upload failed!" : "Reported, id '" + reportId + "'. Screenshot and send to dev.");
+                    Widgets.Label(new Rect(0, 40, inRect.width, 40),
+                        reportId.NullOrEmpty()
+                            ? "Upload failed!"
+                            : "Reported, id '" + reportId + "'. Screenshot and send to dev.");
                     y += 40;
                     Text.Anchor = TextAnchor.UpperLeft;
                 }
@@ -125,7 +128,7 @@ namespace Multiplayer.Client.Windows
                 x += 120 + 10;
 
                 if (Widgets.ButtonText(new Rect(x, 0, 120, 35), "MpChatButton".Translate()))
-                    Find.WindowStack.Add(new ChatWindow() {closeOnClickedOutside = true, absorbInputAroundWindow = true});
+                    Find.WindowStack.Add(new ChatWindow {closeOnClickedOutside = true, absorbInputAroundWindow = true});
                 x += 120 + 10;
 
                 if (Widgets.ButtonText(new Rect(x, 0, 120, 35), "Quit".Translate()))
