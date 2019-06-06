@@ -10,16 +10,16 @@ namespace Multiplayer.Client.Networking
     /// Class for handling a connection to the local server, when our instance of the game is hosting a server.
     /// Doesn't actually send any information across the network, even locally, just calls into the server thread. 
     /// </summary>
-    public class ClientToServerLocalhostConnection : BaseMultiplayerConnection
+    public class LocalClientToServerConnection : BaseMultiplayerConnection
     {
-        public ServerToClientLocalhostConnection serverSide;
+        public LocalServerToClientConnection serverSide;
 
         /// <summary>
         /// Latency to localhost is always 0
         /// </summary>
         public override int Latency { get => 0; set { } }
 
-        public ClientToServerLocalhostConnection(string username)
+        public LocalClientToServerConnection(string username)
         {
             this.username = username;
         }

@@ -2,11 +2,11 @@ using LiteNetLib;
 
 namespace Multiplayer.Common.Networking.Connection
 {
-    public class MpNetMultiplayerConnection : BaseMultiplayerConnection
+    public class MpNetConnection : BaseMultiplayerConnection
     {
         public readonly NetPeer peer;
 
-        public MpNetMultiplayerConnection(NetPeer peer)
+        public MpNetConnection(NetPeer peer)
         {
             this.peer = peer;
         }

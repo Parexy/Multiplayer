@@ -33,7 +33,7 @@ namespace Multiplayer.Server
 
         public void OnPeerConnected(NetPeer peer)
         {
-            BaseMultiplayerConnection conn = new MpNetMultiplayerConnection(peer);
+            BaseMultiplayerConnection conn = new MpNetConnection(peer);
             conn.State = ConnectionStateEnum.ServerJoining;
             peer.Tag = conn;
 

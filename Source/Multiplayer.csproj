@@ -145,7 +145,7 @@
     <Compile Include="Common\Networking\ByteReader.cs" />
     <Compile Include="Common\Networking\ByteWriter.cs" />
     <Compile Include="Common\Networking\Connection\BaseMultiplayerConnection.cs" />
-    <Compile Include="Common\Networking\Connection\MpNetMultiplayerConnection.cs" />
+    <Compile Include="Common\Networking\Connection\MpNetConnection.cs" />
     <Compile Include="Common\Networking\Connection\SteamBaseConnection.cs" />
     <Compile Include="Common\Networking\Exception\PacketReadException.cs" />
     <Compile Include="Common\Networking\Exception\PacketSendException.cs" />

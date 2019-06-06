@@ -21,7 +21,7 @@ namespace Multiplayer.Client.Networking
         public void OnPeerConnected(NetPeer peer)
         {
             //Set up a connection instance for this connection
-            BaseMultiplayerConnection conn = new MpNetMultiplayerConnection(peer);
+            BaseMultiplayerConnection conn = new MpNetConnection(peer);
             conn.username = Multiplayer.username;
             conn.State = ConnectionStateEnum.ClientJoining;
 

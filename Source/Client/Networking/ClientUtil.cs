@@ -215,8 +215,8 @@ namespace Multiplayer.Client.Networking
             if (Multiplayer.session.localSettings.arbiter)
                 StartArbiter();
 
-            ClientToServerLocalhostConnection client2Server = new ClientToServerLocalhostConnection(Multiplayer.username);
-            ServerToClientLocalhostConnection server2Client = new ServerToClientLocalhostConnection(Multiplayer.username);
+            LocalClientToServerConnection client2Server = new LocalClientToServerConnection(Multiplayer.username);
+            LocalServerToClientConnection server2Client = new LocalServerToClientConnection(Multiplayer.username);
 
             server2Client.clientSide = client2Server;
             client2Server.serverSide = server2Client;

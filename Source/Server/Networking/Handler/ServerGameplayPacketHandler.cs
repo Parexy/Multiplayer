@@ -171,7 +171,7 @@ namespace Multiplayer.Server.Networking.Handler
             Player.ticksBehind = ticksBehind;
 
             // Latency already handled by LiteNetLib
-            if (connection is MpNetMultiplayerConnection) return;
+            if (connection is MpNetConnection) return;
 
             if (MultiplayerServer.instance.keepAliveId == id)
                 connection.Latency = (int) MultiplayerServer.instance.lastKeepAlive.ElapsedMilliseconds / 2;
