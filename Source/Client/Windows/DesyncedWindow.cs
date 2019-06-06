@@ -41,13 +41,13 @@ namespace Multiplayer.Client.Windows
             {
                 //"We're just gathering some information from the other player, then we'll see what we can do to make this better"
                 Text.Anchor = TextAnchor.MiddleCenter;
-                Widgets.Label(new Rect(0, 40, inRect.width, 40), "Please wait, gathering info...");
+                Widgets.Label(new Rect(0, 40, inRect.width, 40), "MpGatheringDesyncReport".Translate());
                 Text.Anchor = TextAnchor.UpperLeft;
             }
             else if (!reportQuestionAnswered)
             {
                 Text.Anchor = TextAnchor.MiddleCenter;
-                Widgets.Label(new Rect(0, 40, inRect.width, 40), "Upload desync report to server?");
+                Widgets.Label(new Rect(0, 40, inRect.width, 40), "MpReportDesyncPrompt".Translate());
                 Text.Anchor = TextAnchor.UpperLeft;
 
                 float buttonWidth = 120 * 2 + 10;
@@ -78,7 +78,7 @@ namespace Multiplayer.Client.Windows
             else if (reporting)
             {
                 Text.Anchor = TextAnchor.MiddleCenter;
-                Widgets.Label(new Rect(0, 40, inRect.width, 40), "Uploading report...");
+                Widgets.Label(new Rect(0, 40, inRect.width, 40), "MpUploadingDesync".Translate());
                 Text.Anchor = TextAnchor.UpperLeft;
             }
             else
@@ -89,8 +89,8 @@ namespace Multiplayer.Client.Windows
                     Text.Anchor = TextAnchor.MiddleCenter;
                     Widgets.Label(new Rect(0, 40, inRect.width, 40),
                         reportId.NullOrEmpty()
-                            ? "Upload failed!"
-                            : "Reported, id '" + reportId + "'. Screenshot and send to dev.");
+                            ? "MpReportFailed".Translate()
+                            : $"```{reportId}```. {"MpReportSuccess".Translate()}");
                     y += 40;
                     Text.Anchor = TextAnchor.UpperLeft;
                 }

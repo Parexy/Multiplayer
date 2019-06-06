@@ -127,5 +127,11 @@
   
   <MpAggressiveTicking>Aggressive ticking</MpAggressiveTicking>
   <MpAggressiveTickingDesc>Always try to automatically catch up with the server at the cost of FPS.</MpAggressiveTickingDesc>
+
+  <MpGatheringDesyncReport>Gathering additional information, please wait...</MpGatheringDesyncReport>
+  <MpReportDesyncPrompt>Report this desync to the mod authors to help them fix it?</MpReportDesyncPrompt>
+  <MpUploadingDesync>Reporting Desync, please wait...</MpUploadingDesync>
+  <MpReportFailed>Desync reporting failed!</MpReportFailed>
+  <MpReportSuccess>Screenshot this screen and send it to a MP Dev to get support.</MpReportSuccess>
   
 </LanguageData>
