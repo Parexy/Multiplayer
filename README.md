@@ -13,4 +13,4 @@ Join the Discord : https://discord.gg/S4bxXpv
 [ FAQ ](https://github.com/Parexy/Multiplayer/wiki/FAQ)|
 [ Contributing](https://github.com/Parexy/Multiplayer/blob/master/CONTRIBUTORS.md)
 
-Thanks to Pardeike for making Harmony and RevenantX for creating LiteNetLib
+Thanks to Pardeike for making [Harmony](https://github.com/pardeike/Harmony) and RevenantX for creating [LiteNetLib](https://github.com/RevenantX/LiteNetLib)
