@@ -16,173 +16,185 @@ using Verse;
 using Verse.AI;
 using Verse.AI.Group;
 
-namespace Multiplayer.Client.Sync
+namespace Multiplayer.Client.Synchronization
 {
     public static partial class Sync
     {
-        static ReaderDictionary readers = new ReaderDictionary
+        private static readonly ReaderDictionary readers = new ReaderDictionary
         {
-            { data => data.ReadByte() },
-            { data => data.ReadSByte() },
-            { data => data.ReadShort() },
-            { data => data.ReadUShort() },
-            { data => data.ReadInt32() },
-            { data => data.ReadUInt32() },
-            { data => data.ReadLong() },
-            { data => data.ReadULong() },
-            { data => data.ReadFloat() },
-            { data => data.ReadDouble() },
-            { data => data.ReadBool() },
-            { data => data.ReadString() },
-            { data => (Event)null },
-            { data => ReadSync<Pawn>(data)?.mindState?.priorityWork },
-            { data => ReadSync<Pawn>(data)?.playerSettings },
-            { data => ReadSync<Pawn>(data)?.timetable },
-            { data => ReadSync<Pawn>(data)?.workSettings },
-            { data => ReadSync<Pawn>(data)?.drafter },
-            { data => ReadSync<Pawn>(data)?.jobs },
-            { data => ReadSync<Pawn>(data)?.outfits },
-            { data => ReadSync<Pawn>(data)?.drugs },
-            { data => ReadSync<Pawn>(data)?.foodRestriction },
-            { data => ReadSync<Pawn>(data)?.training },
-            { data => ReadSync<Pawn>(data)?.story },
-            { data => ReadSync<Pawn>(data)?.outfits?.forcedHandler },
-            { data => ReadSync<Caravan>(data)?.pather },
-            { data => new FloatRange(data.ReadFloat(), data.ReadFloat()) },
-            { data => new IntRange(data.ReadInt32(), data.ReadInt32()) },
-            { data => new QualityRange(ReadSync<QualityCategory>(data), ReadSync<QualityCategory>(data)) },
-            { data => new NameSingle(data.ReadString(), data.ReadBool()) },
-            { data => new NameTriple(data.ReadString(), data.ReadString(), data.ReadString()) },
-            { data => new Rot4(data.ReadByte()) },
-            { data => new ITab_Bills() },
-            { data => new ITab_Pawn_Gear() },
-            { data => new ITab_TransporterContents() },
-            { data => Current.Game.outfitDatabase },
-            { data => Current.Game.drugPolicyDatabase },
-            { data => Current.Game.foodRestrictionDatabase },
-            { data => (data.MpContext().map).areaManager },
-            { data => (data.MpContext().map).MpComp() },
-            { data => Find.WorldSelector },
-            { data => Find.Storyteller },
+            data => data.ReadByte(),
+            data => data.ReadSByte(),
+            data => data.ReadShort(),
+            data => data.ReadUShort(),
+            data => data.ReadInt32(),
+            data => data.ReadUInt32(),
+            data => data.ReadLong(),
+            data => data.ReadULong(),
+            data => data.ReadFloat(),
+            data => data.ReadDouble(),
+            data => data.ReadBool(),
+            data => data.ReadString(),
+            data => (Event) null,
+            data => ReadSync<Pawn>(data)?.mindState?.priorityWork,
+            data => ReadSync<Pawn>(data)?.playerSettings,
+            data => ReadSync<Pawn>(data)?.timetable,
+            data => ReadSync<Pawn>(data)?.workSettings,
+            data => ReadSync<Pawn>(data)?.drafter,
+            data => ReadSync<Pawn>(data)?.jobs,
+            data => ReadSync<Pawn>(data)?.outfits,
+            data => ReadSync<Pawn>(data)?.drugs,
+            data => ReadSync<Pawn>(data)?.foodRestriction,
+            data => ReadSync<Pawn>(data)?.training,
+            data => ReadSync<Pawn>(data)?.story,
+            data => ReadSync<Pawn>(data)?.outfits?.forcedHandler,
+            data => ReadSync<Caravan>(data)?.pather,
+            data => new FloatRange(data.ReadFloat(), data.ReadFloat()),
+            data => new IntRange(data.ReadInt32(), data.ReadInt32()),
+            data => new QualityRange(ReadSync<QualityCategory>(data), ReadSync<QualityCategory>(data)),
+            data => new NameSingle(data.ReadString(), data.ReadBool()),
+            data => new NameTriple(data.ReadString(), data.ReadString(), data.ReadString()),
+            data => new Rot4(data.ReadByte()),
+            data => new ITab_Bills(),
+            data => new ITab_Pawn_Gear(),
+            data => new ITab_TransporterContents(),
+            data => Current.Game.outfitDatabase,
+            data => Current.Game.drugPolicyDatabase,
+            data => Current.Game.foodRestrictionDatabase,
+            data => data.MpContext().map.areaManager,
+            data => data.MpContext().map.MpComp(),
+            data => Find.WorldSelector,
+            data => Find.Storyteller,
+            data =>
             {
-                data =>
-                {
-                    int id = data.ReadInt32();
-                    return data.MpContext().map.MpComp().mapDialogs.FirstOrDefault(s => s.id == id);
-                }
+                var id = data.ReadInt32();
+                return data.MpContext().map.MpComp().mapDialogs.FirstOrDefault(s => s.id == id);
             },
+            data =>
             {
-                data =>
-                {
-                    int id = data.ReadInt32();
-                    return Multiplayer.WorldComp.trading.FirstOrDefault(s => s.sessionId == id);
-                }
+                var id = data.ReadInt32();
+                return Multiplayer.WorldComp.trading.FirstOrDefault(s => s.sessionId == id);
             },
+            data =>
             {
-                data =>
-                {
-                    int id = data.ReadInt32();
-                    var session = data.MpContext().map.MpComp().caravanForming;
-                    return session?.sessionId == id ? session : null;
-                }
+                var id = data.ReadInt32();
+                var session = data.MpContext().map.MpComp().caravanForming;
+                return session?.sessionId == id ? session : null;
             },
+            data =>
             {
-                data =>
-                {
-                    int id = data.ReadInt32();
-                    var session = data.MpContext().map.MpComp().transporterLoading;
-                    return session?.sessionId == id ? session : null;
-                }
+                var id = data.ReadInt32();
+                var session = data.MpContext().map.MpComp().transporterLoading;
+                return session?.sessionId == id ? session : null;
             },
+            data =>
             {
-                data =>
-                {
-                    bool hasThing = data.ReadBool();
-                    if (hasThing)
-                        return new LocalTargetInfo(ReadSync<Thing>(data));
-                    else
-                        return new LocalTargetInfo(ReadSync<IntVec3>(data));
-                }
+                var hasThing = data.ReadBool();
+                if (hasThing)
+                    return new LocalTargetInfo(ReadSync<Thing>(data));
+                return new LocalTargetInfo(ReadSync<IntVec3>(data));
             }
         };
 
-        static WriterDictionary writers = new WriterDictionary
+        private static readonly WriterDictionary writers = new WriterDictionary
         {
-            { (ByteWriter data, byte b) => data.WriteByte(b) },
-            { (ByteWriter data, sbyte b) => data.WriteSByte(b) },
-            { (ByteWriter data, short u) => data.WriteShort(u) },
-            { (ByteWriter data, ushort u) => data.WriteUShort(u) },
-            { (ByteWriter data, int i) => data.WriteInt32(i) },
-            { (ByteWriter data, uint i) => data.WriteUInt32(i) },
-            { (ByteWriter data, long l) => data.WriteLong(l) },
-            { (ByteWriter data, ulong l) => data.WriteULong(l) },
-            { (ByteWriter data, float f) => data.WriteFloat(f) },
-            { (ByteWriter data, double d) => data.WriteDouble(d) },
-            { (ByteWriter data, bool b) => data.WriteBool(b) },
-            { (ByteWriter data, string s) => data.WriteString(s) },
-            { (ByteWriter data, Event e) => { } },
-            { (ByteWriter data, PriorityWork work) => WriteSync(data, work.pawn) },
-            { (ByteWriter data, Pawn_PlayerSettings comp) => WriteSync(data, comp.pawn) },
-            { (ByteWriter data, Pawn_TimetableTracker comp) => WriteSync(data, comp.pawn) },
-            { (ByteWriter data, Pawn_DraftController comp) => WriteSync(data, comp.pawn) },
-            { (ByteWriter data, Pawn_WorkSettings comp) => WriteSync(data, comp.pawn) },
-            { (ByteWriter data, Pawn_JobTracker comp) => WriteSync(data, comp.pawn) },
-            { (ByteWriter data, Pawn_OutfitTracker comp) => WriteSync(data, comp.pawn) },
-            { (ByteWriter data, Pawn_DrugPolicyTracker comp) => WriteSync(data, comp.pawn) },
-            { (ByteWriter data, Pawn_FoodRestrictionTracker comp) => WriteSync(data, comp.pawn) },
-            { (ByteWriter data, Pawn_TrainingTracker comp) => WriteSync(data, comp.pawn) },
-            { (ByteWriter data, Pawn_StoryTracker comp) => WriteSync(data, comp.pawn) },
-            { (ByteWriter data, OutfitForcedHandler comp) => WriteSync(data, comp.forcedAps.Select(a => a.Wearer).FirstOrDefault()) }, // this is fine, theoretically
-            { (ByteWriter data, Caravan_PathFollower follower) => WriteSync(data, follower.caravan) },
-            { (ByteWriter data, FloatRange range) => { data.WriteFloat(range.min); data.WriteFloat(range.max); }},
-            { (ByteWriter data, IntRange range) => { data.WriteInt32(range.min); data.WriteInt32(range.max); }},
-            { (ByteWriter data, QualityRange range) => { WriteSync(data, range.min); WriteSync(data, range.max); }},
-            { (ByteWriter data, NameSingle name) => { data.WriteString(name.nameInt); data.WriteBool(name.numerical); } },
-            { (ByteWriter data, NameTriple name) => { data.WriteString(name.firstInt); data.WriteString(name.nickInt); data.WriteString(name.lastInt); } },
-            { (ByteWriter data, Rot4 rot) => data.WriteByte(rot.AsByte) },
-            { (ByteWriter data, ITab_Bills tab) => {} },
-            { (ByteWriter data, ITab_Pawn_Gear tab) => {} },
-            { (ByteWriter data, ITab_TransporterContents tab) => {} },
-            { (ByteWriter data, OutfitDatabase db) => {} },
-            { (ByteWriter data, DrugPolicyDatabase db) => {} },
-            { (ByteWriter data, FoodRestrictionDatabase db) => {} },
-            { (ByteWriter data, AreaManager areas) => data.MpContext().map = areas.map },
-            { (ByteWriter data, MultiplayerMapComp comp) => data.MpContext().map = comp.map },
-            { (ByteWriter data, WorldSelector selector) => {} },
-            { (ByteWriter data, Storyteller storyteller) => {} },
-            { (ByteWriter data, PersistentDialog session) => { data.MpContext().map = session.map; data.WriteInt32(session.id); } },
-            { (ByteWriter data, MpTradeSession session) => data.WriteInt32(session.sessionId) },
-            { (ByteWriter data, CaravanFormingSession session) => { data.MpContext().map = session.map; data.WriteInt32(session.sessionId); } },
-            { (ByteWriter data, TransporterLoading session) => { data.MpContext().map = session.map; data.WriteInt32(session.sessionId); } },
+            (ByteWriter data, byte b) => data.WriteByte(b),
+            (ByteWriter data, sbyte b) => data.WriteSByte(b),
+            (ByteWriter data, short u) => data.WriteShort(u),
+            (ByteWriter data, ushort u) => data.WriteUShort(u),
+            (ByteWriter data, int i) => data.WriteInt32(i),
+            (ByteWriter data, uint i) => data.WriteUInt32(i),
+            (ByteWriter data, long l) => data.WriteLong(l),
+            (ByteWriter data, ulong l) => data.WriteULong(l),
+            (ByteWriter data, float f) => data.WriteFloat(f),
+            (ByteWriter data, double d) => data.WriteDouble(d),
+            (ByteWriter data, bool b) => data.WriteBool(b),
+            (ByteWriter data, string s) => data.WriteString(s),
+            (ByteWriter data, Event e) => { },
+            (ByteWriter data, PriorityWork work) => WriteSync(data, work.pawn),
+            (ByteWriter data, Pawn_PlayerSettings comp) => WriteSync(data, comp.pawn),
+            (ByteWriter data, Pawn_TimetableTracker comp) => WriteSync(data, comp.pawn),
+            (ByteWriter data, Pawn_DraftController comp) => WriteSync(data, comp.pawn),
+            (ByteWriter data, Pawn_WorkSettings comp) => WriteSync(data, comp.pawn),
+            (ByteWriter data, Pawn_JobTracker comp) => WriteSync(data, comp.pawn),
+            (ByteWriter data, Pawn_OutfitTracker comp) => WriteSync(data, comp.pawn),
+            (ByteWriter data, Pawn_DrugPolicyTracker comp) => WriteSync(data, comp.pawn),
+            (ByteWriter data, Pawn_FoodRestrictionTracker comp) => WriteSync(data, comp.pawn),
+            (ByteWriter data, Pawn_TrainingTracker comp) => WriteSync(data, comp.pawn),
+            (ByteWriter data, Pawn_StoryTracker comp) => WriteSync(data, comp.pawn),
+            (ByteWriter data, OutfitForcedHandler comp) => WriteSync(data, comp.forcedAps.Select(a => a.Wearer).FirstOrDefault()), // this is fine, theoretically
+            (ByteWriter data, Caravan_PathFollower follower) => WriteSync(data, follower.caravan),
+            (ByteWriter data, FloatRange range) =>
             {
-                (ByteWriter data, LocalTargetInfo info) =>
-                {
-                    data.WriteBool(info.HasThing);
-                    if (info.HasThing)
-                        WriteSync(data, info.Thing);
-                    else
-                        WriteSync(data, info.Cell);
-                }
+                data.WriteFloat(range.min);
+                data.WriteFloat(range.max);
+            },
+            (ByteWriter data, IntRange range) =>
+            {
+                data.WriteInt32(range.min);
+                data.WriteInt32(range.max);
+            },
+            (ByteWriter data, QualityRange range) =>
+            {
+                WriteSync(data, range.min);
+                WriteSync(data, range.max);
+            },
+            (ByteWriter data, NameSingle name) =>
+            {
+                data.WriteString(name.nameInt);
+                data.WriteBool(name.numerical);
+            },
+            (ByteWriter data, NameTriple name) =>
+            {
+                data.WriteString(name.firstInt);
+                data.WriteString(name.nickInt);
+                data.WriteString(name.lastInt);
+            },
+            (ByteWriter data, Rot4 rot) => data.WriteByte(rot.AsByte),
+            (ByteWriter data, ITab_Bills tab) => { },
+            (ByteWriter data, ITab_Pawn_Gear tab) => { },
+            (ByteWriter data, ITab_TransporterContents tab) => { },
+            (ByteWriter data, OutfitDatabase db) => { },
+            (ByteWriter data, DrugPolicyDatabase db) => { },
+            (ByteWriter data, FoodRestrictionDatabase db) => { },
+            (ByteWriter data, AreaManager areas) => data.MpContext().map = areas.map,
+            (ByteWriter data, MultiplayerMapComp comp) => data.MpContext().map = comp.map,
+            (ByteWriter data, WorldSelector selector) => { },
+            (ByteWriter data, Storyteller storyteller) => { },
+            (ByteWriter data, PersistentDialog session) =>
+            {
+                data.MpContext().map = session.map;
+                data.WriteInt32(session.id);
+            },
+            (ByteWriter data, MpTradeSession session) => data.WriteInt32(session.sessionId),
+            (ByteWriter data, CaravanFormingSession session) =>
+            {
+                data.MpContext().map = session.map;
+                data.WriteInt32(session.sessionId);
+            },
+            (ByteWriter data, TransporterLoading session) =>
+            {
+                data.MpContext().map = session.map;
+                data.WriteInt32(session.sessionId);
+            },
+            (ByteWriter data, LocalTargetInfo info) =>
+            {
+                data.WriteBool(info.HasThing);
+                if (info.HasThing)
+                    WriteSync(data, info.Thing);
+                else
+                    WriteSync(data, info.Cell);
             }
         };
 
         public static Type[] storageParents;
         public static Type[] plantToGrowSettables;
 
-        private static Type[] AllImplementations(Type type)
+        public static MultiTarget thingFilterTarget = new MultiTarget
         {
-            return GenTypes.AllTypes
-                .Where(t => t != type && type.IsAssignableFrom(t))
-                .OrderBy(t => t.IsInterface)
-                .ToArray();
-        }
-
-        public static MultiTarget thingFilterTarget = new MultiTarget()
-        {
-            { typeof(IStoreSettingsParent), "GetStoreSettings/filter" },
-            { typeof(Bill), "ingredientFilter" },
-            { typeof(Outfit), "filter" },
-            { typeof(FoodRestriction), "filter" }
+            {typeof(IStoreSettingsParent), "GetStoreSettings/filter"},
+            {typeof(Bill), "ingredientFilter"},
+            {typeof(Outfit), "filter"},
+            {typeof(FoodRestriction), "filter"}
         };
 
         public static Type[] thingCompTypes;
@@ -192,6 +204,27 @@ namespace Multiplayer.Client.Sync
         public static Type[] gameCompTypes;
         public static Type[] worldCompTypes;
         public static Type[] mapCompTypes;
+
+        private static readonly Type[] supportedThingHolders =
+        {
+            typeof(Map),
+            typeof(Thing),
+            typeof(ThingComp),
+            typeof(WorldObject),
+            typeof(WorldObjectComp)
+        };
+
+        private static readonly MethodInfo ReadExposable = AccessTools.Method(typeof(ScribeUtil), nameof(ScribeUtil.ReadExposable));
+
+        private static readonly MethodInfo GetDefByIdMethod = AccessTools.Method(typeof(Sync), nameof(GetDefById));
+
+        private static Type[] AllImplementations(Type type)
+        {
+            return GenTypes.AllTypes
+                .Where(t => t != type && type.IsAssignableFrom(t))
+                .OrderBy(t => t.IsInterface)
+                .ToArray();
+        }
 
         public static void CollectTypes()
         {
@@ -207,127 +240,107 @@ namespace Multiplayer.Client.Sync
             mapCompTypes = typeof(MapComponent).AllSubclassesNonAbstract().ToArray();
         }
 
-        private static Type[] supportedThingHolders = new[]
-        {
-            typeof(Map),
-            typeof(Thing),
-            typeof(ThingComp),
-            typeof(WorldObject),
-            typeof(WorldObjectComp)
-        };
-
         public static T ReadSync<T>(ByteReader data)
         {
-            return (T)ReadSyncObject(data, typeof(T));
+            return (T) ReadSyncObject(data, typeof(T));
         }
 
-        private static MethodInfo ReadExposable = AccessTools.Method(typeof(ScribeUtil), nameof(ScribeUtil.ReadExposable));
-
-        enum ListType : byte
+        private static T GetDefById<T>(ushort id) where T : Def, new()
         {
-            Normal, MapAllThings, MapAllDesignations
+            return DefDatabase<T>.GetByShortHash(id);
         }
-
-        enum ISelectableImpl : byte
-        {
-            Thing, Zone, WorldObject
-        }
-
-        private static MethodInfo GetDefByIdMethod = AccessTools.Method(typeof(Sync), nameof(Sync.GetDefById));
-
-        private static T GetDefById<T>(ushort id) where T : Def, new() => DefDatabase<T>.GetByShortHash(id);
 
         public static object ReadSyncObject(ByteReader data, SyncType syncType)
         {
-            MpContext context = data.MpContext();
-            Map map = context.map;
-            Type type = syncType.type;
+            var context = data.MpContext();
+            var map = context.map;
+            var type = syncType.type;
 
             try
             {
-                if (typeof(object) == type)
-                {
-                    return null;
-                }
-                else if (type.IsByRef)
-                {
-                    return null;
-                }
-                else if (syncType.expose)
+                if (typeof(object) == type) return null;
+
+                if (type.IsByRef) return null;
+
+                if (syncType.expose)
                 {
                     if (!typeof(IExposable).IsAssignableFrom(type))
                         throw new SerializationException($"Type {type} can't be exposed because it isn't IExposable");
 
-                    byte[] exposableData = data.ReadPrefixedBytes();
-                    return ReadExposable.MakeGenericMethod(type).Invoke(null, new[] { exposableData, null });
+                    var exposableData = data.ReadPrefixedBytes();
+                    return ReadExposable.MakeGenericMethod(type).Invoke(null, new[] {exposableData, null});
                 }
-                else if (typeof(IntVec3) == type)
+
+                if (typeof(IntVec3) == type)
                 {
-                    short y = data.ReadShort();
+                    var y = data.ReadShort();
                     if (y < 0)
                         return IntVec3.Invalid;
 
-                    short x = data.ReadShort();
-                    short z = data.ReadShort();
+                    var x = data.ReadShort();
+                    var z = data.ReadShort();
 
                     return new IntVec3(x, y, z);
                 }
-                else if (readers.TryGetValue(type, out Func<ByteReader, object> reader))
+
+                if (readers.TryGetValue(type, out var reader)) return reader(data);
+
+                if (type.IsEnum)
                 {
-                    return reader(data);
-                }
-                else if (type.IsEnum)
-                {
-                    Type enumType = Enum.GetUnderlyingType(type);
+                    var enumType = Enum.GetUnderlyingType(type);
                     return readers[enumType](data);
                 }
-                else if (type.IsArray && type.GetArrayRank() == 1)
+
+                if (type.IsArray && type.GetArrayRank() == 1)
                 {
-                    Type elementType = type.GetElementType();
-                    ushort length = data.ReadUShort();
-                    Array arr = Array.CreateInstance(elementType, length);
-                    for (int i = 0; i < length; i++)
+                    var elementType = type.GetElementType();
+                    var length = data.ReadUShort();
+                    var arr = Array.CreateInstance(elementType, length);
+                    for (var i = 0; i < length; i++)
                         arr.SetValue(ReadSyncObject(data, elementType), i);
                     return arr;
                 }
-                else if (type.IsGenericType)
+
+                if (type.IsGenericType)
                 {
                     if (type.GetGenericTypeDefinition() == typeof(List<>))
                     {
-                        ListType specialList = ReadSync<ListType>(data);
+                        var specialList = ReadSync<ListType>(data);
                         if (specialList == ListType.MapAllThings)
                             return map.listerThings.AllThings;
-                        else if (specialList == ListType.MapAllDesignations)
+                        if (specialList == ListType.MapAllDesignations)
                             return map.designationManager.allDesignations;
 
-                        Type listType = type.GetGenericArguments()[0];
-                        ushort size = data.ReadUShort();
-                        IList list = (IList)Activator.CreateInstance(type, size);
-                        for (int j = 0; j < size; j++)
+                        var listType = type.GetGenericArguments()[0];
+                        var size = data.ReadUShort();
+                        var list = (IList) Activator.CreateInstance(type, size);
+                        for (var j = 0; j < size; j++)
                             list.Add(ReadSyncObject(data, listType));
 
                         return list;
                     }
-                    else if (type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
+
+                    if (type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
                     {
-                        Type element = type.GetGenericArguments()[0];
+                        var element = type.GetGenericArguments()[0];
                         return ReadSyncObject(data, typeof(List<>).MakeGenericType(element));
                     }
-                    else if (type.GetGenericTypeDefinition() == typeof(Nullable<>))
+
+                    if (type.GetGenericTypeDefinition() == typeof(Nullable<>))
                     {
-                        bool isNull = data.ReadBool();
+                        var isNull = data.ReadBool();
                         if (isNull) return null;
 
-                        bool hasValue = data.ReadBool();
+                        var hasValue = data.ReadBool();
                         if (!hasValue) return Activator.CreateInstance(type);
 
-                        Type nullableType = type.GetGenericArguments()[0];
+                        var nullableType = type.GetGenericArguments()[0];
                         return Activator.CreateInstance(type, ReadSyncObject(data, nullableType));
                     }
                 }
                 else if (typeof(Area).IsAssignableFrom(type))
                 {
-                    int areaId = data.ReadInt32();
+                    var areaId = data.ReadInt32();
                     if (areaId == -1)
                         return null;
 
@@ -335,7 +348,7 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(Zone).IsAssignableFrom(type))
                 {
-                    int zoneId = data.ReadInt32();
+                    var zoneId = data.ReadInt32();
                     if (zoneId == -1)
                         return null;
 
@@ -343,11 +356,11 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(Def).IsAssignableFrom(type))
                 {
-                    ushort shortHash = data.ReadUShort();
+                    var shortHash = data.ReadUShort();
                     if (shortHash == 0)
                         return null;
 
-                    Def def = (Def)GetDefByIdMethod.MakeGenericMethod(type).Invoke(null, new object[] { shortHash });
+                    var def = (Def) GetDefByIdMethod.MakeGenericMethod(type).Invoke(null, new object[] {shortHash});
                     if (def == null)
                         throw new Exception($"Couldn't find {type} with short hash {shortHash}");
 
@@ -355,7 +368,7 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(WITab_Caravan_Gear) == type)
                 {
-                    bool hasThing = data.ReadBool();
+                    var hasThing = data.ReadBool();
 
                     Thing thing = null;
                     if (hasThing)
@@ -372,7 +385,7 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(PawnColumnWorker).IsAssignableFrom(type))
                 {
-                    PawnColumnDef def = ReadSync<PawnColumnDef>(data);
+                    var def = ReadSync<PawnColumnDef>(data);
                     return def.Worker;
                 }
                 else if (typeof(Command_SetPlantToGrow) == type)
@@ -392,24 +405,24 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(Command_SetTargetFuelLevel) == type)
                 {
-                    List<CompRefuelable> refuelables = ReadSync<List<CompRefuelable>>(data);
+                    var refuelables = ReadSync<List<CompRefuelable>>(data);
                     refuelables.RemoveAll(r => r == null);
 
-                    Command_SetTargetFuelLevel command = new Command_SetTargetFuelLevel();
+                    var command = new Command_SetTargetFuelLevel();
                     command.refuelables = refuelables;
 
                     return command;
                 }
                 else if (typeof(Command_LoadToTransporter) == type)
                 {
-                    CompTransporter transporter = ReadSync<CompTransporter>(data);
+                    var transporter = ReadSync<CompTransporter>(data);
                     if (transporter == null)
                         return null;
 
-                    List<CompTransporter> transporters = ReadSync<List<CompTransporter>>(data);
+                    var transporters = ReadSync<List<CompTransporter>>(data);
                     transporters.RemoveAll(r => r == null);
 
-                    Command_LoadToTransporter command = new Command_LoadToTransporter();
+                    var command = new Command_LoadToTransporter();
                     command.transComp = transporter;
                     command.transporters = transporters;
 
@@ -417,46 +430,45 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(Designator).IsAssignableFrom(type))
                 {
-                    ushort desId = data.ReadUShort();
-                    Type desType = designatorTypes[desId];
+                    var desId = data.ReadUShort();
+                    var desType = designatorTypes[desId];
 
                     Designator des;
                     if (desType == typeof(Designator_Build))
                     {
-                        BuildableDef def = ReadSync<BuildableDef>(data);
+                        var def = ReadSync<BuildableDef>(data);
                         des = new Designator_Build(def);
                     }
                     else
                     {
-                        des = (Designator)Activator.CreateInstance(desType);
+                        des = (Designator) Activator.CreateInstance(desType);
                     }
 
                     return des;
                 }
                 else if (typeof(Thing).IsAssignableFrom(type))
                 {
-                    int thingId = data.ReadInt32();
+                    var thingId = data.ReadInt32();
                     if (thingId == -1)
                         return null;
 
                     if (!context.syncingThingParent)
                     {
-                        byte implIndex = data.ReadByte();
+                        var implIndex = data.ReadByte();
                         if (implIndex == byte.MaxValue)
                             return null;
 
-                        Type implType = supportedThingHolders[implIndex];
+                        var implType = supportedThingHolders[implIndex];
 
                         if (implType != typeof(Map))
                         {
                             context.syncingThingParent = true;
-                            IThingHolder parent = (IThingHolder)ReadSyncObject(data, implType);
+                            var parent = (IThingHolder) ReadSyncObject(data, implType);
                             context.syncingThingParent = false;
 
                             if (parent != null)
                                 return ThingOwnerUtility.GetAllThingsRecursively(parent).Find(t => t.thingIDNumber == thingId);
-                            else
-                                return null;
+                            return null;
                         }
                     }
 
@@ -464,7 +476,7 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(WorldObject).IsAssignableFrom(type))
                 {
-                    int objId = data.ReadInt32();
+                    var objId = data.ReadInt32();
                     if (objId == -1)
                         return null;
 
@@ -472,20 +484,20 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(WorldObjectComp).IsAssignableFrom(type))
                 {
-                    ushort compTypeId = data.ReadUShort();
+                    var compTypeId = data.ReadUShort();
                     if (compTypeId == ushort.MaxValue)
                         return null;
 
-                    WorldObject parent = ReadSync<WorldObject>(data);
+                    var parent = ReadSync<WorldObject>(data);
                     if (parent == null)
                         return null;
 
-                    Type compType = worldObjectCompTypes[compTypeId];
+                    var compType = worldObjectCompTypes[compTypeId];
                     return parent.AllComps.Find(comp => comp.props.compClass == compType);
                 }
                 else if (typeof(CompChangeableProjectile) == type) // special case of ThingComp
                 {
-                    Building_TurretGun parent = ReadSync<Thing>(data) as Building_TurretGun;
+                    var parent = ReadSync<Thing>(data) as Building_TurretGun;
                     if (parent == null)
                         return null;
 
@@ -493,77 +505,77 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(ThingComp).IsAssignableFrom(type))
                 {
-                    ushort compTypeId = data.ReadUShort();
+                    var compTypeId = data.ReadUShort();
                     if (compTypeId == ushort.MaxValue)
                         return null;
 
-                    ThingWithComps parent = ReadSync<ThingWithComps>(data);
+                    var parent = ReadSync<ThingWithComps>(data);
                     if (parent == null)
                         return null;
 
-                    Type compType = thingCompTypes[compTypeId];
+                    var compType = thingCompTypes[compTypeId];
                     return parent.AllComps.Find(comp => comp.props.compClass == compType);
                 }
                 else if (typeof(WorkGiver).IsAssignableFrom(type))
                 {
-                    WorkGiverDef def = ReadSync<WorkGiverDef>(data);
+                    var def = ReadSync<WorkGiverDef>(data);
                     return def?.Worker;
                 }
                 else if (typeof(BillStack) == type)
                 {
-                    Thing thing = ReadSync<Thing>(data);
+                    var thing = ReadSync<Thing>(data);
                     if (thing is IBillGiver billGiver)
                         return billGiver.BillStack;
                     return null;
                 }
                 else if (typeof(Bill).IsAssignableFrom(type))
                 {
-                    BillStack billStack = ReadSync<BillStack>(data);
+                    var billStack = ReadSync<BillStack>(data);
                     if (billStack == null)
                         return null;
 
-                    int id = data.ReadInt32();
+                    var id = data.ReadInt32();
                     return billStack.Bills.Find(bill => bill.loadID == id);
                 }
                 else if (typeof(Outfit) == type)
                 {
-                    int id = data.ReadInt32();
+                    var id = data.ReadInt32();
                     return Current.Game.outfitDatabase.AllOutfits.Find(o => o.uniqueId == id);
                 }
                 else if (typeof(DrugPolicy) == type)
                 {
-                    int id = data.ReadInt32();
+                    var id = data.ReadInt32();
                     return Current.Game.drugPolicyDatabase.AllPolicies.Find(o => o.uniqueId == id);
                 }
                 else if (typeof(FoodRestriction) == type)
                 {
-                    int id = data.ReadInt32();
+                    var id = data.ReadInt32();
                     return Current.Game.foodRestrictionDatabase.AllFoodRestrictions.Find(o => o.id == id);
                 }
                 else if (typeof(BodyPartRecord) == type)
                 {
-                    ushort partIndex = data.ReadUShort();
+                    var partIndex = data.ReadUShort();
                     if (partIndex == ushort.MaxValue) return null;
 
-                    BodyDef body = ReadSync<BodyDef>(data);
+                    var body = ReadSync<BodyDef>(data);
                     return body.GetPartAtIndex(partIndex);
                 }
                 else if (typeof(TransferableImmutable) == type)
                 {
-                    List<Thing> things = ReadSync<List<Thing>>(data);
+                    var things = ReadSync<List<Thing>>(data);
 
-                    TransferableImmutable tr = new TransferableImmutable();
+                    var tr = new TransferableImmutable();
                     tr.things.AddRange(things.NotNull());
 
                     return tr;
                 }
                 else if (typeof(MpTransferableReference) == type)
                 {
-                    int sessionId = data.ReadInt32();
+                    var sessionId = data.ReadInt32();
                     var session = GetSessions(map).FirstOrDefault(s => s.SessionId == sessionId);
                     if (session == null) return null;
 
-                    int thingId = data.ReadInt32();
+                    var thingId = data.ReadInt32();
                     if (thingId == -1) return null;
 
                     var transferable = session.GetTransferableByThingId(thingId);
@@ -573,21 +585,20 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(Lord) == type)
                 {
-                    int lordId = data.ReadInt32();
+                    var lordId = data.ReadInt32();
                     return map.lordManager.lords.Find(l => l.loadID == lordId);
                 }
                 else if (typeof(ISelectable) == type)
                 {
-                    ISelectableImpl impl = ReadSync<ISelectableImpl>(data);
+                    var impl = ReadSync<ISelectableImpl>(data);
 
                     if (impl == ISelectableImpl.Thing)
                         return ReadSync<Thing>(data);
-                    else if (impl == ISelectableImpl.Zone)
+                    if (impl == ISelectableImpl.Zone)
                         return ReadSync<Zone>(data);
-                    else if (impl == ISelectableImpl.WorldObject)
+                    if (impl == ISelectableImpl.WorldObject)
                         return ReadSync<WorldObject>(data);
-                    else
-                        throw new Exception($"Unknown ISelectable");
+                    throw new Exception("Unknown ISelectable");
                 }
                 else if (typeof(IStoreSettingsParent) == type)
                 {
@@ -603,7 +614,7 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(StorageSettings) == type)
                 {
-                    IStoreSettingsParent parent = ReadSync<IStoreSettingsParent>(data);
+                    var parent = ReadSync<IStoreSettingsParent>(data);
                     if (parent == null) return null;
                     return parent.GetStoreSettings();
                 }
@@ -634,10 +645,10 @@ namespace Multiplayer.Client.Sync
 
         public static void WriteSyncObject(ByteWriter data, object obj, SyncType syncType)
         {
-            MpContext context = data.MpContext();
-            Type type = syncType.type;
+            var context = data.MpContext();
+            var type = syncType.type;
 
-            LoggingByteWriter log = data as LoggingByteWriter;
+            var log = data as LoggingByteWriter;
             log?.LogEnter(type.FullName + ": " + (obj ?? "null"));
 
             if (obj != null && !type.IsAssignableFrom(obj.GetType()))
@@ -656,12 +667,12 @@ namespace Multiplayer.Client.Sync
                     if (!typeof(IExposable).IsAssignableFrom(type))
                         throw new SerializationException($"Type {type} can't be exposed because it isn't IExposable");
 
-                    IExposable exposable = obj as IExposable;
+                    var exposable = obj as IExposable;
                     data.WritePrefixedBytes(ScribeUtil.WriteExposable(exposable));
                 }
                 else if (typeof(IntVec3) == type)
                 {
-                    IntVec3 vec = (IntVec3)obj;
+                    var vec = (IntVec3) obj;
 
                     if (vec.y < 0)
                     {
@@ -669,36 +680,36 @@ namespace Multiplayer.Client.Sync
                     }
                     else
                     {
-                        data.WriteShort((short)vec.y);
-                        data.WriteShort((short)vec.x);
-                        data.WriteShort((short)vec.z);
+                        data.WriteShort((short) vec.y);
+                        data.WriteShort((short) vec.x);
+                        data.WriteShort((short) vec.z);
                     }
                 }
-                else if (writers.TryGetValue(type, out Action<ByteWriter, object> writer))
+                else if (writers.TryGetValue(type, out var writer))
                 {
                     writer(data, obj);
                 }
                 else if (type.IsEnum)
                 {
-                    Type enumType = Enum.GetUnderlyingType(type);
+                    var enumType = Enum.GetUnderlyingType(type);
                     writers[enumType](data, Convert.ChangeType(obj, enumType));
                 }
                 else if (type.IsArray && type.GetArrayRank() == 1)
                 {
-                    Type elementType = type.GetElementType();
-                    Array arr = (Array)obj;
+                    var elementType = type.GetElementType();
+                    var arr = (Array) obj;
 
                     if (arr.Length > ushort.MaxValue)
                         throw new Exception($"Tried to serialize a {elementType}[] with too many ({arr.Length}) items.");
 
-                    data.WriteUShort((ushort)arr.Length);
-                    foreach (object e in arr)
+                    data.WriteUShort((ushort) arr.Length);
+                    foreach (var e in arr)
                         WriteSyncObject(data, e, elementType);
                 }
                 else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>))
                 {
-                    ListType specialList = ListType.Normal;
-                    Type listType = type.GetGenericArguments()[0];
+                    var specialList = ListType.Normal;
+                    var listType = type.GetGenericArguments()[0];
 
                     if (listType == typeof(Thing) && obj == Find.CurrentMap.listerThings.AllThings)
                     {
@@ -715,35 +726,35 @@ namespace Multiplayer.Client.Sync
 
                     if (specialList == ListType.Normal)
                     {
-                        IList list = (IList)obj;
+                        var list = (IList) obj;
 
                         if (list.Count > ushort.MaxValue)
                             throw new Exception($"Tried to serialize a {type} with too many ({list.Count}) items.");
 
-                        data.WriteUShort((ushort)list.Count);
-                        foreach (object e in list)
+                        data.WriteUShort((ushort) list.Count);
+                        foreach (var e in list)
                             WriteSyncObject(data, e, listType);
                     }
                 }
                 else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>))
                 {
-                    bool isNull = obj == null;
+                    var isNull = obj == null;
                     data.WriteBool(isNull);
                     if (isNull) return;
 
-                    bool hasValue = (bool)obj.GetPropertyOrField("HasValue");
+                    var hasValue = (bool) obj.GetPropertyOrField("HasValue");
                     data.WriteBool(hasValue);
 
-                    Type nullableType = type.GetGenericArguments()[0];
+                    var nullableType = type.GetGenericArguments()[0];
                     if (hasValue)
                         WriteSyncObject(data, obj.GetPropertyOrField("Value"), nullableType);
                 }
                 else if (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(IEnumerable<>))
                 {
-                    IEnumerable e = (IEnumerable)obj;
-                    Type elementType = type.GetGenericArguments()[0];
+                    var e = (IEnumerable) obj;
+                    var elementType = type.GetGenericArguments()[0];
                     var listType = typeof(List<>).MakeGenericType(elementType);
-                    IList list = (IList)Activator.CreateInstance(listType);
+                    var list = (IList) Activator.CreateInstance(listType);
 
                     foreach (var o in e)
                     {
@@ -780,60 +791,60 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(Def).IsAssignableFrom(type))
                 {
-                    Def def = obj as Def;
-                    data.WriteUShort(def != null ? def.shortHash : (ushort)0);
+                    var def = obj as Def;
+                    data.WriteUShort(def != null ? def.shortHash : (ushort) 0);
                 }
                 else if (typeof(WITab_Caravan_Gear) == type)
                 {
-                    var tab = (WITab_Caravan_Gear)obj;
+                    var tab = (WITab_Caravan_Gear) obj;
                     data.WriteBool(tab.draggedItem != null);
                     if (tab.draggedItem != null)
                         WriteSync(data, tab.draggedItem);
                 }
                 else if (typeof(PawnColumnWorker).IsAssignableFrom(type))
                 {
-                    PawnColumnWorker worker = obj as PawnColumnWorker;
+                    var worker = obj as PawnColumnWorker;
                     WriteSync(data, worker.def);
                 }
                 else if (typeof(Command_SetPlantToGrow) == type)
                 {
-                    var command = (Command_SetPlantToGrow)obj;
+                    var command = (Command_SetPlantToGrow) obj;
                     WriteSync(data, command.settable);
                     WriteSync(data, command.settables);
                 }
                 else if (typeof(Command_SetTargetFuelLevel) == type)
                 {
-                    var command = (Command_SetTargetFuelLevel)obj;
+                    var command = (Command_SetTargetFuelLevel) obj;
                     WriteSync(data, command.refuelables);
                 }
                 else if (typeof(Command_LoadToTransporter) == type)
                 {
-                    var command = (Command_LoadToTransporter)obj;
+                    var command = (Command_LoadToTransporter) obj;
                     WriteSync(data, command.transComp);
                     WriteSync(data, command.transporters ?? new List<CompTransporter>());
                 }
                 else if (typeof(Designator).IsAssignableFrom(type))
                 {
-                    Designator des = obj as Designator;
-                    data.WriteUShort((ushort)Array.IndexOf(designatorTypes, des.GetType()));
+                    var des = obj as Designator;
+                    data.WriteUShort((ushort) Array.IndexOf(designatorTypes, des.GetType()));
 
                     if (des is Designator_Build build)
                         WriteSync(data, build.PlacingDef);
                 }
                 else if (typeof(CompChangeableProjectile) == type) // special case of ThingComp
                 {
-                    CompChangeableProjectile comp = obj as CompChangeableProjectile;
+                    var comp = obj as CompChangeableProjectile;
                     if (comp == null)
                     {
                         WriteSync<Thing>(data, null);
                         return;
                     }
 
-                    CompEquippable compEquippable = comp.parent.TryGetComp<CompEquippable>();
+                    var compEquippable = comp.parent.TryGetComp<CompEquippable>();
 
                     if (compEquippable.AllVerbs.Any())
                     {
-                        Building_TurretGun turretGun = compEquippable.AllVerbs.Select(v => v.caster).OfType<Building_TurretGun>().FirstOrDefault();
+                        var turretGun = compEquippable.AllVerbs.Select(v => v.caster).OfType<Building_TurretGun>().FirstOrDefault();
                         if (turretGun != null)
                         {
                             WriteSync<Thing>(data, turretGun);
@@ -845,10 +856,10 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(ThingComp).IsAssignableFrom(type))
                 {
-                    ThingComp comp = (ThingComp)obj;
+                    var comp = (ThingComp) obj;
                     if (comp != null)
                     {
-                        data.WriteUShort((ushort)Array.IndexOf(thingCompTypes, comp.GetType()));
+                        data.WriteUShort((ushort) Array.IndexOf(thingCompTypes, comp.GetType()));
                         WriteSync(data, comp.parent);
                     }
                     else
@@ -858,12 +869,12 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(WorkGiver).IsAssignableFrom(type))
                 {
-                    WorkGiver workGiver = obj as WorkGiver;
+                    var workGiver = obj as WorkGiver;
                     WriteSync(data, workGiver.def);
                 }
                 else if (typeof(Thing).IsAssignableFrom(type))
                 {
-                    Thing thing = obj as Thing;
+                    var thing = obj as Thing;
                     if (thing == null)
                     {
                         data.WriteInt32(-1);
@@ -890,7 +901,7 @@ namespace Multiplayer.Client.Sync
                         else if (GetAnyParent<WorldObjectComp>(thing) is WorldObjectComp worldObjComp)
                             holder = worldObjComp;
 
-                        GetImpl(holder, supportedThingHolders, out Type implType, out int index);
+                        GetImpl(holder, supportedThingHolders, out var implType, out var index);
                         if (index == -1)
                         {
                             data.WriteByte(byte.MaxValue);
@@ -898,28 +909,27 @@ namespace Multiplayer.Client.Sync
                             return;
                         }
 
-                        data.WriteByte((byte)index);
+                        data.WriteByte((byte) index);
 
                         if (implType != typeof(Map))
                         {
                             context.syncingThingParent = true;
                             WriteSyncObject(data, holder, implType);
                             context.syncingThingParent = false;
-                            return;
                         }
                     }
                 }
                 else if (typeof(WorldObject).IsAssignableFrom(type))
                 {
-                    WorldObject worldObj = (WorldObject)obj;
+                    var worldObj = (WorldObject) obj;
                     data.WriteInt32(worldObj?.ID ?? -1);
                 }
                 else if (typeof(WorldObjectComp).IsAssignableFrom(type))
                 {
-                    WorldObjectComp comp = (WorldObjectComp)obj;
+                    var comp = (WorldObjectComp) obj;
                     if (comp != null)
                     {
-                        ushort index = (ushort)Array.IndexOf(worldObjectCompTypes, comp.GetType());
+                        var index = (ushort) Array.IndexOf(worldObjectCompTypes, comp.GetType());
                         data.WriteUShort(index);
                         WriteSync(data, comp.parent);
                     }
@@ -930,28 +940,28 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(BillStack) == type)
                 {
-                    Thing billGiver = (obj as BillStack)?.billGiver as Thing;
+                    var billGiver = (obj as BillStack)?.billGiver as Thing;
                     WriteSync(data, billGiver);
                 }
                 else if (typeof(Bill).IsAssignableFrom(type))
                 {
-                    Bill bill = (Bill)obj;
+                    var bill = (Bill) obj;
                     WriteSync(data, bill.billStack);
                     data.WriteInt32(bill.loadID);
                 }
                 else if (typeof(Outfit) == type)
                 {
-                    Outfit outfit = (Outfit)obj;
+                    var outfit = (Outfit) obj;
                     data.WriteInt32(outfit.uniqueId);
                 }
                 else if (typeof(DrugPolicy) == type)
                 {
-                    DrugPolicy outfit = (DrugPolicy)obj;
+                    var outfit = (DrugPolicy) obj;
                     data.WriteInt32(outfit.uniqueId);
                 }
                 else if (typeof(FoodRestriction) == type)
                 {
-                    FoodRestriction foodRestriction = (FoodRestriction)obj;
+                    var foodRestriction = (FoodRestriction) obj;
                     data.WriteInt32(foodRestriction.id);
                 }
                 else if (typeof(BodyPartRecord) == type)
@@ -962,24 +972,24 @@ namespace Multiplayer.Client.Sync
                         return;
                     }
 
-                    BodyPartRecord part = obj as BodyPartRecord;
-                    BodyDef body = part.body;
+                    var part = obj as BodyPartRecord;
+                    var body = part.body;
 
-                    data.WriteUShort((ushort)body.GetIndexOfPart(part));
+                    data.WriteUShort((ushort) body.GetIndexOfPart(part));
                     WriteSync(data, body);
                 }
                 else if (typeof(TransferableImmutable) == type)
                 {
                     // todo find a better way
-                    TransferableImmutable tr = (TransferableImmutable)obj;
+                    var tr = (TransferableImmutable) obj;
                     WriteSync(data, tr.things);
                 }
                 else if (typeof(MpTransferableReference) == type)
                 {
-                    MpTransferableReference reference = (MpTransferableReference)obj;
+                    var reference = (MpTransferableReference) obj;
                     data.WriteInt32(reference.session.SessionId);
 
-                    Transferable tr = reference.transferable;
+                    var tr = reference.transferable;
 
                     Thing thing;
                     if (tr is Tradeable trad)
@@ -996,7 +1006,7 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(Lord) == type)
                 {
-                    Lord lord = (Lord)obj;
+                    var lord = (Lord) obj;
                     context.map = lord.Map;
                     data.WriteInt32(lord.loadID);
                 }
@@ -1036,7 +1046,7 @@ namespace Multiplayer.Client.Sync
                 }
                 else if (typeof(StorageSettings) == type)
                 {
-                    StorageSettings storage = obj as StorageSettings;
+                    var storage = obj as StorageSettings;
                     WriteSync(data, storage.owner);
                 }
                 else
@@ -1058,9 +1068,9 @@ namespace Multiplayer.Client.Sync
 
         private static T ReadWithImpl<T>(ByteReader data, IList<Type> impls) where T : class
         {
-            ushort impl = data.ReadUShort();
+            var impl = data.ReadUShort();
             if (impl == ushort.MaxValue) return null;
-            return (T)ReadSyncObject(data, impls[impl]);
+            return (T) ReadSyncObject(data, impls[impl]);
         }
 
         private static void WriteWithImpl<T>(ByteWriter data, object obj, IList<Type> impls) where T : class
@@ -1071,12 +1081,12 @@ namespace Multiplayer.Client.Sync
                 return;
             }
 
-            GetImpl(obj, impls, out Type implType, out int impl);
+            GetImpl(obj, impls, out var implType, out var impl);
 
             if (implType == null)
                 throw new SerializationException($"Unknown {typeof(T)} implementation type {obj.GetType()}");
 
-            data.WriteUShort((ushort)impl);
+            data.WriteUShort((ushort) impl);
             WriteSyncObject(data, obj, implType);
         }
 
@@ -1087,20 +1097,18 @@ namespace Multiplayer.Client.Sync
 
             if (obj == null) return;
 
-            for (int i = 0; i < impls.Count; i++)
-            {
+            for (var i = 0; i < impls.Count; i++)
                 if (impls[i].IsAssignableFrom(obj.GetType()))
                 {
                     type = impls[i];
                     index = i;
                     break;
                 }
-            }
         }
 
         private static T GetAnyParent<T>(Thing thing) where T : class
         {
-            T t = thing as T;
+            var t = thing as T;
             if (t != null)
                 return t;
 
@@ -1108,12 +1116,12 @@ namespace Multiplayer.Client.Sync
                 if (parentHolder is T t2)
                     return t2;
 
-            return (T)((object)null);
+            return null;
         }
 
         private static string ThingHolderString(Thing thing)
         {
-            StringBuilder builder = new StringBuilder(thing.ToString());
+            var builder = new StringBuilder(thing.ToString());
 
             for (var parentHolder = thing.ParentHolder; parentHolder != null; parentHolder = parentHolder.ParentHolder)
             {
@@ -1138,9 +1146,23 @@ namespace Multiplayer.Client.Sync
             if (mapComp.transporterLoading != null)
                 yield return mapComp.transporterLoading;
         }
+
+        private enum ListType : byte
+        {
+            Normal,
+            MapAllThings,
+            MapAllDesignations
+        }
+
+        private enum ISelectableImpl : byte
+        {
+            Thing,
+            Zone,
+            WorldObject
+        }
     }
 
-    class ReaderDictionary : OrderedDict<Type, Func<ByteReader, object>>
+    internal class ReaderDictionary : OrderedDict<Type, Func<ByteReader, object>>
     {
         public void Add<T>(Func<ByteReader, T> writer)
         {
@@ -1148,11 +1170,11 @@ namespace Multiplayer.Client.Sync
         }
     }
 
-    class WriterDictionary : OrderedDict<Type, Action<ByteWriter, object>>
+    internal class WriterDictionary : OrderedDict<Type, Action<ByteWriter, object>>
     {
         public void Add<T>(Action<ByteWriter, T> writer)
         {
-            Add(typeof(T), (data, o) => writer(data, (T)o));
+            Add(typeof(T), (data, o) => writer(data, (T) o));
         }
     }
 
@@ -1162,5 +1184,4 @@ namespace Multiplayer.Client.Sync
         {
         }
     }
-
 }

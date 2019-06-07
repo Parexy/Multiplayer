@@ -4,17 +4,18 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Xml;
+using Multiplayer.Client.Synchronization;
 using Multiplayer.Common;
 using Multiplayer.Common.Networking;
 using Verse;
-using ZipFile = zip::Ionic.Zip.ZipFile;
+using zip::Ionic.Zip;
 
 namespace Multiplayer.Client.Desyncs
 {
     public static class UserReadableDesyncInfo
     {
         /// <summary>
-        /// Attempts to generate user-readable desync info from the given replay 
+        ///     Attempts to generate user-readable desync info from the given replay
         /// </summary>
         /// <param name="replay">The replay to generate the info from</param>
         /// <returns>The desync info as a human-readable string</returns>
@@ -91,7 +92,9 @@ namespace Multiplayer.Client.Desyncs
                     //Backwards compatibility! (AKA v1 support)
                     if (zip["desync_info"].GetString().StartsWith("###"))
                         //This is a V2 file, dump as-is
+                    {
                         text.AppendLine(zip["desync_info"].GetString());
+                    }
                     else
                     {
                         //V1 file, parse it.
@@ -117,15 +120,15 @@ namespace Multiplayer.Client.Desyncs
                 {
                     text.AppendLine("[compare]");
 
-                    for (int i = 0; i < Math.Min(local.mapStates.Count, remote.mapStates.Count); i++)
+                    for (var i = 0; i < Math.Min(local.mapStates.Count, remote.mapStates.Count); i++)
                     {
                         var localMap = local.mapStates[i].randomStates;
                         var remoteMap = remote.mapStates[i].randomStates;
-                        bool equal = localMap.SequenceEqual(remoteMap);
+                        var equal = localMap.SequenceEqual(remoteMap);
                         text.AppendLine($"Map {local.mapStates[i].mapId}: {equal}");
 
                         if (!equal)
-                            for (int j = 0; j < Math.Min(localMap.Count, remoteMap.Count); j++)
+                            for (var j = 0; j < Math.Min(localMap.Count, remoteMap.Count); j++)
                                 text.AppendLine($"{localMap[j]} {remoteMap[j]} {(localMap[j] != remoteMap[j] ? "x" : "")}");
                     }
 
@@ -164,7 +167,7 @@ namespace Multiplayer.Client.Desyncs
         }
 
         /// <summary>
-        /// Append the data for the given command in a somewhat readable form to the provided string builder
+        ///     Append the data for the given command in a somewhat readable form to the provided string builder
         /// </summary>
         /// <param name="builder">The builder to append data to</param>
         /// <param name="cmd">The command to append</param>
@@ -175,14 +178,14 @@ namespace Multiplayer.Client.Desyncs
 
             //If this is a sync command, add data on the handler used.
             if (cmd.type == CommandType.Sync)
-                builder.Append($" {Sync.Sync.handlers[BitConverter.ToInt32(cmd.data, 0)]}");
+                builder.Append($" {Sync.handlers[BitConverter.ToInt32(cmd.data, 0)]}");
 
             builder.AppendLine();
         }
 
         /// <summary>
-        /// Deserializes the sync file (Representing a Client Opinion) with the given filename inside the given zip file
-        /// and dumps its data in a human-readable format to the provided string builder
+        ///     Deserializes the sync file (Representing a Client Opinion) with the given filename inside the given zip file
+        ///     and dumps its data in a human-readable format to the provided string builder
         /// </summary>
         /// <param name="builder">The builder to append the data to</param>
         /// <param name="zip">The zip file that contains the file with the provided name</param>

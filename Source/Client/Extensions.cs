@@ -1,9 +1,4 @@
 ﻿extern alias zip;
-
-using Harmony;
-using Ionic.Crc;
-using Multiplayer.Common;
-using RimWorld;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,10 +9,14 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Xml;
+using Harmony;
+using Ionic.Crc;
 using Multiplayer.Client.Comp;
-using Multiplayer.Client.Sync;
+using Multiplayer.Client.Synchronization;
+using Multiplayer.Common;
 using Multiplayer.Common.Networking;
 using Multiplayer.Common.Networking.Connection;
+using RimWorld;
 using UnityEngine;
 using Verse;
 using zip::Ionic.Zip;
@@ -55,7 +54,7 @@ namespace Multiplayer.Client
 
         public static void PushFaction(this Map map, int factionId)
         {
-            Faction faction = Find.FactionManager.GetById(factionId);
+            var faction = Find.FactionManager.GetById(factionId);
             map.PushFaction(faction);
         }
 
@@ -72,7 +71,7 @@ namespace Multiplayer.Client
 
         public static void PopFaction(this Map map)
         {
-            Faction faction = FactionContext.Pop();
+            var faction = FactionContext.Pop();
             if (faction == null) return;
 
             Multiplayer.WorldComp?.SetFaction(faction);
@@ -98,7 +97,7 @@ namespace Multiplayer.Client
 
         public static void RemoveAll<T>(this List<T> list, Func<T, int, bool> predicate)
         {
-            for (int i = list.Count - 1; i >= 0; i--)
+            for (var i = list.Count - 1; i >= 0; i--)
                 if (predicate(list[i], i))
                     list.RemoveAt(i);
         }
@@ -115,9 +114,9 @@ namespace Multiplayer.Client
 
         public static T ThingReplacement<T>(this Map map, T thing) where T : Thing
         {
-            foreach (Thing t in map.thingGrid.ThingsListAtFast(thing.positionInt))
+            foreach (var t in map.thingGrid.ThingsListAtFast(thing.positionInt))
                 if (t.thingIDNumber == thing.thingIDNumber)
-                    return (T)t;
+                    return (T) t;
 
             return null;
         }
@@ -134,12 +133,12 @@ namespace Multiplayer.Client
 
         public static T RemoveFirst<T>(this List<T> list)
         {
-            T elem = list[0];
+            var elem = list[0];
             list.RemoveAt(0);
             return elem;
         }
 
-        static bool ArraysEqual<T>(T[] a1, T[] a2)
+        private static bool ArraysEqual<T>(T[] a1, T[] a2)
         {
             if (ReferenceEquals(a1, a2))
                 return true;
@@ -150,8 +149,8 @@ namespace Multiplayer.Client
             if (a1.Length != a2.Length)
                 return false;
 
-            EqualityComparer<T> comparer = EqualityComparer<T>.Default;
-            for (int i = 0; i < a1.Length; i++)
+            var comparer = EqualityComparer<T>.Default;
+            for (var i = 0; i < a1.Length; i++)
                 if (!comparer.Equals(a1[i], a2[i]))
                     return false;
 
@@ -219,7 +218,7 @@ namespace Multiplayer.Client
 
         public static void SendCommand(this BaseMultiplayerConnection conn, CommandType type, int mapId, byte[] data)
         {
-            ByteWriter writer = new ByteWriter();
+            var writer = new ByteWriter();
             writer.WriteInt32(Convert.ToInt32(type));
             writer.WriteInt32(mapId);
             writer.WritePrefixedBytes(data);
@@ -248,8 +247,8 @@ namespace Multiplayer.Client
 
         public static int Hash(this StackTrace trace)
         {
-            int hash = 0;
-            for (int i = 0; i < trace.GetFrames().Length; i++)
+            var hash = 0;
+            for (var i = 0; i < trace.GetFrames().Length; i++)
                 hash = Gen.HashCombineInt(hash, trace.GetFrames()[i].GetMethod().MetadataToken);
 
             return hash;
@@ -257,8 +256,8 @@ namespace Multiplayer.Client
 
         public static int Hash(this MethodBase[] methods)
         {
-            int hash = 0;
-            for (int i = 0; i < methods.Length; i++)
+            var hash = 0;
+            for (var i = 0; i < methods.Length; i++)
                 hash = Gen.HashCombineInt(hash, methods[i].MetadataToken);
 
             return hash;
@@ -266,7 +265,7 @@ namespace Multiplayer.Client
 
         public static byte[] GetBytes(this ZipEntry entry)
         {
-            MemoryStream stream = new MemoryStream();
+            var stream = new MemoryStream();
             entry.Extract(stream);
             return stream.ToArray();
         }
@@ -291,7 +290,7 @@ namespace Multiplayer.Client
         {
             var attrs = provider.GetCustomAttributes(false);
             if (attrs.Length == 0) return false;
-            for (int i = 0; i < attrs.Length; i++)
+            for (var i = 0; i < attrs.Length; i++)
                 if (attrs[i] is T)
                     return true;
             return false;
@@ -299,11 +298,9 @@ namespace Multiplayer.Client
 
         public static void RemoveNulls(this IList list)
         {
-            for (int i = list.Count - 1; i > 0; i--)
-            {
+            for (var i = list.Count - 1; i > 0; i--)
                 if (list[i] == null)
                     list.RemoveAt(i);
-            }
         }
 
         public static MethodInfo[] GetDeclaredMethods(this Type type)
@@ -359,7 +356,9 @@ namespace Multiplayer.Client
             {
                 process.Kill();
             }
-            catch { }
+            catch
+            {
+            }
         }
 
         public static string MethodDesc(this MethodBase method)
@@ -387,8 +386,15 @@ namespace Multiplayer.Client
             return names.ToArray();
         }
 
-        public static FileInfo[] ModAssemblies(this ModMetaData mod) => ModAssemblies(mod.RootDir.FullName);
-        public static FileInfo[] ModAssemblies(this ModContentPack mod) => ModAssemblies(mod.RootDir);
+        public static FileInfo[] ModAssemblies(this ModMetaData mod)
+        {
+            return ModAssemblies(mod.RootDir.FullName);
+        }
+
+        public static FileInfo[] ModAssemblies(this ModContentPack mod)
+        {
+            return ModAssemblies(mod.RootDir);
+        }
 
         private static FileInfo[] ModAssemblies(string modRoot)
         {
@@ -403,7 +409,9 @@ namespace Multiplayer.Client
             return files.Select(f =>
             {
                 using (var stream = f.OpenRead())
+                {
                     return new CRC32().GetCrc32(stream);
+                }
             }).AggregateHash();
         }
 
@@ -430,9 +438,8 @@ namespace Multiplayer.Client
 
         public static void WriteVectorXZ(this ByteWriter data, Vector3 vec)
         {
-            data.WriteShort((short)(vec.x * 10f));
-            data.WriteShort((short)(vec.z * 10f));
+            data.WriteShort((short) (vec.x * 10f));
+            data.WriteShort((short) (vec.z * 10f));
         }
     }
-
 }

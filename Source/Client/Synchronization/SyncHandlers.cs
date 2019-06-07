@@ -13,7 +13,7 @@ using UnityEngine;
 using Verse;
 using Verse.AI;
 
-namespace Multiplayer.Client.Sync
+namespace Multiplayer.Client.Synchronization
 {
     public static class SyncHandlers
     {
@@ -43,6 +43,7 @@ namespace Multiplayer.Client.Sync
         public static SyncField SyncUseWorkPriorities = Sync.Field(null, "Verse.Current/Game/playSettings", "useWorkPriorities").PostApply(UseWorkPriorities_PostApply);
         public static SyncField SyncAutoHomeArea = Sync.Field(null, "Verse.Current/Game/playSettings", "autoHomeArea");
         public static SyncField SyncAutoRebuild = Sync.Field(null, "Verse.Current/Game/playSettings", "autoRebuild");
+
         public static SyncField[] SyncDefaultCare = Sync.Fields(
             null,
             "Verse.Current/Game/playSettings",
@@ -119,13 +120,13 @@ namespace Multiplayer.Client.Sync
         public static SyncField SyncStorytellerDifficulty = Sync.Field(typeof(Storyteller), "difficulty").SetHostOnly().PostApply(StorytellerDifficutly_Post).SetVersion(2);
 
         [MpPrefix(typeof(StorytellerUI), nameof(StorytellerUI.DrawStorytellerSelectionInterface))]
-        static void ChangeStoryteller()
+        private static void ChangeStoryteller()
         {
             SyncStorytellerDef.Watch(Find.Storyteller);
             SyncStorytellerDifficulty.Watch(Find.Storyteller);
         }
 
-        static void StorytellerDef_Post(object target, object value)
+        private static void StorytellerDef_Post(object target, object value)
         {
             Find.Storyteller.Notify_DefChanged();
 
@@ -136,14 +137,14 @@ namespace Multiplayer.Client.Sync
             }
         }
 
-        static void StorytellerDifficutly_Post(object target, object value)
+        private static void StorytellerDifficutly_Post(object target, object value)
         {
             foreach (var comp in Multiplayer.game.asyncTimeComps)
                 comp.storyteller.difficulty = Find.Storyteller.difficulty;
         }
 
         [MpPrefix(typeof(HealthCardUtility), "DrawOverviewTab")]
-        static void HealthCardUtility(Pawn pawn)
+        private static void HealthCardUtility(Pawn pawn)
         {
             if (pawn.playerSettings != null)
             {
@@ -153,45 +154,45 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPrefix(typeof(ITab_Pawn_Visitor), "FillTab")]
-        static void ITab_Pawn_Visitor(ITab __instance)
+        private static void ITab_Pawn_Visitor(ITab __instance)
         {
-            Pawn pawn = __instance.SelPawn;
+            var pawn = __instance.SelPawn;
             SyncMedCare.Watch(pawn);
             SyncInteractionMode.Watch(pawn);
         }
 
         [MpPostfix(typeof(Dialog_BillConfig), nameof(Dialog_BillConfig.GeneratePawnRestrictionOptions))]
-        static IEnumerable<Widgets.DropdownMenuElement<Pawn>> BillPawnRestrictions_Postfix(IEnumerable<Widgets.DropdownMenuElement<Pawn>> __result, Bill ___bill)
+        private static IEnumerable<Widgets.DropdownMenuElement<Pawn>> BillPawnRestrictions_Postfix(IEnumerable<Widgets.DropdownMenuElement<Pawn>> __result, Bill ___bill)
         {
             return WatchDropdowns(() => SyncBillPawnRestriction.Watch(___bill), __result);
         }
 
         [MpPostfix(typeof(HostilityResponseModeUtility), nameof(HostilityResponseModeUtility.DrawResponseButton_GenerateMenu))]
-        static IEnumerable<Widgets.DropdownMenuElement<HostilityResponseMode>> HostilityResponse_Postfix(IEnumerable<Widgets.DropdownMenuElement<HostilityResponseMode>> __result, Pawn p)
+        private static IEnumerable<Widgets.DropdownMenuElement<HostilityResponseMode>> HostilityResponse_Postfix(IEnumerable<Widgets.DropdownMenuElement<HostilityResponseMode>> __result, Pawn p)
         {
             return WatchDropdowns(() => SyncHostilityResponse.Watch(p), __result);
         }
 
         [MpPostfix(typeof(MedicalCareUtility), nameof(MedicalCareUtility.MedicalCareSelectButton_GenerateMenu))]
-        static IEnumerable<Widgets.DropdownMenuElement<MedicalCareCategory>> MedicalCare_Postfix(IEnumerable<Widgets.DropdownMenuElement<MedicalCareCategory>> __result, Pawn p)
+        private static IEnumerable<Widgets.DropdownMenuElement<MedicalCareCategory>> MedicalCare_Postfix(IEnumerable<Widgets.DropdownMenuElement<MedicalCareCategory>> __result, Pawn p)
         {
             return WatchDropdowns(() => SyncMedCare.Watch(p), __result);
         }
 
         [MpPostfix(typeof(Dialog_BillConfig), nameof(Dialog_BillConfig.GenerateStockpileInclusion))]
-        static IEnumerable<Widgets.DropdownMenuElement<Zone_Stockpile>> BillIncludeZone_Postfix(IEnumerable<Widgets.DropdownMenuElement<Zone_Stockpile>> __result, Bill ___bill)
+        private static IEnumerable<Widgets.DropdownMenuElement<Zone_Stockpile>> BillIncludeZone_Postfix(IEnumerable<Widgets.DropdownMenuElement<Zone_Stockpile>> __result, Bill ___bill)
         {
             return WatchDropdowns(() => SyncBillIncludeZone.Watch(___bill), __result);
         }
 
         [MpPrefix(typeof(Dialog_MedicalDefaults), "DoWindowContents")]
-        static void MedicalDefaults()
+        private static void MedicalDefaults()
         {
             SyncDefaultCare.Watch();
         }
 
         [MpPrefix(typeof(Widgets), "CheckboxLabeled")]
-        static void CheckboxLabeled()
+        private static void CheckboxLabeled()
         {
             // Watched here to get reset asap and not trigger any side effects
             if (SyncMarkers.manualPriorities)
@@ -199,26 +200,26 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPrefix(typeof(PlaySettings), "DoPlaySettingsGlobalControls")]
-        static void PlaySettingsControls()
+        private static void PlaySettingsControls()
         {
             SyncAutoHomeArea.Watch();
             SyncAutoRebuild.Watch();
         }
 
         [MpPrefix(typeof(ThingFilterUI), "DrawHitPointsFilterConfig")]
-        static void ThingFilterHitPoints()
+        private static void ThingFilterHitPoints()
         {
             SyncThingFilterHitPoints.Watch(SyncMarkers.ThingFilterOwner);
         }
 
         [MpPrefix(typeof(ThingFilterUI), "DrawQualityFilterConfig")]
-        static void ThingFilterQuality()
+        private static void ThingFilterQuality()
         {
             SyncThingFilterQuality.Watch(SyncMarkers.ThingFilterOwner);
         }
 
         [MpPrefix(typeof(Bill), "DoInterface")]
-        static void BillInterfaceCard(Bill __instance)
+        private static void BillInterfaceCard(Bill __instance)
         {
             SyncBillSuspended.Watch(__instance);
             SyncBillSkillRange.Watch(__instance);
@@ -228,9 +229,9 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPrefix(typeof(Dialog_BillConfig), "DoWindowContents")]
-        static void DialogBillConfig(Dialog_BillConfig __instance)
+        private static void DialogBillConfig(Dialog_BillConfig __instance)
         {
-            Bill_Production bill = __instance.bill;
+            var bill = __instance.bill;
 
             SyncBillSuspended.Watch(bill);
             SyncBillSkillRange.Watch(bill);
@@ -249,13 +250,13 @@ namespace Multiplayer.Client.Sync
         [MpPrefix(typeof(BillRepeatModeUtility), "<MakeConfigFloatMenu>c__AnonStorey0", "<>m__0")]
         [MpPrefix(typeof(BillRepeatModeUtility), "<MakeConfigFloatMenu>c__AnonStorey0", "<>m__1")]
         [MpPrefix(typeof(BillRepeatModeUtility), "<MakeConfigFloatMenu>c__AnonStorey0", "<>m__2")]
-        static void BillRepeatMode(object __instance)
+        private static void BillRepeatMode(object __instance)
         {
             SyncBillProduction.Watch(__instance.GetPropertyOrField("bill"));
         }
 
         [MpPrefix(typeof(ITab_Bills), "TabUpdate")]
-        static void BillIngredientSearchRadius(ITab_Bills __instance)
+        private static void BillIngredientSearchRadius(ITab_Bills __instance)
         {
             // Apply the buffered value for smooth rendering (doesn't actually have to sync anything here)
             if (__instance.mouseoverBill is Bill mouseover)
@@ -263,16 +264,16 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPrefix(typeof(Dialog_BillConfig), "WindowUpdate")]
-        static void BillIngredientSearchRadius(Dialog_BillConfig __instance)
+        private static void BillIngredientSearchRadius(Dialog_BillConfig __instance)
         {
             SyncIngredientSearchRadius.Watch(__instance.bill);
         }
 
         [MpPrefix(typeof(Dialog_ManageDrugPolicies), "DoPolicyConfigArea")]
-        static void DialogManageDrugPolicies(Dialog_ManageDrugPolicies __instance)
+        private static void DialogManageDrugPolicies(Dialog_ManageDrugPolicies __instance)
         {
-            DrugPolicy policy = __instance.SelectedPolicy;
-            for (int i = 0; i < policy.Count; i++)
+            var policy = __instance.SelectedPolicy;
+            for (var i = 0; i < policy.Count; i++)
             {
                 SyncDrugPolicyEntry.Watch(policy, i);
                 SyncDrugPolicyEntryBuffered.Watch(policy, i);
@@ -281,40 +282,40 @@ namespace Multiplayer.Client.Sync
 
         [MpPrefix(typeof(DebugWindowsOpener), nameof(DebugWindowsOpener.ToggleGodMode))]
         [MpPrefix(typeof(Prefs), "set_DevMode")]
-        static void SetGodMode()
+        private static void SetGodMode()
         {
             SyncGodMode.Watch();
         }
 
         [MpPrefix(typeof(MainTabWindow_Research), "DrawLeftRect")]
-        static void ResearchTab()
+        private static void ResearchTab()
         {
             SyncResearchProject.Watch();
         }
 
         [MpPrefix(typeof(Dialog_RenameZone), "SetName")]
-        static void RenameZone(Dialog_RenameZone __instance)
+        private static void RenameZone(Dialog_RenameZone __instance)
         {
             SyncZoneLabel.Watch(__instance.zone);
         }
 
         [MpPrefix(typeof(TransferableUIUtility), "DoCountAdjustInterface")]
-        static void TransferableAdjustTo(Transferable trad)
+        private static void TransferableAdjustTo(Transferable trad)
         {
-            var session = MpTradeSession.current ?? (ISessionWithTransferables)MpFormingCaravanWindow.drawing?.Session ?? MpLoadTransportersWindow.drawing?.Session;
+            var session = MpTradeSession.current ?? (ISessionWithTransferables) MpFormingCaravanWindow.drawing?.Session ?? MpLoadTransportersWindow.drawing?.Session;
             if (session != null)
                 SyncTradeableCount.Watch(new MpTransferableReference(session, trad));
         }
 
-        [MpPrefix(typeof(WITab_Caravan_Health), nameof(WITab_Caravan_Health.DoRow), new[] { typeof(Rect), typeof(Pawn) })]
-        static void CaravanHealthDoRow(Pawn p)
+        [MpPrefix(typeof(WITab_Caravan_Health), nameof(WITab_Caravan_Health.DoRow), new[] {typeof(Rect), typeof(Pawn)})]
+        private static void CaravanHealthDoRow(Pawn p)
         {
             SyncBeCarried.Watch(p);
         }
 
         [MpPrefix(typeof(Bill), nameof(Bill.DoInterface))]
         [MpPrefix(typeof(Bill_Production), nameof(Bill_Production.ShouldDoNow))]
-        static void WatchBillPaused(Bill __instance)
+        private static void WatchBillPaused(Bill __instance)
         {
             if (__instance is Bill_Production)
                 SyncBillPaused.Watch(__instance);
@@ -323,7 +324,7 @@ namespace Multiplayer.Client.Sync
         [MpPrefix(typeof(Dialog_ManageOutfits), "DoNameInputRect")]
         [MpPrefix(typeof(Dialog_ManageDrugPolicies), "DoNameInputRect")]
         [MpPrefix(typeof(Dialog_ManageFoodRestrictions), "DoNameInputRect")]
-        static void WatchPolicyLabels()
+        private static void WatchPolicyLabels()
         {
             if (SyncMarkers.dialogOutfit != null)
                 SyncOutfitLabel.Watch(SyncMarkers.dialogOutfit);
@@ -335,27 +336,27 @@ namespace Multiplayer.Client.Sync
                 SyncFoodRestrictionLabel.Watch(SyncMarkers.foodRestriction);
         }
 
-        static void UseWorkPriorities_PostApply(object target, object value)
+        private static void UseWorkPriorities_PostApply(object target, object value)
         {
             // From MainTabWindow_Work.DoManualPrioritiesCheckbox
-            foreach (Pawn pawn in PawnsFinder.AllMapsWorldAndTemporary_Alive)
+            foreach (var pawn in PawnsFinder.AllMapsWorldAndTemporary_Alive)
                 if (pawn.Faction == Faction.OfPlayer && pawn.workSettings != null)
                     pawn.workSettings.Notify_UseWorkPrioritiesChanged();
         }
 
-        static void TransferableCount_PostApply(object target, object value)
+        private static void TransferableCount_PostApply(object target, object value)
         {
-            var tr = (MpTransferableReference)target;
+            var tr = (MpTransferableReference) target;
             if (tr != null)
                 tr.session.Notify_CountChanged(tr.transferable);
         }
 
-        static IEnumerable<Widgets.DropdownMenuElement<T>> WatchDropdowns<T>(Action watchAction, IEnumerable<Widgets.DropdownMenuElement<T>> dropdowns)
+        private static IEnumerable<Widgets.DropdownMenuElement<T>> WatchDropdowns<T>(Action watchAction, IEnumerable<Widgets.DropdownMenuElement<T>> dropdowns)
         {
             foreach (var entry in dropdowns)
             {
                 if (entry.option.action != null)
-                    entry.option.action = (Sync.FieldWatchPrefix + watchAction + entry.option.action + Sync.FieldWatchPostfix);
+                    entry.option.action = Sync.FieldWatchPrefix + watchAction + entry.option.action + Sync.FieldWatchPostfix;
                 yield return entry;
             }
         }
@@ -378,8 +379,15 @@ namespace Multiplayer.Client.Sync
             set => transferable.CountToTransfer = value;
         }
 
-        public override int GetHashCode() => transferable.GetHashCode();
-        public override bool Equals(object obj) => obj is MpTransferableReference tr && tr.transferable == transferable;
+        public override int GetHashCode()
+        {
+            return transferable.GetHashCode();
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is MpTransferableReference tr && tr.transferable == transferable;
+        }
     }
 
     public interface ISessionWithTransferables
@@ -393,6 +401,8 @@ namespace Multiplayer.Client.Sync
 
     public static class SyncPatches
     {
+        private static readonly SyncField SyncTimetable = Sync.Field(typeof(Pawn), "timetable", "times");
+
         static SyncPatches()
         {
             SyncMethod.Register(typeof(Pawn_DraftController), nameof(Pawn_DraftController.Drafted));
@@ -486,24 +496,28 @@ namespace Multiplayer.Client.Sync
             SyncMethod.Register(typeof(ShipUtility), nameof(ShipUtility.StartupHibernatingParts)).CancelIfAnyArgNull().SetVersion(3);
         }
 
-        static SyncField SyncTimetable = Sync.Field(typeof(Pawn), "timetable", "times");
-
         [MpPrefix(typeof(PawnColumnWorker_CopyPasteTimetable), nameof(PawnColumnWorker_CopyPasteTimetable.PasteTo))]
-        static bool PastePawnTimetable(Pawn p)
+        private static bool PastePawnTimetable(Pawn p)
         {
             return !SyncTimetable.DoSync(p, PawnColumnWorker_CopyPasteTimetable.clipboard);
         }
 
         [MpPrefix(typeof(StorageSettingsClipboard), nameof(StorageSettingsClipboard.Copy))]
-        static void StorageSettingsClipboardCopy_Prefix() => Multiplayer.dontSync = true;
+        private static void StorageSettingsClipboardCopy_Prefix()
+        {
+            Multiplayer.dontSync = true;
+        }
 
         [MpPostfix(typeof(StorageSettingsClipboard), nameof(StorageSettingsClipboard.Copy))]
-        static void StorageSettingsClipboardCopy_Postfix() => Multiplayer.dontSync = false;
+        private static void StorageSettingsClipboardCopy_Postfix()
+        {
+            Multiplayer.dontSync = false;
+        }
 
         // ===== CALLBACKS =====
 
         [MpPostfix(typeof(DrugPolicyDatabase), nameof(DrugPolicyDatabase.MakeNewDrugPolicy))]
-        static void MakeNewDrugPolicy_Postfix(DrugPolicy __result)
+        private static void MakeNewDrugPolicy_Postfix(DrugPolicy __result)
         {
             var dialog = GetDialogDrugPolicies();
             if (__result != null && dialog != null && TickPatch.currentExecutingCmdIssuedBySelf)
@@ -511,7 +525,7 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPostfix(typeof(OutfitDatabase), nameof(OutfitDatabase.MakeNewOutfit))]
-        static void MakeNewOutfit_Postfix(Outfit __result)
+        private static void MakeNewOutfit_Postfix(Outfit __result)
         {
             var dialog = GetDialogOutfits();
             if (__result != null && dialog != null && TickPatch.currentExecutingCmdIssuedBySelf)
@@ -519,7 +533,7 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPostfix(typeof(FoodRestrictionDatabase), nameof(FoodRestrictionDatabase.MakeNewFoodRestriction))]
-        static void MakeNewFood_Postfix(FoodRestriction __result)
+        private static void MakeNewFood_Postfix(FoodRestriction __result)
         {
             var dialog = GetDialogFood();
             if (__result != null && dialog != null && TickPatch.currentExecutingCmdIssuedBySelf)
@@ -527,7 +541,7 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPostfix(typeof(DrugPolicyDatabase), nameof(DrugPolicyDatabase.TryDelete))]
-        static void TryDeleteDrugPolicy_Postfix(DrugPolicy policy, AcceptanceReport __result)
+        private static void TryDeleteDrugPolicy_Postfix(DrugPolicy policy, AcceptanceReport __result)
         {
             var dialog = GetDialogDrugPolicies();
             if (__result.Accepted && dialog != null && dialog.SelectedPolicy == policy)
@@ -535,7 +549,7 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPostfix(typeof(OutfitDatabase), nameof(OutfitDatabase.TryDelete))]
-        static void TryDeleteOutfit_Postfix(Outfit outfit, AcceptanceReport __result)
+        private static void TryDeleteOutfit_Postfix(Outfit outfit, AcceptanceReport __result)
         {
             var dialog = GetDialogOutfits();
             if (__result.Accepted && dialog != null && dialog.SelectedOutfit == outfit)
@@ -543,33 +557,44 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPostfix(typeof(FoodRestrictionDatabase), nameof(FoodRestrictionDatabase.TryDelete))]
-        static void TryDeleteFood_Postfix(FoodRestriction foodRestriction, AcceptanceReport __result)
+        private static void TryDeleteFood_Postfix(FoodRestriction foodRestriction, AcceptanceReport __result)
         {
             var dialog = GetDialogFood();
             if (__result.Accepted && dialog != null && dialog.SelectedFoodRestriction == foodRestriction)
                 dialog.SelectedFoodRestriction = null;
         }
 
-        static Dialog_ManageDrugPolicies GetDialogDrugPolicies() => Find.WindowStack?.WindowOfType<Dialog_ManageDrugPolicies>();
-        static Dialog_ManageOutfits GetDialogOutfits() => Find.WindowStack?.WindowOfType<Dialog_ManageOutfits>();
-        static Dialog_ManageFoodRestrictions GetDialogFood() => Find.WindowStack?.WindowOfType<Dialog_ManageFoodRestrictions>();
+        private static Dialog_ManageDrugPolicies GetDialogDrugPolicies()
+        {
+            return Find.WindowStack?.WindowOfType<Dialog_ManageDrugPolicies>();
+        }
+
+        private static Dialog_ManageOutfits GetDialogOutfits()
+        {
+            return Find.WindowStack?.WindowOfType<Dialog_ManageOutfits>();
+        }
+
+        private static Dialog_ManageFoodRestrictions GetDialogFood()
+        {
+            return Find.WindowStack?.WindowOfType<Dialog_ManageFoodRestrictions>();
+        }
 
         [MpPostfix(typeof(WITab_Caravan_Gear), nameof(WITab_Caravan_Gear.TryEquipDraggedItem))]
-        static void TryEquipDraggedItem_Postfix(WITab_Caravan_Gear __instance)
+        private static void TryEquipDraggedItem_Postfix(WITab_Caravan_Gear __instance)
         {
             __instance.droppedDraggedItem = false;
             __instance.draggedItem = null;
         }
 
         [MpPostfix(typeof(WITab_Caravan_Gear), nameof(WITab_Caravan_Gear.MoveDraggedItemToInventory))]
-        static void MoveDraggedItemToInventory_Postfix(WITab_Caravan_Gear __instance)
+        private static void MoveDraggedItemToInventory_Postfix(WITab_Caravan_Gear __instance)
         {
             __instance.droppedDraggedItem = false;
             __instance.draggedItem = null;
         }
 
         [MpPrefix(typeof(Pawn_JobTracker), nameof(Pawn_JobTracker.TryTakeOrderedJob))]
-        static void TryTakeOrderedJob_Prefix(Job job)
+        private static void TryTakeOrderedJob_Prefix(Job job)
         {
             if (Multiplayer.ExecutingCmds && job.loadID < 0)
             {
@@ -581,7 +606,7 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPrefix(typeof(BillStack), nameof(BillStack.AddBill))]
-        static void AddBill_Prefix(Bill bill)
+        private static void AddBill_Prefix(Bill bill)
         {
             if (Multiplayer.ExecutingCmds && bill.loadID < 0)
                 bill.loadID = Find.UniqueIDsManager.GetNextBillID();
@@ -590,30 +615,34 @@ namespace Multiplayer.Client.Sync
 
     public static class SyncThingFilters
     {
-        static SyncMethod[] SyncThingFilterAllowThing = Sync.MethodMultiTarget(Sync.thingFilterTarget, "SetAllow", new SyncType[] { typeof(ThingDef), typeof(bool) });
-        static SyncMethod[] SyncThingFilterAllowSpecial = Sync.MethodMultiTarget(Sync.thingFilterTarget, "SetAllow", new SyncType[] { typeof(SpecialThingFilterDef), typeof(bool) });
-        static SyncMethod[] SyncThingFilterAllowStuffCategory = Sync.MethodMultiTarget(Sync.thingFilterTarget, "SetAllow", new SyncType[] { typeof(StuffCategoryDef), typeof(bool) });
+        private static readonly SyncMethod[] SyncThingFilterAllowThing = Sync.MethodMultiTarget(Sync.thingFilterTarget, "SetAllow", new SyncType[] {typeof(ThingDef), typeof(bool)});
+        private static readonly SyncMethod[] SyncThingFilterAllowSpecial = Sync.MethodMultiTarget(Sync.thingFilterTarget, "SetAllow", new SyncType[] {typeof(SpecialThingFilterDef), typeof(bool)});
+        private static readonly SyncMethod[] SyncThingFilterAllowStuffCategory = Sync.MethodMultiTarget(Sync.thingFilterTarget, "SetAllow", new SyncType[] {typeof(StuffCategoryDef), typeof(bool)});
 
-        [MpPrefix(typeof(ThingFilter), "SetAllow", new[] { typeof(StuffCategoryDef), typeof(bool) })]
-        static bool ThingFilter_SetAllow(StuffCategoryDef cat, bool allow)
+        private static IEnumerable<SpecialThingFilterDef> OutfitSpecialFilters => SpecialThingFilterDefOf.AllowNonDeadmansApparel.ToEnumerable();
+
+        private static IEnumerable<SpecialThingFilterDef> FoodSpecialFilters => SpecialThingFilterDefOf.AllowFresh.ToEnumerable();
+
+        [MpPrefix(typeof(ThingFilter), "SetAllow", new[] {typeof(StuffCategoryDef), typeof(bool)})]
+        private static bool ThingFilter_SetAllow(StuffCategoryDef cat, bool allow)
         {
             return !SyncThingFilterAllowStuffCategory.DoSync(SyncMarkers.ThingFilterOwner, cat, allow);
         }
 
-        [MpPrefix(typeof(ThingFilter), "SetAllow", new[] { typeof(SpecialThingFilterDef), typeof(bool) })]
-        static bool ThingFilter_SetAllow(SpecialThingFilterDef sfDef, bool allow)
+        [MpPrefix(typeof(ThingFilter), "SetAllow", new[] {typeof(SpecialThingFilterDef), typeof(bool)})]
+        private static bool ThingFilter_SetAllow(SpecialThingFilterDef sfDef, bool allow)
         {
             return !SyncThingFilterAllowSpecial.DoSync(SyncMarkers.ThingFilterOwner, sfDef, allow);
         }
 
-        [MpPrefix(typeof(ThingFilter), "SetAllow", new[] { typeof(ThingDef), typeof(bool) })]
-        static bool ThingFilter_SetAllow(ThingDef thingDef, bool allow)
+        [MpPrefix(typeof(ThingFilter), "SetAllow", new[] {typeof(ThingDef), typeof(bool)})]
+        private static bool ThingFilter_SetAllow(ThingDef thingDef, bool allow)
         {
             return !SyncThingFilterAllowThing.DoSync(SyncMarkers.ThingFilterOwner, thingDef, allow);
         }
 
-        [MpPrefix(typeof(ThingFilter), "SetAllow", new[] { typeof(ThingCategoryDef), typeof(bool), typeof(IEnumerable<ThingDef>), typeof(IEnumerable<SpecialThingFilterDef>) })]
-        static bool ThingFilter_SetAllow(ThingCategoryDef categoryDef, bool allow)
+        [MpPrefix(typeof(ThingFilter), "SetAllow", new[] {typeof(ThingCategoryDef), typeof(bool), typeof(IEnumerable<ThingDef>), typeof(IEnumerable<SpecialThingFilterDef>)})]
+        private static bool ThingFilter_SetAllow(ThingCategoryDef categoryDef, bool allow)
         {
             if (!Multiplayer.ShouldSync || SyncMarkers.ThingFilterOwner == null) return true;
 
@@ -630,7 +659,7 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPrefix(typeof(ThingFilter), "SetDisallowAll")]
-        static bool ThingFilter_SetDisallowAll()
+        private static bool ThingFilter_SetDisallowAll()
         {
             if (!Multiplayer.ShouldSync || SyncMarkers.ThingFilterOwner == null) return true;
 
@@ -647,7 +676,7 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPrefix(typeof(ThingFilter), "SetAllowAll")]
-        static bool ThingFilter_SetAllowAll()
+        private static bool ThingFilter_SetAllowAll()
         {
             if (!Multiplayer.ShouldSync || SyncMarkers.ThingFilterOwner == null) return true;
 
@@ -663,58 +692,94 @@ namespace Multiplayer.Client.Sync
             return false;
         }
 
-        private static IEnumerable<SpecialThingFilterDef> OutfitSpecialFilters => SpecialThingFilterDefOf.AllowNonDeadmansApparel.ToEnumerable();
-
-        private static IEnumerable<SpecialThingFilterDef> FoodSpecialFilters => SpecialThingFilterDefOf.AllowFresh.ToEnumerable();
-
         [SyncMethod]
-        static void ThingFilter_DisallowAll_HelperStorage(IStoreSettingsParent storage) => storage.GetStoreSettings().filter.SetDisallowAll(null, null);
-
-        [SyncMethod]
-        static void ThingFilter_DisallowAll_HelperBill(Bill bill) => bill.ingredientFilter.SetDisallowAll(null, bill.recipe.forceHiddenSpecialFilters);
-
-        [SyncMethod]
-        static void ThingFilter_DisallowAll_HelperOutfit(Outfit outfit) => outfit.filter.SetDisallowAll(null, OutfitSpecialFilters);
-
-        [SyncMethod]
-        static void ThingFilter_DisallowAll_HelperFood(FoodRestriction food) => food.filter.SetDisallowAll(null, FoodSpecialFilters);
-
-        [SyncMethod]
-        static void ThingFilter_AllowAll_HelperStorage(IStoreSettingsParent storage) => storage.GetStoreSettings().filter.SetAllowAll(storage.GetParentStoreSettings()?.filter);
-
-        [SyncMethod]
-        static void ThingFilter_AllowAll_HelperBill(Bill bill) => bill.ingredientFilter.SetAllowAll(bill.recipe.fixedIngredientFilter);
-
-        [SyncMethod]
-        static void ThingFilter_AllowAll_HelperOutfit(Outfit outfit) => outfit.filter.SetAllowAll(Dialog_ManageOutfits.apparelGlobalFilter);
-
-        [SyncMethod]
-        static void ThingFilter_AllowAll_HelperFood(FoodRestriction food) => food.filter.SetAllowAll(Dialog_ManageFoodRestrictions.foodGlobalFilter);
-
-        [SyncMethod]
-        static void ThingFilter_AllowCategory_HelperStorage(IStoreSettingsParent storage, ThingCategoryDef categoryDef, bool allow) => ThingFilter_AllowCategory_Helper(storage.GetStoreSettings().filter, categoryDef, allow, storage.GetParentStoreSettings()?.filter, null, null);
-
-        [SyncMethod]
-        static void ThingFilter_AllowCategory_HelperBill(Bill bill, ThingCategoryDef categoryDef, bool allow) => ThingFilter_AllowCategory_Helper(bill.ingredientFilter, categoryDef, allow, bill.recipe.fixedIngredientFilter, null, bill.recipe.forceHiddenSpecialFilters);
-
-        [SyncMethod]
-        static void ThingFilter_AllowCategory_HelperOutfit(Outfit outfit, ThingCategoryDef categoryDef, bool allow) => ThingFilter_AllowCategory_Helper(outfit.filter, categoryDef, allow, Dialog_ManageOutfits.apparelGlobalFilter, null, OutfitSpecialFilters);
-
-        [SyncMethod]
-        static void ThingFilter_AllowCategory_HelperFood(FoodRestriction food, ThingCategoryDef categoryDef, bool allow) => ThingFilter_AllowCategory_Helper(food.filter, categoryDef, allow, Dialog_ManageFoodRestrictions.foodGlobalFilter, null, FoodSpecialFilters);
-
-        static void ThingFilter_AllowCategory_Helper(ThingFilter filter, ThingCategoryDef categoryDef, bool allow, ThingFilter parentfilter, IEnumerable<ThingDef> forceHiddenDefs, IEnumerable<SpecialThingFilterDef> forceHiddenFilters)
+        private static void ThingFilter_DisallowAll_HelperStorage(IStoreSettingsParent storage)
         {
-            Listing_TreeThingFilter listing = new Listing_TreeThingFilter(filter, parentfilter, forceHiddenDefs, forceHiddenFilters, null);
+            storage.GetStoreSettings().filter.SetDisallowAll();
+        }
+
+        [SyncMethod]
+        private static void ThingFilter_DisallowAll_HelperBill(Bill bill)
+        {
+            bill.ingredientFilter.SetDisallowAll(null, bill.recipe.forceHiddenSpecialFilters);
+        }
+
+        [SyncMethod]
+        private static void ThingFilter_DisallowAll_HelperOutfit(Outfit outfit)
+        {
+            outfit.filter.SetDisallowAll(null, OutfitSpecialFilters);
+        }
+
+        [SyncMethod]
+        private static void ThingFilter_DisallowAll_HelperFood(FoodRestriction food)
+        {
+            food.filter.SetDisallowAll(null, FoodSpecialFilters);
+        }
+
+        [SyncMethod]
+        private static void ThingFilter_AllowAll_HelperStorage(IStoreSettingsParent storage)
+        {
+            storage.GetStoreSettings().filter.SetAllowAll(storage.GetParentStoreSettings()?.filter);
+        }
+
+        [SyncMethod]
+        private static void ThingFilter_AllowAll_HelperBill(Bill bill)
+        {
+            bill.ingredientFilter.SetAllowAll(bill.recipe.fixedIngredientFilter);
+        }
+
+        [SyncMethod]
+        private static void ThingFilter_AllowAll_HelperOutfit(Outfit outfit)
+        {
+            outfit.filter.SetAllowAll(Dialog_ManageOutfits.apparelGlobalFilter);
+        }
+
+        [SyncMethod]
+        private static void ThingFilter_AllowAll_HelperFood(FoodRestriction food)
+        {
+            food.filter.SetAllowAll(Dialog_ManageFoodRestrictions.foodGlobalFilter);
+        }
+
+        [SyncMethod]
+        private static void ThingFilter_AllowCategory_HelperStorage(IStoreSettingsParent storage, ThingCategoryDef categoryDef, bool allow)
+        {
+            ThingFilter_AllowCategory_Helper(storage.GetStoreSettings().filter, categoryDef, allow, storage.GetParentStoreSettings()?.filter, null, null);
+        }
+
+        [SyncMethod]
+        private static void ThingFilter_AllowCategory_HelperBill(Bill bill, ThingCategoryDef categoryDef, bool allow)
+        {
+            ThingFilter_AllowCategory_Helper(bill.ingredientFilter, categoryDef, allow, bill.recipe.fixedIngredientFilter, null, bill.recipe.forceHiddenSpecialFilters);
+        }
+
+        [SyncMethod]
+        private static void ThingFilter_AllowCategory_HelperOutfit(Outfit outfit, ThingCategoryDef categoryDef, bool allow)
+        {
+            ThingFilter_AllowCategory_Helper(outfit.filter, categoryDef, allow, Dialog_ManageOutfits.apparelGlobalFilter, null, OutfitSpecialFilters);
+        }
+
+        [SyncMethod]
+        private static void ThingFilter_AllowCategory_HelperFood(FoodRestriction food, ThingCategoryDef categoryDef, bool allow)
+        {
+            ThingFilter_AllowCategory_Helper(food.filter, categoryDef, allow, Dialog_ManageFoodRestrictions.foodGlobalFilter, null, FoodSpecialFilters);
+        }
+
+        private static void ThingFilter_AllowCategory_Helper(ThingFilter filter, ThingCategoryDef categoryDef, bool allow, ThingFilter parentfilter, IEnumerable<ThingDef> forceHiddenDefs, IEnumerable<SpecialThingFilterDef> forceHiddenFilters)
+        {
+            var listing = new Listing_TreeThingFilter(filter, parentfilter, forceHiddenDefs, forceHiddenFilters, null);
             listing.CalculateHiddenSpecialFilters();
             filter.SetAllow(categoryDef, allow, forceHiddenDefs, listing.hiddenSpecialFilters);
         }
     }
 
-    static class SyncActions
+    internal static class SyncActions
     {
-        static SyncAction<FloatMenuOption, WorldObject, Caravan, object> SyncWorldObjCaravanMenus;
-        static SyncAction<FloatMenuOption, WorldObject, IEnumerable<IThingHolder>, CompLaunchable> SyncTransportPodMenus;
+        private static readonly SyncAction<FloatMenuOption, WorldObject, Caravan, object> SyncWorldObjCaravanMenus;
+        private static readonly SyncAction<FloatMenuOption, WorldObject, IEnumerable<IThingHolder>, CompLaunchable> SyncTransportPodMenus;
+
+        public static Dictionary<MethodBase, ISyncAction> syncActions = new Dictionary<MethodBase, ISyncAction>();
+        public static bool wantOriginal;
+        private static bool syncingActions; // Prevents from running on base methods
 
         static SyncActions()
         {
@@ -725,22 +790,18 @@ namespace Multiplayer.Client.Sync
             SyncTransportPodMenus.PatchAll(nameof(WorldObject.GetTransportPodsFloatMenuOptions));
         }
 
-        static SyncAction<T, A, B, object> RegisterActions<T, A, B>(Func<A, B, IEnumerable<T>> func, ActionGetter<T> actionGetter)
+        private static SyncAction<T, A, B, object> RegisterActions<T, A, B>(Func<A, B, IEnumerable<T>> func, ActionGetter<T> actionGetter)
         {
             return RegisterActions<T, A, B, object>((a, b, c) => func(a, b), actionGetter);
         }
 
-        static SyncAction<T, A, B, C> RegisterActions<T, A, B, C>(Func<A, B, C, IEnumerable<T>> func, ActionGetter<T> actionGetter)
+        private static SyncAction<T, A, B, C> RegisterActions<T, A, B, C>(Func<A, B, C, IEnumerable<T>> func, ActionGetter<T> actionGetter)
         {
             var sync = new SyncAction<T, A, B, C>(func, actionGetter);
             Sync.handlers.Add(sync);
 
             return sync;
         }
-
-        public static Dictionary<MethodBase, ISyncAction> syncActions = new Dictionary<MethodBase, ISyncAction>();
-        public static bool wantOriginal;
-        private static bool syncingActions; // Prevents from running on base methods
 
         public static void SyncAction_Prefix(ref bool __state)
         {
@@ -768,57 +829,57 @@ namespace Multiplayer.Client.Sync
     {
         static SyncDelegates()
         {
-            SyncContext mouseKeyContext = SyncContext.QueueOrder_Down | SyncContext.MapMouseCell;
+            var mouseKeyContext = SyncContext.QueueOrder_Down | SyncContext.MapMouseCell;
 
-            SyncDelegate.Register(typeof(FloatMenuMakerMap), "<GotoLocationOption>c__AnonStorey1C", "<>m__0").CancelIfAnyFieldNull().SetContext(mouseKeyContext);  // Goto
-            SyncDelegate.Register(typeof(FloatMenuMakerMap), "<AddHumanlikeOrders>c__AnonStorey3", "<>m__0").CancelIfAnyFieldNull().SetContext(mouseKeyContext);   // Arrest
-            SyncDelegate.Register(typeof(FloatMenuMakerMap), "<AddHumanlikeOrders>c__AnonStorey7", "<>m__0").CancelIfAnyFieldNull().SetContext(mouseKeyContext);   // Rescue
-            SyncDelegate.Register(typeof(FloatMenuMakerMap), "<AddHumanlikeOrders>c__AnonStorey7", "<>m__1").CancelIfAnyFieldNull().SetContext(mouseKeyContext);   // Capture
-            SyncDelegate.Register(typeof(FloatMenuMakerMap), "<AddHumanlikeOrders>c__AnonStorey9", "<>m__0").CancelIfAnyFieldNull().SetContext(mouseKeyContext);   // Carry to cryptosleep casket
+            SyncDelegate.Register(typeof(FloatMenuMakerMap), "<GotoLocationOption>c__AnonStorey1C", "<>m__0").CancelIfAnyFieldNull().SetContext(mouseKeyContext); // Goto
+            SyncDelegate.Register(typeof(FloatMenuMakerMap), "<AddHumanlikeOrders>c__AnonStorey3", "<>m__0").CancelIfAnyFieldNull().SetContext(mouseKeyContext); // Arrest
+            SyncDelegate.Register(typeof(FloatMenuMakerMap), "<AddHumanlikeOrders>c__AnonStorey7", "<>m__0").CancelIfAnyFieldNull().SetContext(mouseKeyContext); // Rescue
+            SyncDelegate.Register(typeof(FloatMenuMakerMap), "<AddHumanlikeOrders>c__AnonStorey7", "<>m__1").CancelIfAnyFieldNull().SetContext(mouseKeyContext); // Capture
+            SyncDelegate.Register(typeof(FloatMenuMakerMap), "<AddHumanlikeOrders>c__AnonStorey9", "<>m__0").CancelIfAnyFieldNull().SetContext(mouseKeyContext); // Carry to cryptosleep casket
 
-            SyncDelegate.Register(typeof(HealthCardUtility), "<GenerateSurgeryOption>c__AnonStorey4", "<>m__0").CancelIfAnyFieldNull(without: "part");      // Add medical bill
-            SyncDelegate.Register(typeof(Command_SetPlantToGrow), "<ProcessInput>c__AnonStorey0", "<>m__0");                                                // Set plant to grow
-            SyncDelegate.Register(typeof(Building_Bed), "<ToggleForPrisonersByInterface>c__AnonStorey3", "<>m__0").RemoveNullsFromLists("bedsToAffect");    // Toggle bed for prisoners
+            SyncDelegate.Register(typeof(HealthCardUtility), "<GenerateSurgeryOption>c__AnonStorey4", "<>m__0").CancelIfAnyFieldNull(without: "part"); // Add medical bill
+            SyncDelegate.Register(typeof(Command_SetPlantToGrow), "<ProcessInput>c__AnonStorey0", "<>m__0"); // Set plant to grow
+            SyncDelegate.Register(typeof(Building_Bed), "<ToggleForPrisonersByInterface>c__AnonStorey3", "<>m__0").RemoveNullsFromLists("bedsToAffect"); // Toggle bed for prisoners
             SyncDelegate.Register(typeof(ITab_Bills), "<FillTab>c__AnonStorey0", "<>m__0").SetContext(SyncContext.MapSelected).CancelIfNoSelectedObjects(); // Add bill
 
             SyncDelegate.Register(typeof(CompLongRangeMineralScanner), "<CompGetGizmosExtra>c__Iterator0+<CompGetGizmosExtra>c__AnonStorey1", "<>m__0").SetContext(SyncContext.MapSelected); // Select mineral to scan for
 
-            string[] thisField = new[] { "$this" };
+            string[] thisField = {"$this"};
 
             SyncDelegate.Register(typeof(CompFlickable), "<CompGetGizmosExtra>c__Iterator0", "<>m__1", thisField); // Toggle flick designation
-            SyncDelegate.Register(typeof(Pawn_PlayerSettings), "<GetGizmos>c__Iterator0", "<>m__1", thisField);    // Toggle release animals
-            SyncDelegate.Register(typeof(Building_TurretGun), "<GetGizmos>c__Iterator0", "<>m__2", thisField);     // Toggle turret hold fire
-            SyncDelegate.Register(typeof(Building_Trap), "<GetGizmos>c__Iterator0", "<>m__1", thisField);          // Toggle trap auto-rearm
-            SyncDelegate.Register(typeof(Building_Door), "<GetGizmos>c__Iterator0", "<>m__1", thisField);          // Toggle door hold open
-            SyncDelegate.Register(typeof(Zone_Growing), "<GetGizmos>c__Iterator0", "<>m__1", thisField);           // Toggle zone allow sow
+            SyncDelegate.Register(typeof(Pawn_PlayerSettings), "<GetGizmos>c__Iterator0", "<>m__1", thisField); // Toggle release animals
+            SyncDelegate.Register(typeof(Building_TurretGun), "<GetGizmos>c__Iterator0", "<>m__2", thisField); // Toggle turret hold fire
+            SyncDelegate.Register(typeof(Building_Trap), "<GetGizmos>c__Iterator0", "<>m__1", thisField); // Toggle trap auto-rearm
+            SyncDelegate.Register(typeof(Building_Door), "<GetGizmos>c__Iterator0", "<>m__1", thisField); // Toggle door hold open
+            SyncDelegate.Register(typeof(Zone_Growing), "<GetGizmos>c__Iterator0", "<>m__1", thisField); // Toggle zone allow sow
 
-            SyncDelegate.Register(typeof(PriorityWork), "<GetGizmos>c__Iterator0", "<>m__0", thisField);                // Clear prioritized work
-            SyncDelegate.Register(typeof(Building_TurretGun), "<GetGizmos>c__Iterator0", "<>m__1", thisField);          // Reset forced target
-            SyncDelegate.Register(typeof(UnfinishedThing), "<GetGizmos>c__Iterator0", "<>m__0", thisField);             // Cancel unfinished thing
-            SyncDelegate.Register(typeof(CompTempControl), "<CompGetGizmosExtra>c__Iterator0", "<>m__0", thisField);    // Reset temperature
-            SyncDelegate.Register(typeof(CompTargetable), "<SelectedUseOption>c__AnonStorey0", "<>m__0");               // Use targetable
+            SyncDelegate.Register(typeof(PriorityWork), "<GetGizmos>c__Iterator0", "<>m__0", thisField); // Clear prioritized work
+            SyncDelegate.Register(typeof(Building_TurretGun), "<GetGizmos>c__Iterator0", "<>m__1", thisField); // Reset forced target
+            SyncDelegate.Register(typeof(UnfinishedThing), "<GetGizmos>c__Iterator0", "<>m__0", thisField); // Cancel unfinished thing
+            SyncDelegate.Register(typeof(CompTempControl), "<CompGetGizmosExtra>c__Iterator0", "<>m__0", thisField); // Reset temperature
+            SyncDelegate.Register(typeof(CompTargetable), "<SelectedUseOption>c__AnonStorey0", "<>m__0"); // Use targetable
 
-            SyncDelegate.Register(typeof(Designator), "<>c__Iterator0+<>c__AnonStorey1", "<>m__0", new[] { "<>f__ref$0/$this", "things" }); // Designate all
-            SyncDelegate.Register(typeof(Designator), "<>c__Iterator0+<>c__AnonStorey2", "<>m__0", new[] { "<>f__ref$0/$this", "<>f__ref$3/designation", "designations" }); // Remove all designations
+            SyncDelegate.Register(typeof(Designator), "<>c__Iterator0+<>c__AnonStorey1", "<>m__0", new[] {"<>f__ref$0/$this", "things"}); // Designate all
+            SyncDelegate.Register(typeof(Designator), "<>c__Iterator0+<>c__AnonStorey2", "<>m__0", new[] {"<>f__ref$0/$this", "<>f__ref$3/designation", "designations"}); // Remove all designations
 
-            SyncDelegate.Register(typeof(CaravanAbandonOrBanishUtility), "<TryAbandonOrBanishViaInterface>c__AnonStorey0", "<>m__1", new[] { "caravan", "t" }).CancelIfAnyFieldNull();      // Abandon caravan thing
-            SyncDelegate.Register(typeof(CaravanAbandonOrBanishUtility), "<TryAbandonOrBanishViaInterface>c__AnonStorey1", "<>m__0", new[] { "caravan", "t" }).CancelIfAnyFieldNull();      // Abandon caravan transferable
-            SyncDelegate.Register(typeof(CaravanAbandonOrBanishUtility), "<TryAbandonSpecificCountViaInterface>c__AnonStorey2", "<>m__0", new[] { "caravan", "t" }).CancelIfAnyFieldNull(); // Abandon thing specific count
-            SyncDelegate.Register(typeof(CaravanAbandonOrBanishUtility), "<TryAbandonSpecificCountViaInterface>c__AnonStorey3", "<>m__0", new[] { "caravan", "t" }).CancelIfAnyFieldNull(); // Abandon transferable specific count
+            SyncDelegate.Register(typeof(CaravanAbandonOrBanishUtility), "<TryAbandonOrBanishViaInterface>c__AnonStorey0", "<>m__1", new[] {"caravan", "t"}).CancelIfAnyFieldNull(); // Abandon caravan thing
+            SyncDelegate.Register(typeof(CaravanAbandonOrBanishUtility), "<TryAbandonOrBanishViaInterface>c__AnonStorey1", "<>m__0", new[] {"caravan", "t"}).CancelIfAnyFieldNull(); // Abandon caravan transferable
+            SyncDelegate.Register(typeof(CaravanAbandonOrBanishUtility), "<TryAbandonSpecificCountViaInterface>c__AnonStorey2", "<>m__0", new[] {"caravan", "t"}).CancelIfAnyFieldNull(); // Abandon thing specific count
+            SyncDelegate.Register(typeof(CaravanAbandonOrBanishUtility), "<TryAbandonSpecificCountViaInterface>c__AnonStorey3", "<>m__0", new[] {"caravan", "t"}).CancelIfAnyFieldNull(); // Abandon transferable specific count
 
-            SyncDelegate.Register(typeof(CaravanVisitUtility), "<TradeCommand>c__AnonStorey0", "<>m__0").CancelIfAnyFieldNull();     // Caravan trade with settlement
+            SyncDelegate.Register(typeof(CaravanVisitUtility), "<TradeCommand>c__AnonStorey0", "<>m__0").CancelIfAnyFieldNull(); // Caravan trade with settlement
             SyncDelegate.Register(typeof(FactionGiftUtility), "<OfferGiftsCommand>c__AnonStorey0", "<>m__0").CancelIfAnyFieldNull(); // Caravan offer gifts
 
-            SyncDelegate.Register(typeof(Building_Bed), "<GetFloatMenuOptions>c__Iterator2+<GetFloatMenuOptions>c__AnonStorey4", "<>m__0", new[] { "myPawn", "<>f__ref$2/$this" }).CancelIfAnyFieldNull(); // Use medical bed
+            SyncDelegate.Register(typeof(Building_Bed), "<GetFloatMenuOptions>c__Iterator2+<GetFloatMenuOptions>c__AnonStorey4", "<>m__0", new[] {"myPawn", "<>f__ref$2/$this"}).CancelIfAnyFieldNull(); // Use medical bed
 
-            SyncDelegate.Register(typeof(CompRefuelable), "<CompGetGizmosExtra>c__Iterator0", "<>m__0", new[] { "$this" }).SetDebugOnly(); // Set fuel to 0
-            SyncDelegate.Register(typeof(CompRefuelable), "<CompGetGizmosExtra>c__Iterator0", "<>m__2", new[] { "$this" }).SetDebugOnly(); // Set fuel to max
+            SyncDelegate.Register(typeof(CompRefuelable), "<CompGetGizmosExtra>c__Iterator0", "<>m__0", new[] {"$this"}).SetDebugOnly(); // Set fuel to 0
+            SyncDelegate.Register(typeof(CompRefuelable), "<CompGetGizmosExtra>c__Iterator0", "<>m__2", new[] {"$this"}).SetDebugOnly(); // Set fuel to max
 
             SyncDelegate.Register(typeof(ITab_TransporterContents), "<DoItemsLists>c__AnonStorey1", "<>m__0").SetContext(SyncContext.MapSelected); // Discard loaded thing
         }
 
         [MpPrefix(typeof(FormCaravanComp), "<GetGizmos>c__Iterator0+<GetGizmos>c__AnonStorey1", "<>m__0")]
-        static bool GizmoFormCaravan(MapParent ___mapParent)
+        private static bool GizmoFormCaravan(MapParent ___mapParent)
         {
             if (Multiplayer.Client == null) return true;
             GizmoFormCaravan(___mapParent.Map, false);
@@ -826,7 +887,7 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPrefix(typeof(FormCaravanComp), "<GetGizmos>c__Iterator0+<GetGizmos>c__AnonStorey1", "<>m__1")]
-        static bool GizmoRefomCaravan(MapParent ___mapParent)
+        private static bool GizmoRefomCaravan(MapParent ___mapParent)
         {
             if (Multiplayer.Client == null) return true;
             GizmoFormCaravan(___mapParent.Map, true);
@@ -857,11 +918,11 @@ namespace Multiplayer.Client.Sync
         }
 
         [MpPostfix(typeof(CaravanVisitUtility), nameof(CaravanVisitUtility.TradeCommand))]
-        static void ReopenTradingWindowLocally(Caravan caravan, Command __result)
+        private static void ReopenTradingWindowLocally(Caravan caravan, Command __result)
         {
-            var original = ((Command_Action)__result).action;
+            var original = ((Command_Action) __result).action;
 
-            ((Command_Action)__result).action = () =>
+            ((Command_Action) __result).action = () =>
             {
                 if (Multiplayer.Client != null && Multiplayer.WorldComp.trading.Any(t => t.trader == CaravanVisitUtility.SettlementVisitedNow(caravan)))
                 {
@@ -885,58 +946,106 @@ namespace Multiplayer.Client.Sync
         public static DrugPolicy drugPolicy;
         public static FoodRestriction foodRestriction;
 
-        public static object ThingFilterOwner => tabStorage ?? billConfig ?? dialogOutfit ?? (object)foodRestriction;
+        public static object ThingFilterOwner => tabStorage ?? billConfig ?? dialogOutfit ?? (object) foodRestriction;
 
         [MpPrefix(typeof(MainTabWindow_Work), "DoManualPrioritiesCheckbox")]
-        static void ManualPriorities_Prefix() => manualPriorities = true;
+        private static void ManualPriorities_Prefix()
+        {
+            manualPriorities = true;
+        }
 
         [MpPostfix(typeof(MainTabWindow_Work), "DoManualPrioritiesCheckbox")]
-        static void ManualPriorities_Postfix() => manualPriorities = false;
+        private static void ManualPriorities_Postfix()
+        {
+            manualPriorities = false;
+        }
 
         [MpPrefix(typeof(JobDriver_Research), "<MakeNewToils>c__Iterator0+<MakeNewToils>c__AnonStorey1", "<>m__0")]
-        static void ResearchToil_Prefix() => researchToil = true;
+        private static void ResearchToil_Prefix()
+        {
+            researchToil = true;
+        }
 
         [MpPostfix(typeof(JobDriver_Research), "<MakeNewToils>c__Iterator0+<MakeNewToils>c__AnonStorey1", "<>m__0")]
-        static void ResearchToil_Postfix() => researchToil = false;
+        private static void ResearchToil_Postfix()
+        {
+            researchToil = false;
+        }
 
         [MpPrefix(typeof(ITab_Storage), "FillTab")]
-        static void TabStorageFillTab_Prefix(ITab_Storage __instance) => tabStorage = __instance.SelStoreSettingsParent;
+        private static void TabStorageFillTab_Prefix(ITab_Storage __instance)
+        {
+            tabStorage = __instance.SelStoreSettingsParent;
+        }
 
         [MpPostfix(typeof(ITab_Storage), "FillTab")]
-        static void TabStorageFillTab_Postfix() => tabStorage = null;
+        private static void TabStorageFillTab_Postfix()
+        {
+            tabStorage = null;
+        }
 
         [MpPrefix(typeof(Dialog_BillConfig), "DoWindowContents")]
-        static void BillConfig_Prefix(Dialog_BillConfig __instance) => billConfig = __instance.bill;
+        private static void BillConfig_Prefix(Dialog_BillConfig __instance)
+        {
+            billConfig = __instance.bill;
+        }
 
         [MpPostfix(typeof(Dialog_BillConfig), "DoWindowContents")]
-        static void BillConfig_Postfix() => billConfig = null;
+        private static void BillConfig_Postfix()
+        {
+            billConfig = null;
+        }
 
         [MpPrefix(typeof(Dialog_ManageOutfits), "DoWindowContents")]
-        static void ManageOutfit_Prefix(Dialog_ManageOutfits __instance) => dialogOutfit = __instance.SelectedOutfit;
+        private static void ManageOutfit_Prefix(Dialog_ManageOutfits __instance)
+        {
+            dialogOutfit = __instance.SelectedOutfit;
+        }
 
         [MpPostfix(typeof(Dialog_ManageOutfits), "DoWindowContents")]
-        static void ManageOutfit_Postfix() => dialogOutfit = null;
+        private static void ManageOutfit_Postfix()
+        {
+            dialogOutfit = null;
+        }
 
         [MpPrefix(typeof(Dialog_ManageDrugPolicies), "DoWindowContents")]
-        static void ManageDrugPolicy_Prefix(Dialog_ManageDrugPolicies __instance) => drugPolicy = __instance.SelectedPolicy;
+        private static void ManageDrugPolicy_Prefix(Dialog_ManageDrugPolicies __instance)
+        {
+            drugPolicy = __instance.SelectedPolicy;
+        }
 
         [MpPostfix(typeof(Dialog_ManageOutfits), "DoWindowContents")]
-        static void ManageDrugPolicy_Postfix() => drugPolicy = null;
+        private static void ManageDrugPolicy_Postfix()
+        {
+            drugPolicy = null;
+        }
 
         [MpPrefix(typeof(Dialog_ManageFoodRestrictions), "DoWindowContents")]
-        static void ManageFoodRestriction_Prefix(Dialog_ManageFoodRestrictions __instance) => foodRestriction = __instance.SelectedFoodRestriction;
+        private static void ManageFoodRestriction_Prefix(Dialog_ManageFoodRestrictions __instance)
+        {
+            foodRestriction = __instance.SelectedFoodRestriction;
+        }
 
         [MpPostfix(typeof(Dialog_ManageFoodRestrictions), "DoWindowContents")]
-        static void ManageFoodRestriction_Postfix() => foodRestriction = null;
+        private static void ManageFoodRestriction_Postfix()
+        {
+            foodRestriction = null;
+        }
     }
 
     // Currently unused
     public static class SyncResearch
     {
-        private static Dictionary<int, float> localResearch = new Dictionary<int, float>();
+        private static readonly Dictionary<int, float> localResearch = new Dictionary<int, float>();
+
+        // Set by faction context
+        public static ResearchSpeed researchSpeed;
+
+        public static SyncField SyncResearchSpeed =
+            Sync.Field(null, "Multiplayer.Client.Sync.SyncResearch/researchSpeed/[]").SetBufferChanges().InGameLoop();
 
         //[MpPrefix(typeof(ResearchManager), nameof(ResearchManager.ResearchPerformed))]
-        static bool ResearchPerformed_Prefix(float amount, Pawn researcher)
+        private static bool ResearchPerformed_Prefix(float amount, Pawn researcher)
         {
             if (Multiplayer.Client == null || !SyncMarkers.researchToil)
                 return true;
@@ -944,17 +1053,12 @@ namespace Multiplayer.Client.Sync
             // todo only faction leader
             if (Faction.OfPlayer == Multiplayer.RealPlayerFaction)
             {
-                float current = localResearch.GetValueSafe(researcher.thingIDNumber);
+                var current = localResearch.GetValueSafe(researcher.thingIDNumber);
                 localResearch[researcher.thingIDNumber] = current + amount;
             }
 
             return false;
         }
-
-        // Set by faction context
-        public static ResearchSpeed researchSpeed;
-        public static SyncField SyncResearchSpeed =
-            Sync.Field(null, "Multiplayer.Client.Sync.SyncResearch/researchSpeed/[]").SetBufferChanges().InGameLoop();
 
         public static void ConstantTick()
         {
@@ -962,7 +1066,7 @@ namespace Multiplayer.Client.Sync
 
             Sync.FieldWatchPrefix();
 
-            foreach (int pawn in localResearch.Keys.ToList())
+            foreach (var pawn in localResearch.Keys.ToList())
             {
                 SyncResearchSpeed.Watch(null, pawn);
                 researchSpeed[pawn] = localResearch[pawn];
@@ -979,7 +1083,7 @@ namespace Multiplayer.Client.Sync
 
         public float this[int pawnId]
         {
-            get => data.TryGetValue(pawnId, out float speed) ? speed : 0f;
+            get => data.TryGetValue(pawnId, out var speed) ? speed : 0f;
 
             set
             {
@@ -993,5 +1097,4 @@ namespace Multiplayer.Client.Sync
             Scribe_Collections.Look(ref data, "data", LookMode.Value, LookMode.Value);
         }
     }
-
 }

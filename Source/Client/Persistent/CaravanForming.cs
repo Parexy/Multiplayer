@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Harmony;
-using Multiplayer.Client.Sync;
+using Multiplayer.Client.Synchronization;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
@@ -11,19 +11,17 @@ namespace Multiplayer.Client.Persistent
 {
     public class CaravanFormingSession : IExposable, ISessionWithTransferables
     {
+        public int destinationTile = -1;
         public Map map;
+        public bool mapAboutToBeRemoved;
+        public Action onClosed;
+        public bool reform;
 
         public int sessionId;
-        public bool reform;
-        public Action onClosed;
-        public bool mapAboutToBeRemoved;
         public int startingTile = -1;
-        public int destinationTile = -1;
         public List<TransferableOneWay> transferables;
 
         public bool uiDirty;
-
-        public int SessionId => sessionId;
 
         public CaravanFormingSession(Map map)
         {
@@ -40,6 +38,30 @@ namespace Multiplayer.Client.Persistent
             this.mapAboutToBeRemoved = mapAboutToBeRemoved;
 
             AddItems();
+        }
+
+        public void ExposeData()
+        {
+            Scribe_Values.Look(ref sessionId, "sessionId");
+            Scribe_Values.Look(ref reform, "reform");
+            Scribe_Values.Look(ref onClosed, "onClosed");
+            Scribe_Values.Look(ref mapAboutToBeRemoved, "mapAboutToBeRemoved");
+            Scribe_Values.Look(ref startingTile, "startingTile");
+            Scribe_Values.Look(ref destinationTile, "destinationTile");
+
+            Scribe_Collections.Look(ref transferables, "transferables", LookMode.Deep);
+        }
+
+        public int SessionId => sessionId;
+
+        public Transferable GetTransferableByThingId(int thingId)
+        {
+            return transferables.Find(tr => tr.things.Any(t => t.thingIDNumber == thingId));
+        }
+
+        public void Notify_CountChanged(Transferable tr)
+        {
+            uiDirty = true;
         }
 
         private void AddItems()
@@ -110,41 +132,19 @@ namespace Multiplayer.Client.Persistent
             if (PrepareDummyDialog().DebugTryFormCaravanInstantly())
                 Remove();
         }
-        
+
         [SyncMethod]
         public void Reset()
         {
             transferables.ForEach(t => t.CountToTransfer = 0);
             uiDirty = true;
         }
- 
+
         [SyncMethod]
         public void Remove()
         {
             map.MpComp().caravanForming = null;
             Find.WorldRoutePlanner.Stop();
-        }
-
-        public void ExposeData()
-        {
-            Scribe_Values.Look(ref sessionId, "sessionId");
-            Scribe_Values.Look(ref reform, "reform");
-            Scribe_Values.Look(ref onClosed, "onClosed");
-            Scribe_Values.Look(ref mapAboutToBeRemoved, "mapAboutToBeRemoved");
-            Scribe_Values.Look(ref startingTile, "startingTile");
-            Scribe_Values.Look(ref destinationTile, "destinationTile");
-
-            Scribe_Collections.Look(ref transferables, "transferables", LookMode.Deep);
-        }
-
-        public Transferable GetTransferableByThingId(int thingId)
-        {
-            return transferables.Find(tr => tr.things.Any(t => t.thingIDNumber == thingId));
-        }
-
-        public void Notify_CountChanged(Transferable tr)
-        {
-            uiDirty = true;
         }
     }
 
@@ -152,11 +152,11 @@ namespace Multiplayer.Client.Persistent
     {
         public static MpFormingCaravanWindow drawing;
 
-        public CaravanFormingSession Session => map.MpComp().caravanForming;
-
         public MpFormingCaravanWindow(Map map, bool reform = false, Action onClosed = null, bool mapAboutToBeRemoved = false) : base(map, reform, onClosed, mapAboutToBeRemoved)
         {
         }
+
+        public CaravanFormingSession Session => map.MpComp().caravanForming;
 
         public override void PostClose()
         {
@@ -196,10 +196,10 @@ namespace Multiplayer.Client.Persistent
         }
     }
 
-    [HarmonyPatch(typeof(Widgets), nameof(Widgets.ButtonText), new[] { typeof(Rect), typeof(string), typeof(bool), typeof(bool), typeof(bool) })]
-    static class MakeCancelFormingButtonRed
+    [HarmonyPatch(typeof(Widgets), nameof(Widgets.ButtonText), typeof(Rect), typeof(string), typeof(bool), typeof(bool), typeof(bool))]
+    internal static class MakeCancelFormingButtonRed
     {
-        static void Prefix(string label, ref bool __state)
+        private static void Prefix(string label, ref bool __state)
         {
             if (MpFormingCaravanWindow.drawing == null) return;
             if (label != "CancelButton".Translate()) return;
@@ -208,7 +208,7 @@ namespace Multiplayer.Client.Persistent
             __state = true;
         }
 
-        static void Postfix(bool __state, ref bool __result)
+        private static void Postfix(bool __state, ref bool __result)
         {
             if (!__state) return;
 
@@ -221,10 +221,10 @@ namespace Multiplayer.Client.Persistent
         }
     }
 
-    [HarmonyPatch(typeof(Widgets), nameof(Widgets.ButtonText), new[] { typeof(Rect), typeof(string), typeof(bool), typeof(bool), typeof(bool) })]
-    static class FormCaravanHandleReset
+    [HarmonyPatch(typeof(Widgets), nameof(Widgets.ButtonText), typeof(Rect), typeof(string), typeof(bool), typeof(bool), typeof(bool))]
+    internal static class FormCaravanHandleReset
     {
-        static void Prefix(string label, ref bool __state)
+        private static void Prefix(string label, ref bool __state)
         {
             if (MpFormingCaravanWindow.drawing == null) return;
             if (label != "ResetButton".Translate()) return;
@@ -232,7 +232,7 @@ namespace Multiplayer.Client.Persistent
             __state = true;
         }
 
-        static void Postfix(bool __state, ref bool __result)
+        private static void Postfix(bool __state, ref bool __result)
         {
             if (!__state) return;
 
@@ -245,9 +245,9 @@ namespace Multiplayer.Client.Persistent
     }
 
     [HarmonyPatch(typeof(Dialog_FormCaravan), nameof(Dialog_FormCaravan.TryFormAndSendCaravan))]
-    static class TryFormAndSendCaravanPatch
+    internal static class TryFormAndSendCaravanPatch
     {
-        static bool Prefix(Dialog_FormCaravan __instance)
+        private static bool Prefix(Dialog_FormCaravan __instance)
         {
             if (Multiplayer.ShouldSync && __instance is MpFormingCaravanWindow dialog)
             {
@@ -260,9 +260,9 @@ namespace Multiplayer.Client.Persistent
     }
 
     [HarmonyPatch(typeof(Dialog_FormCaravan), nameof(Dialog_FormCaravan.DebugTryFormCaravanInstantly))]
-    static class DebugTryFormCaravanInstantlyPatch
+    internal static class DebugTryFormCaravanInstantlyPatch
     {
-        static bool Prefix(Dialog_FormCaravan __instance)
+        private static bool Prefix(Dialog_FormCaravan __instance)
         {
             if (Multiplayer.ShouldSync && __instance is MpFormingCaravanWindow dialog)
             {
@@ -275,9 +275,9 @@ namespace Multiplayer.Client.Persistent
     }
 
     [HarmonyPatch(typeof(Dialog_FormCaravan), nameof(Dialog_FormCaravan.TryReformCaravan))]
-    static class TryReformCaravanPatch
+    internal static class TryReformCaravanPatch
     {
-        static bool Prefix(Dialog_FormCaravan __instance)
+        private static bool Prefix(Dialog_FormCaravan __instance)
         {
             if (Multiplayer.ShouldSync && __instance is MpFormingCaravanWindow dialog)
             {
@@ -290,9 +290,9 @@ namespace Multiplayer.Client.Persistent
     }
 
     [HarmonyPatch(typeof(Dialog_FormCaravan), nameof(Dialog_FormCaravan.Notify_ChoseRoute))]
-    static class Notify_ChoseRoutePatch
+    internal static class Notify_ChoseRoutePatch
     {
-        static bool Prefix(Dialog_FormCaravan __instance, int destinationTile)
+        private static bool Prefix(Dialog_FormCaravan __instance, int destinationTile)
         {
             if (Multiplayer.ShouldSync && __instance is MpFormingCaravanWindow dialog)
             {
@@ -305,9 +305,9 @@ namespace Multiplayer.Client.Persistent
     }
 
     [HarmonyPatch(typeof(WindowStack), nameof(WindowStack.Add))]
-    static class CancelDialogFormCaravan
+    internal static class CancelDialogFormCaravan
     {
-        static bool Prefix(Window window)
+        private static bool Prefix(Window window)
         {
             if (Multiplayer.MapContext != null && window.GetType() == typeof(Dialog_FormCaravan))
                 return false;
@@ -317,10 +317,10 @@ namespace Multiplayer.Client.Persistent
     }
 
     [HarmonyPatch(typeof(Dialog_FormCaravan), MethodType.Constructor)]
-    [HarmonyPatch(new[] { typeof(Map), typeof(bool), typeof(Action), typeof(bool) })]
-    static class CancelDialogFormCaravanCtor
+    [HarmonyPatch(new[] {typeof(Map), typeof(bool), typeof(Action), typeof(bool)})]
+    internal static class CancelDialogFormCaravanCtor
     {
-        static bool Prefix(Dialog_FormCaravan __instance, Map map, bool reform, Action onClosed, bool mapAboutToBeRemoved)
+        private static bool Prefix(Dialog_FormCaravan __instance, Map map, bool reform, Action onClosed, bool mapAboutToBeRemoved)
         {
             if (__instance.GetType() != typeof(Dialog_FormCaravan))
                 return true;
@@ -339,9 +339,9 @@ namespace Multiplayer.Client.Persistent
     }
 
     [HarmonyPatch(typeof(TimedForcedExit), nameof(TimedForcedExit.CompTick))]
-    static class TimedForcedExitTickPatch
+    internal static class TimedForcedExitTickPatch
     {
-        static bool Prefix(TimedForcedExit __instance)
+        private static bool Prefix(TimedForcedExit __instance)
         {
             if (Multiplayer.Client != null && __instance.parent is MapParent mapParent && mapParent.HasMap)
                 return !mapParent.Map.AsyncTime().Paused;
@@ -349,5 +349,4 @@ namespace Multiplayer.Client.Persistent
             return true;
         }
     }
-
 }

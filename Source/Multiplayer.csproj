@@ -92,7 +92,7 @@
     <Compile Include="Client\TickPatch.cs" />
     <Compile Include="Client\Persistent\CaravanForming.cs" />
     <Compile Include="Client\SteamIntegration.cs" />
-    <Compile Include="Client\Sync\SyncTemplates.cs" />
+    <Compile Include="Client\Synchronization\SyncTemplates.cs"/>
     <Compile Include="Client\Persistent\TransporterLoading.cs" />
     <Compile Include="Client\Windows\ChatWindow.cs" />
     <Compile Include="Client\ClientConnection.cs" />
@@ -128,9 +128,9 @@
     <Compile Include="Client\SetMapTime.cs" />
     <Compile Include="Client\SimpleProfiler.cs" />
     <Compile Include="Client\SituationalThoughts.cs" />
-    <Compile Include="Client\Sync\Sync.cs" />
-    <Compile Include="Client\Sync\SyncHandlers.cs" />
-    <Compile Include="Client\Sync\SyncSerialization.cs" />
+    <Compile Include="Client\Synchronization\Sync.cs"/>
+    <Compile Include="Client\Synchronization\SyncHandlers.cs"/>
+    <Compile Include="Client\Synchronization\SyncSerialization.cs"/>
     <Compile Include="Client\TileTemperatures.cs" />
     <Compile Include="Client\Persistent\Trading.cs" />
     <Compile Include="Client\Persistent\TradingUI.cs" />
