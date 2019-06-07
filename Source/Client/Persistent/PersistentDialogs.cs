@@ -360,7 +360,7 @@ namespace Multiplayer.Client.Persistent
                         }
                         else
                         {
-                            value = Delegate.CreateDelegate(type, GenTypes.GetTypeInAnyAssembly(methodType), methodName);
+                            value = Delegate.CreateDelegate(type, GenTypes.GetTypeInAnyAssemblyNew(methodType, null), methodName);
                         }
                     }
                 }

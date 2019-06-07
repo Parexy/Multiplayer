@@ -1042,7 +1042,7 @@ namespace Multiplayer.Client.Synchronization
         public static ResearchSpeed researchSpeed;
 
         public static SyncField SyncResearchSpeed =
-            Sync.Field(null, "Multiplayer.Client.Sync.SyncResearch/researchSpeed/[]").SetBufferChanges().InGameLoop();
+            Sync.Field(null, "Multiplayer.Client.Synchronization.SyncResearch/researchSpeed/[]").SetBufferChanges().InGameLoop();
 
         //[MpPrefix(typeof(ResearchManager), nameof(ResearchManager.ResearchPerformed))]
         private static bool ResearchPerformed_Prefix(float amount, Pawn researcher)
