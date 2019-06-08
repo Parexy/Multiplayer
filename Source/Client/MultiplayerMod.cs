@@ -132,6 +132,12 @@ namespace Multiplayer.Client
 
             Log.Message("[MP] Patching Def ctor");
 
+            // Cross os compatibility
+            harmony.Patch(
+                AccessTools.Method(typeof (DirectXmlLoader), nameof (DirectXmlLoader.XmlAssetsInModFolder)), null,
+                new HarmonyMethod(typeof(XmlAssetsInModFolderPatch), "Postfix")
+            );
+
             // Might fix some mod desyncs
             harmony.Patch(
                 AccessTools.Constructor(typeof(Def), new Type[0]),
@@ -189,6 +195,19 @@ namespace Multiplayer.Client
         public override string SettingsCategory()
         {
             return "Multiplayer";
+        }
+    }
+
+    static class XmlAssetsInModFolderPatch
+    {
+        static IEnumerable<LoadableXmlAsset> Postfix (IEnumerable<LoadableXmlAsset> __result)
+        // Sorts the files before processing, ensures cross os compatibility
+        {
+            var array = __result.ToArray ();
+            Array.Sort (array, (x, y) => StringComparer.OrdinalIgnoreCase.Compare(x.name, y.name));
+
+
+            return array;
         }
     }
 
