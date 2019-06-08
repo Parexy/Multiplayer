@@ -1,4 +1,5 @@
 ﻿using System;
+using Multiplayer.Common.Networking;
 
 namespace Multiplayer.Common
 {

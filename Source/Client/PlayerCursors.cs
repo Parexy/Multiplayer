@@ -1,10 +1,8 @@
 ﻿using Harmony;
 using Multiplayer.Common;
 using RimWorld;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
 using Verse;
 
@@ -42,7 +40,7 @@ namespace Multiplayer.Client
 
                 GUI.DrawTexture(iconRect, drawIcon);
 
-                if (player.dragStart != PlayerInfo.Invalid)
+                if (player.dragStart != PlayerListEntry.Invalid)
                 {
                     GUI.color = new Color(1, 1, 1, 0.2f);
                     Widgets.DrawBox(new Rect() { min = player.dragStart.MapToUIPosition(), max = pos }, 2);

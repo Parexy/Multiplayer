@@ -1,11 +1,11 @@
-﻿using Harmony;
+﻿using System.Linq;
+using Harmony;
 using Multiplayer.Common;
 using RimWorld;
-using System.Linq;
 using UnityEngine;
 using Verse;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Windows
 {
     public class DisconnectedWindow : Window
     {

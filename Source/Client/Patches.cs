@@ -1,19 +1,19 @@
 ﻿using Harmony;
-using Harmony.ILCopying;
 using Multiplayer.Common;
 using RimWorld;
 using RimWorld.Planet;
-using Steamworks;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
-using System.Xml;
 using System.Xml.Linq;
+using Multiplayer.Client.Comp;
+using Multiplayer.Client.Windows;
+using Multiplayer.Common.Networking;
+using Multiplayer.Server;
 using UnityEngine;
 using Verse;
 using Verse.AI;
@@ -107,7 +107,7 @@ namespace Multiplayer.Client
                     optList.Insert(0, new ListableOption("MpHostServer".Translate(), () => Find.WindowStack.Add(new HostWindow())));
 
                 if (MpVersion.IsDebug && Multiplayer.IsReplay)
-                    optList.Insert(0, new ListableOption("MpHostServer".Translate(), () => Find.WindowStack.Add(new HostWindow(withSimulation: true))));
+                    optList.Insert(0, new ListableOption("MpHostServer".Translate(), () => Find.WindowStack.Add(new HostWindow(watchMode: true))));
 
                 if (Multiplayer.Client != null)
                 {
@@ -1289,7 +1289,7 @@ namespace Multiplayer.Client
             if (Multiplayer.Client == null) return;
 
             if (__state && MarkLongEvents.IsTickMarked(LongEventHandler.currentEvent?.eventAction))
-                Multiplayer.Client.Send(Packets.Client_Pause, new object[] {true});
+                Multiplayer.Client.Send(Packet.Client_Pause, new object[] {true});
         }
     }
 
@@ -1299,7 +1299,7 @@ namespace Multiplayer.Client
         static void Postfix()
         {
             if (Multiplayer.Client != null && NewLongEvent.currentEventWasMarked)
-                Multiplayer.Client.Send(Packets.Client_Pause, new object[] {false});
+                Multiplayer.Client.Send(Packet.Client_Pause, new object[] {false});
         }
     }
 
@@ -1332,13 +1332,8 @@ namespace Multiplayer.Client
             if (TickPatch.Skipping || Multiplayer.IsReplay) return;
 
             if (!Multiplayer.Ticking && !Multiplayer.ExecutingCmds) return;
-
-            if (!WildAnimalSpawnerTickMarker.ticking &&
-                !WildPlantSpawnerTickMarker.ticking &&
-                !SteadyEnvironmentEffectsTickMarker.ticking &&
-                !FindBestStorageCellMarker.executing &&
-                ThingContext.Current?.def != ThingDefOf.SteamGeyser)
-                Multiplayer.game.sync.TryAddStackTraceForDesyncLog($"GetHash:{Multiplayer.game?.sync?.currentOpinion?.startTick}");
+            
+            Multiplayer.game.sync.TryAddStackTraceForDesyncLog($"GetHash:{Multiplayer.game?.sync?.currentOpinion?.startTick}");
         }
     }
 

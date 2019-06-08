@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Desyncs
 {
     /// <summary>
     /// Holds the random states for a given map, and its map id

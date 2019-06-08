@@ -6,7 +6,10 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
+using Multiplayer.Client.Networking.Handler;
+using Multiplayer.Common.Networking;
+using Multiplayer.Common.Networking.Connection;
+using Multiplayer.Common.Networking.Handler;
 using UnityEngine;
 using Verse;
 using zip::Ionic.Zip;
@@ -150,7 +153,7 @@ namespace Multiplayer.Client
         public static void LoadReplay(FileInfo file, bool toEnd = false, Action after = null, Action cancel = null, string simTextKey = null)
         {
             var session = Multiplayer.session = new MultiplayerSession();
-            session.client = new ReplayConnection();
+            session.client = new ReplayMultiplayerConnection();
             session.client.State = ConnectionStateEnum.ClientPlaying;
             session.replay = true;
 
@@ -171,7 +174,7 @@ namespace Multiplayer.Client
 
             TickPatch.SkipTo(toEnd ? tickUntil : session.replayTimerStart, onFinish: after, onCancel: cancel, simTextKey: simTextKey);
 
-            ClientJoiningState.ReloadGame(OnMainThread.cachedMapData.Keys.ToList());
+            ClientHandshakePacketHandler.ReloadGame(OnMainThread.cachedMapData.Keys.ToList());
         }
     }
 
@@ -213,7 +216,7 @@ namespace Multiplayer.Client
         public Color color;
     }
 
-    public class ReplayConnection : IConnection
+    public class ReplayMultiplayerConnection : BaseMultiplayerConnection
     {
         protected override void SendRaw(byte[] raw, bool reliable)
         {

@@ -1,21 +1,21 @@
-﻿using Harmony;
-using Multiplayer.Common;
-using RimWorld;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
+using Harmony;
+using Multiplayer.Client.Comp;
+using Multiplayer.Client.Synchronization;
+using Multiplayer.Common;
+using Multiplayer.Common.Networking;
+using RimWorld;
 using Verse;
 
 namespace Multiplayer.Client
 {
     [HarmonyPatch(typeof(Designator))]
     [HarmonyPatch(nameof(Designator.Finalize))]
-    [HarmonyPatch(new[] { typeof(bool) })]
+    [HarmonyPatch(new[] {typeof(bool)})]
     public static class DesignatorFinalizePatch
     {
-        static bool Prefix(bool somethingSucceeded)
+        private static bool Prefix(bool somethingSucceeded)
         {
             if (Multiplayer.Client == null) return true;
             return !somethingSucceeded || Multiplayer.ExecutingCmds;
@@ -28,10 +28,10 @@ namespace Multiplayer.Client
         {
             if (!Multiplayer.ShouldSync) return true;
 
-            Designator designator = __instance;
+            var designator = __instance;
 
-            Map map = Find.CurrentMap;
-            LoggingByteWriter writer = new LoggingByteWriter();
+            var map = Find.CurrentMap;
+            var writer = new LoggingByteWriter();
             writer.LogNode("Designate single cell: " + designator.GetType());
 
             WriteData(writer, DesignatorMode.SingleCell, designator);
@@ -50,12 +50,12 @@ namespace Multiplayer.Client
             // No cells implies Finalize(false), which currently doesn't cause side effects
             if (__0.Count() == 0) return true;
 
-            Designator designator = __instance;
+            var designator = __instance;
 
-            Map map = Find.CurrentMap;
-            LoggingByteWriter writer = new LoggingByteWriter();
+            var map = Find.CurrentMap;
+            var writer = new LoggingByteWriter();
             writer.LogNode("Designate multi cell: " + designator.GetType());
-            IntVec3[] cellArray = __0.ToArray();
+            var cellArray = __0.ToArray();
 
             WriteData(writer, DesignatorMode.MultiCell, designator);
             Sync.WriteSync(writer, cellArray);
@@ -70,10 +70,10 @@ namespace Multiplayer.Client
         {
             if (!Multiplayer.ShouldSync) return true;
 
-            Designator designator = __instance;
+            var designator = __instance;
 
-            Map map = Find.CurrentMap;
-            LoggingByteWriter writer = new LoggingByteWriter();
+            var map = Find.CurrentMap;
+            var writer = new LoggingByteWriter();
             writer.LogNode("Designate thing: " + __0 + " " + designator.GetType());
 
             WriteData(writer, DesignatorMode.Thing, designator);
@@ -110,11 +110,11 @@ namespace Multiplayer.Client
 
         private static Thing ThingToInstall()
         {
-            Thing singleSelectedThing = Find.Selector.SingleSelectedThing;
+            var singleSelectedThing = Find.Selector.SingleSelectedThing;
             if (singleSelectedThing is MinifiedThing)
                 return singleSelectedThing;
 
-            Building building = singleSelectedThing as Building;
+            var building = singleSelectedThing as Building;
             if (building != null && building.def.Minifiable)
                 return singleSelectedThing;
 
@@ -128,11 +128,10 @@ namespace Multiplayer.Client
     {
         public static Thing thingToInstall;
 
-        static void Postfix(ref Thing __result)
+        private static void Postfix(ref Thing __result)
         {
             if (thingToInstall != null)
                 __result = thingToInstall;
         }
     }
-
 }

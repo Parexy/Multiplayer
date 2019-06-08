@@ -1,20 +1,15 @@
-﻿using Multiplayer.Common;
+﻿using System.Net;
+using Multiplayer.Client.Networking;
+using Multiplayer.Common;
+using Multiplayer.Server;
 using RimWorld;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
-using System.Reflection;
-using System.Text;
-using System.Threading;
 using UnityEngine;
 using Verse;
 using Verse.Profile;
 using Verse.Sound;
 using Verse.Steam;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Windows
 {
     [HotSwappable]
     public class HostWindow : Window
@@ -23,7 +18,7 @@ namespace Multiplayer.Client
 
         private SaveFile file;
         public bool returnToServerBrowser;
-        private bool withSimulation;
+        private bool watchMode;
         private bool asyncTime;
         private bool debugMode;
 
@@ -31,14 +26,14 @@ namespace Multiplayer.Client
 
         private ServerSettings settings;
 
-        public HostWindow(SaveFile file = null, bool withSimulation = false)
+        public HostWindow(SaveFile file = null, bool watchMode = false)
         {
             closeOnAccept = false;
             doCloseX = true;
 
             settings = MultiplayerMod.settings.serverSettings;
 
-            this.withSimulation = withSimulation;
+            this.watchMode = watchMode;
             this.file = file;
             settings.gameName = file?.gameName ?? Multiplayer.session?.gameName ?? $"{Multiplayer.username}'s game";
 
@@ -279,7 +274,7 @@ namespace Multiplayer.Client
 
         private void HostFromReplay(ServerSettings settings)
         {
-            void ReplayLoaded() => ClientUtil.HostServer(settings, true, withSimulation, debugMode: debugMode);
+            void ReplayLoaded() => ClientUtil.HostServer(settings, true, watchMode, debugMode: debugMode);
 
             if (file != null)
             {

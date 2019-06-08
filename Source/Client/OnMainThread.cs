@@ -1,10 +1,12 @@
-﻿using Multiplayer.Common;
-using RimWorld.Planet;
-using Steamworks;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
+using Multiplayer.Client.Synchronization;
+using Multiplayer.Client.Windows;
+using Multiplayer.Common;
+using Multiplayer.Common.Networking;
+using Multiplayer.Common.Networking.Connection;
+using RimWorld.Planet;
 using UnityEngine;
 using Verse;
 using Verse.Steam;
@@ -23,6 +25,13 @@ namespace Multiplayer.Client
         // Global cmds are -1
         public static Dictionary<int, List<ScheduledCommand>> cachedMapCmds = new Dictionary<int, List<ScheduledCommand>>();
 
+        private byte cursorSeq;
+        private float lastCursorSend;
+        private int lastMap;
+
+        private HashSet<int> lastSelected = new HashSet<int>();
+        private float lastSelectedSend;
+
         public void Update()
         {
             Multiplayer.session?.netClient?.PollEvents();
@@ -39,9 +48,9 @@ namespace Multiplayer.Client
             if (!MultiplayerMod.arbiterInstance && Application.isFocused && !TickPatch.Skipping && !Multiplayer.session.desynced)
                 SendVisuals();
 
-            if (Multiplayer.Client is SteamBaseConn steamConn && SteamManager.Initialized)
+            if (Multiplayer.Client is SteamBaseConnection steamConn && SteamManager.Initialized)
                 foreach (var packet in SteamIntegration.ReadPackets())
-                    if (steamConn.remoteId == packet.remote)
+                    if (steamConn.remoteSteamId == packet.remote)
                         Multiplayer.HandleReceive(packet.data, packet.reliable);
         }
 
@@ -60,9 +69,6 @@ namespace Multiplayer.Client
             }
         }
 
-        private byte cursorSeq;
-        private float lastCursorSend;
-
         private void SendCursor()
         {
             var writer = new ByteWriter();
@@ -70,11 +76,11 @@ namespace Multiplayer.Client
 
             if (Find.CurrentMap != null && !WorldRendererUtility.WorldRenderedNow)
             {
-                writer.WriteByte((byte)Find.CurrentMap.Index);
+                writer.WriteByte((byte) Find.CurrentMap.Index);
 
                 var icon = Find.MapUI?.designatorManager?.SelectedDesignator?.icon;
-                int iconId = icon == null ? 0 : !Multiplayer.icons.Contains(icon) ? 0 : Multiplayer.icons.IndexOf(icon);
-                writer.WriteByte((byte)iconId);
+                var iconId = icon == null ? 0 : !Multiplayer.icons.Contains(icon) ? 0 : Multiplayer.icons.IndexOf(icon);
+                writer.WriteByte((byte) iconId);
 
                 writer.WriteVectorXZ(UI.MouseMapPosition());
 
@@ -88,12 +94,8 @@ namespace Multiplayer.Client
                 writer.WriteByte(byte.MaxValue);
             }
 
-            Multiplayer.Client.Send(Packets.Client_Cursor, writer.ToArray(), reliable: false);
+            Multiplayer.Client.Send(Packet.Client_Cursor, writer.ToArray(), false);
         }
-
-        private HashSet<int> lastSelected = new HashSet<int>();
-        private float lastSelectedSend;
-        private int lastMap;
 
         private void SendSelected()
         {
@@ -101,10 +103,10 @@ namespace Multiplayer.Client
 
             var writer = new ByteWriter();
 
-            int mapId = Find.CurrentMap?.Index ?? -1;
+            var mapId = Find.CurrentMap?.Index ?? -1;
             if (WorldRendererUtility.WorldRenderedNow) mapId = -1;
 
-            bool reset = false;
+            var reset = false;
 
             if (mapId != lastMap)
             {
@@ -126,12 +128,12 @@ namespace Multiplayer.Client
 
             lastSelected = selected;
 
-            Multiplayer.Client.Send(Packets.Client_Selected, writer.ToArray());
+            Multiplayer.Client.Send(Packet.Client_Selected, writer.ToArray());
         }
 
         private void UpdateSync()
         {
-            foreach (SyncField f in Sync.bufferedFields)
+            foreach (var f in Sync.bufferedFields)
             {
                 if (f.inGameLoop) continue;
 
@@ -157,14 +159,13 @@ namespace Multiplayer.Client
             if (data.sent && Equals(data.toSend, data.actualValue))
                 return true;
 
-            object currentValue = target.first.GetPropertyOrField(field.memberPath, target.second);
+            var currentValue = target.first.GetPropertyOrField(field.memberPath, target.second);
 
             if (!Equals(currentValue, data.actualValue))
             {
                 if (data.sent)
                     return true;
-                else
-                    data.actualValue = currentValue;
+                data.actualValue = currentValue;
             }
 
             return false;
@@ -231,6 +232,4 @@ namespace Multiplayer.Client
                 cmd.GetMap()?.AsyncTime().cmds.Enqueue(cmd);
         }
     }
-
 }
-

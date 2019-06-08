@@ -3,23 +3,24 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Harmony;
-using Multiplayer.Common;
+using Multiplayer.Common.Networking;
 using Verse;
 
-namespace Multiplayer.Client
+namespace Multiplayer.Client.Desyncs
 {
     public class ClientSyncOpinion
     {
-        public bool isLocalClientsOpinion;
-
-        public int startTick;
         public List<uint> commandRandomStates = new List<uint>();
-        public List<uint> worldRandomStates = new List<uint>();
-        public List<MapRandomStateData> mapStates = new List<MapRandomStateData>();
+        public List<int> desyncStackTraceHashes = new List<int>();
 
         public List<StackTraceLogItem> desyncStackTraces = new List<StackTraceLogItem>();
-        public List<int> desyncStackTraceHashes = new List<int>();
+        public bool isLocalClientsOpinion;
+        public List<MapRandomStateData> mapStates = new List<MapRandomStateData>();
         public bool simulating;
+
+        public int startTick;
+        public string username;
+        public List<uint> worldRandomStates = new List<uint>();
 
         public ClientSyncOpinion(int startTick)
         {
@@ -32,10 +33,8 @@ namespace Multiplayer.Client
                 return "Map instances don't match";
 
             for (var i = 0; i < mapStates.Count; i++)
-            {
                 if (!mapStates[i].randomStates.SequenceEqual(other.mapStates[i].randomStates))
                     return $"Wrong random state on map {mapStates[i].mapId}";
-            }
 
             if (!worldRandomStates.SequenceEqual(other.worldRandomStates))
                 return "Wrong random state for the world";
@@ -43,7 +42,9 @@ namespace Multiplayer.Client
             if (!commandRandomStates.SequenceEqual(other.commandRandomStates))
                 return "Random state from commands doesn't match";
 
-            if (!simulating && !other.simulating && desyncStackTraceHashes.Any() && other.desyncStackTraceHashes.Any() && !desyncStackTraceHashes.SequenceEqual(other.desyncStackTraceHashes))
+            if (!simulating && !other.simulating && desyncStackTraceHashes.Any() &&
+                other.desyncStackTraceHashes.Any() &&
+                !desyncStackTraceHashes.SequenceEqual(other.desyncStackTraceHashes))
                 return "Trace hashes don't match";
 
             return null;
@@ -75,6 +76,9 @@ namespace Multiplayer.Client
             writer.WritePrefixedInts(desyncStackTraceHashes);
             writer.WriteBool(simulating);
 
+            //Write our name for debugging purposes
+            writer.WriteString(Multiplayer.username);
+
             return writer.ToArray();
         }
 
@@ -86,16 +90,18 @@ namespace Multiplayer.Client
             var world = new List<uint>(data.ReadPrefixedUInts());
 
             var maps = new List<MapRandomStateData>();
-            int mapCount = data.ReadInt32();
-            for (int i = 0; i < mapCount; i++)
+            var mapCount = data.ReadInt32();
+            for (var i = 0; i < mapCount; i++)
             {
-                int mapId = data.ReadInt32();
+                var mapId = data.ReadInt32();
                 var mapData = new List<uint>(data.ReadPrefixedUInts());
-                maps.Add(new MapRandomStateData(mapId) { randomStates = mapData });
+                maps.Add(new MapRandomStateData(mapId) {randomStates = mapData});
             }
 
             var traceHashes = new List<int>(data.ReadPrefixedInts());
             var playing = data.ReadBool();
+
+            var name = data.ReadString();
 
             return new ClientSyncOpinion(startTick)
             {
@@ -103,7 +109,8 @@ namespace Multiplayer.Client
                 worldRandomStates = world,
                 mapStates = maps,
                 desyncStackTraceHashes = traceHashes,
-                simulating = playing
+                simulating = playing,
+                username = name
             };
         }
 
@@ -114,7 +121,7 @@ namespace Multiplayer.Client
         }
 
         /// <summary>
-        /// Returns a string form of 
+        ///     Returns a string form of
         /// </summary>
         /// <param name="start"></param>
         /// <param name="end"></param>
@@ -130,14 +137,15 @@ namespace Multiplayer.Client
             diffAt -= start;
 
             var builder = new StringBuilder();
-            for(var i = 0; i < traces.Count; i++)
+            for (var i = 0; i < traces.Count; i++)
             {
                 var trace = traces[i];
-                
+
                 if (i == diffAt)
                     builder.Append("===desynchere===\n\n");
-                
-                builder.Append(trace.additionalInfo + "\n" + trace.stackTrace.Join(m => m.MethodDesc(), "\n") + "\n\n");
+
+                builder.Append("LVT: " + trace.lastValidTick + " " + trace.additionalInfo + "\n" +
+                               trace.stackTrace.Join(m => m.MethodDesc(), "\n") + "\n\n");
 
                 if (i == diffAt)
                     builder.Append("===desyncfin===\n\n");
