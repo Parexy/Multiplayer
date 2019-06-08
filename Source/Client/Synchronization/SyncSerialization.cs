@@ -651,7 +651,7 @@ namespace Multiplayer.Client.Synchronization
             var log = data as LoggingByteWriter;
             log?.LogEnter(type.FullName + ": " + (obj ?? "null"));
 
-            if (obj != null && !type.IsAssignableFrom(obj.GetType()))
+            if (obj != null && !type.IsInstanceOfType(obj))
                 throw new SerializationException($"Serializing with type {type} but got object of type {obj.GetType()}");
 
             try
@@ -1098,7 +1098,7 @@ namespace Multiplayer.Client.Synchronization
             if (obj == null) return;
 
             for (var i = 0; i < impls.Count; i++)
-                if (impls[i].IsAssignableFrom(obj.GetType()))
+                if (impls[i].IsInstanceOfType(obj))
                 {
                     type = impls[i];
                     index = i;

@@ -1055,7 +1055,7 @@ namespace Multiplayer.Client.Synchronization
         public static bool DoSync(this SyncMethod[] group, object target, params object[] args)
         {
             foreach (var method in group)
-                if (method.targetType == null || target != null && method.targetType.IsAssignableFrom(target.GetType()))
+                if (method.targetType == null || target != null && method.targetType.IsInstanceOfType(target))
                     return method.DoSync(target, args);
 
             return false;
