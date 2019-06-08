@@ -21,7 +21,7 @@ namespace Multiplayer.Client.Desyncs
 
         internal int lastValidTick = -1;
 
-        public List<StackTraceLogItem> recentTraces = new List<StackTraceLogItem>();
+        public List<StackTraceLogItem> recentTraces = new List<StackTraceLogItem>(DESYNC_STACK_TRACE_CACHE_SIZE + 5);
 
         public bool ShouldCollect => !Multiplayer.IsReplay;
 
@@ -241,9 +241,7 @@ namespace Multiplayer.Client.Desyncs
             recentTraces.Add(item);
 
             if (recentTraces.Count > DESYNC_STACK_TRACE_CACHE_SIZE)
-                recentTraces = recentTraces.Skip(recentTraces.Count - DESYNC_STACK_TRACE_CACHE_SIZE)
-                    .Take(DESYNC_STACK_TRACE_CACHE_SIZE)
-                    .ToList();
+                recentTraces.RemoveRange(0, recentTraces.Count - DESYNC_STACK_TRACE_CACHE_SIZE);
 
             CurrentOpinion.desyncStackTraces = recentTraces;
 
