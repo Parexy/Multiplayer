@@ -1048,7 +1048,7 @@ namespace Multiplayer.Client.Synchronization
         public static void Watch(this SyncField[] group, object target = null, int index = -1)
         {
             foreach (var field in group)
-                if (field.targetType == null || field.targetType.IsAssignableFrom(target.GetType()))
+                if (field.targetType == null || field.targetType.IsInstanceOfType(target))
                     field.Watch(target, index);
         }
 

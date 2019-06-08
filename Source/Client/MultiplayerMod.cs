@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Xml;
@@ -198,14 +199,13 @@ namespace Multiplayer.Client
         }
     }
 
-    static class XmlAssetsInModFolderPatch
+    internal static class XmlAssetsInModFolderPatch
     {
         static IEnumerable<LoadableXmlAsset> Postfix (IEnumerable<LoadableXmlAsset> __result)
         // Sorts the files before processing, ensures cross os compatibility
         {
             var array = __result.ToArray ();
             Array.Sort (array, (x, y) => StringComparer.OrdinalIgnoreCase.Compare(x.name, y.name));
-
 
             return array;
         }
