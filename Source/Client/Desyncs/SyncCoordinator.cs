@@ -12,7 +12,7 @@ namespace Multiplayer.Client.Desyncs
 {
     public class SyncCoordinator
     {
-        private const int DESYNC_STACK_TRACE_CACHE_SIZE = 3000;
+        private const int DESYNC_STACK_TRACE_CACHE_SIZE = 6000;
 
         public readonly List<ClientSyncOpinion> knownClientOpinions = new List<ClientSyncOpinion>();
         internal bool arbiterWasPlayingOnLastValidTick;
