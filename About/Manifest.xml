@@ -3,9 +3,9 @@
 <Manifest>
 
   <identifier>Multiplayer</identifier>
-  <version>0.4.4</version>
-  <manifestUri>https://raw.githubusercontent.com/Zetrith/Multiplayer/master/About/Manifest.xml</manifestUri>
-  <downloadUri>https://github.com/Zetrith/Multiplayer/releases/latest</downloadUri>
+  <version>0.4.7.2</version>
+  <manifestUri>https://raw.githubusercontent.com/notfood/RimWorld-Multiplayer/master/About/Manifest.xml</manifestUri>
+  <downloadUri>https://github.com/notfood/RimWorld-Multiplayer/releases/latest</downloadUri>
 
   <!-- Multiplayer should be placed right below Core -->
   <loadBefore>
