@@ -1107,9 +1107,6 @@ namespace Multiplayer.Client
         {
             if (Multiplayer.Client == null) return true;
 
-            if (window is Dialog_Negotiation)
-                return false;
-
             if (window is Dialog_SplitCaravan)
             {
                 Messages.Message("MpNotAvailable".Translate(), MessageTypeDefOf.RejectInput, false);
@@ -1497,16 +1494,6 @@ namespace Multiplayer.Client
     static class ImmobilizedByMass_Patch
     {
         static bool Prefix() => !Multiplayer.InInterface;
-    }
-
-    [HarmonyPatch(typeof(Building_CommsConsole), nameof(Building_CommsConsole.GetFloatMenuOptions))]
-    static class FactionCallNotice
-    {
-        static void Postfix(ref IEnumerable<FloatMenuOption> __result)
-        {
-            if (Multiplayer.Client != null)
-                __result = __result.Concat(new FloatMenuOption("MpCallingFactionNotAvailable".Translate(), null));
-        }
     }
 
     [HarmonyPatch(typeof(PawnGenerator), nameof(PawnGenerator.GeneratePawn), typeof(PawnGenerationRequest))]
