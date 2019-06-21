@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <LanguageData>
 
-  <MpSimulating>Симулирование</MpSimulating>
-  <MpSimulatingServer>Симулирование сервера</MpSimulatingServer>
+  <MpSimulating>Симуляция</MpSimulating>
+  <MpSimulatingServer>Симуляция сервера</MpSimulatingServer>
   <MpLoading>Загрузка</MpLoading>
   <MpSaving>Сохранение</MpSaving>
   
@@ -11,47 +11,47 @@
   <MpInvalidGameName>Неверное игровое имя</MpInvalidGameName>
   
   <MpWrongProtocol>Неверная версия протокола</MpWrongProtocol>
-  <MpWrongModVersionInfo>Удостоверьтесь что вы используете одинаковые версии Мультиплеера с хостом.</MpWrongModVersionInfo>
+  <MpWrongModVersionInfo>Сервер запушен с использованием Мультиплеера {0} (протокол: {1})</MpWrongModVersionInfo>
   
   <MpWrongDefs>Несоответствие определений в моде</MpWrongDefs>
-  <MpWrongDefsInfo>Удостоверьтесь что ваши установленные моды, их версии и порядок совпадают с таковыми у хоста.</MpWrongDefsInfo>
+  <MpWrongDefsInfo>Удостоверьтесь, что Ваши моды, их версии и порядок совпадают с таковыми у Сервера.</MpWrongDefsInfo>
   <MpModList>Список модов</MpModList>
   <MpSeeModList>Посмотреть список модов</MpSeeModList>
   
   <MpServerClosed>Сервер закрыт</MpServerClosed>
   <MpServerFull>Сервер полон</MpServerFull>
-  <MpKicked>Вас кикнули</MpKicked>
+  <MpKicked>Вас исключили</MpKicked>
 
-  <MpInvalidUsernameAlreadyPlaying>Пользователь с таким именем уже есть онлайн</MpInvalidUsernameAlreadyPlaying>
+  <MpInvalidUsernameAlreadyPlaying>Пользователь с таким именем уже присутсвует в сети</MpInvalidUsernameAlreadyPlaying>
   <MpInvalidUsernameChars>В имени пользователя содержатся недопустимые символы</MpInvalidUsernameChars>
   <MpInvalidUsernameLength>Недопустимая длина имени пользователя</MpInvalidUsernameLength>
-  <MpChangeUsernameInfo>Вы можете изменить имя пользователя .</MpChangeUsernameInfo>
+  <MpChangeUsernameInfo>Вы можете изменить имя пользователя в настройках мода.</MpChangeUsernameInfo>
   
-  <MpPlayerConnected>{0} вошел</MpPlayerConnected>
-  <MpPlayerDisconnected>{0} вышел</MpPlayerDisconnected>
+  <MpPlayerConnected>{0} подключился</MpPlayerConnected>
+  <MpPlayerDisconnected>{0} отключился</MpPlayerDisconnected>
   
-  <MpReplayOutdated>(Устаревшая)</MpReplayOutdated>
-  <MpReplayOutdatedDesc1>Этот реплей был сделан для версии протокола {0}, а ваша версия {1}.</MpReplayOutdatedDesc1>
-  <MpReplayOutdatedDesc2>Реплей сожет исполняться неправильно.</MpReplayOutdatedDesc2>
-  <MpReplayOutdatedDesc3>Возможное несовместимости указаны в списке релизов.</MpReplayOutdatedDesc3>
-  <MpReplayOutdatedDesc4>Данный файл содержит доп информацию и хостить с него можно.</MpReplayOutdatedDesc4>
+  <MpReplayOutdated>(Устарело)</MpReplayOutdated>
+  <MpReplayOutdatedDesc1>Этот реплей был создан для версии протокола {0}, ваша версия: {1}.</MpReplayOutdatedDesc1>
+  <MpReplayOutdatedDesc2>Реплей может проигрываться некорректно.</MpReplayOutdatedDesc2>
+  <MpReplayOutdatedDesc3>Возможные несовместимости указаны в списке версий.</MpReplayOutdatedDesc3>
+  <MpReplayOutdatedDesc4>Данный файл содержит дополнительную информацию, но Сервер должен работать нормально.</MpReplayOutdatedDesc4>
   
-  <MpServerCloseConfirmation>Вы уверены что хотите закрыть сервер? Несохраненный прогресс будет потерян.</MpServerCloseConfirmation>
+  <MpServerCloseConfirmation>Вы уверены, что хотите закрыть сервер? Несохраненный прогресс будет потерян.</MpServerCloseConfirmation>
   
-  <MpHostServer>Хостить сервер</MpHostServer>
+  <MpHostServer>Создать сервер</MpHostServer>
   <MpSaveReplay>Сохранить реплей</MpSaveReplay>
   
-  <MpConvert>Конвертировать в синглплеер</MpConvert>
+  <MpConvert>Конвертировать в одиночную</MpConvert>
   <MpConverting>Конвертирование</MpConverting>
   
-  <MpUsername>Имя пользователя</MpUsername>
-  <MpShowPlayerCursors>Показывать курсоры пользователей</MpShowPlayerCursors>
+  <MpUsername>Никнейм</MpUsername>
+  <MpShowPlayerCursors>Курсоры пользователей</MpShowPlayerCursors>
   <MpAutoAcceptSteam>Авто-принятие Steam</MpAutoAcceptSteam>
   <MpAutoAcceptSteamDesc>Автоматически принимать все входящие запросы на соединения через Steam.</MpAutoAcceptSteamDesc>
-  <MpTransparentChat>Открытый чат</MpTransparentChat>
+  <MpTransparentChat>Прозрачный чат</MpTransparentChat>
   
-  <MpAutosaveSlots>Слоты автосохранений</MpAutosaveSlots>
-  <MpAutosaveSlotsDesc>Сколько файлов автосохранений содержать.</MpAutosaveSlotsDesc>
+  <MpAutosaveSlots>Автосохранений</MpAutosaveSlots>
+  <MpAutosaveSlotsDesc>Количество хранимых файлов автосохранений.</MpAutosaveSlotsDesc>
   
   <MpTraderLeavesIn>Покинет через {0}</MpTraderLeavesIn>
   
@@ -59,24 +59,24 @@
   <MpTradingButton>Торговля</MpTradingButton>
   
   <MpChatPlayers>Игроки ({0}):</MpChatPlayers>
-  <MpSend>Послать</MpSend>
-  <MpSteamAcceptTitle>Принять Steam игроков</MpSteamAcceptTitle>
-  <MpSteamAcceptDesc>Нажмите чтобы принять</MpSteamAcceptDesc>
-  <MpSteamAccepted>Игрок был принят</MpSteamAccepted>
+  <MpSend>Отправить</MpSend>
+  <MpSteamAcceptTitle>Присоединить Steam игроков</MpSteamAcceptTitle>
+  <MpSteamAcceptDesc>Нажмите, чтобы присоединить игроков, подключившихся через Steam</MpSteamAcceptDesc>
+  <MpSteamAccepted>Игрок был присоединен</MpSteamAccepted>
   
   <MpConnectingTo>Соединение с {0}:{1}</MpConnectingTo>
   <MpConnected>Соединен.</MpConnected>
   <MpDownloading>Скачивание ({0}%)</MpDownloading>
   
   <MpSteamConnectingTo>Соединение с игрой, которую хостит {0}</MpSteamConnectingTo>
-  <MpSteamConnectingWaiting>Ожидание принятия хостом</MpSteamConnectingWaiting>
+  <MpSteamConnectingWaiting>Ожидание согласия от Сервера</MpSteamConnectingWaiting>
   
-  <MpTicksBehind>Вы в {0} тактах позади.</MpTicksBehind>
-  <MpLowerGameSpeed>Обдумайте уменьшение скорости игры.</MpLowerGameSpeed>
-  <MpForceCatchUp>Нажмите чтобы force catch up.</MpForceCatchUp>
+  <MpTicksBehind>Вы в {0} тиках позади.</MpTicksBehind>
+  <MpLowerGameSpeed>Подумайте о снижении скорости игры.</MpLowerGameSpeed>
+  <MpForceCatchUp>Нажмите, чтобы включить принудительное синхронизирование.</MpForceCatchUp>
   
   <MpDesynced>Игра десинхронизирована.</MpDesynced>
-  <MpTryResync>Попробовать ресинхр.</MpTryResync>
+  <MpTryResync>Ресинхронизация</MpTryResync>
   
   <MpSaveReplayAs>Сохранить реплей как</MpSaveReplayAs>
   <MpWillOverwrite>Будет перезаписан</MpWillOverwrite>
@@ -84,48 +84,48 @@
   
   <MpGameName>Название игры</MpGameName>
   <MpMaxPlayers>Макс. игроков</MpMaxPlayers>
-  <MpAutosaveEvery>Автосохранение кажд.</MpAutosaveEvery>
+  <MpAutosaveEvery>Автосохр. кажд.</MpAutosaveEvery>
   <MpAutosaveDays>дней</MpAutosaveDays>
-  <MpLanDesc1>Броадкастить игровую сессию по LAN.</MpLanDesc1>
-  <MpLanDesc2>Вычисленный LAN адрес: {0}</MpLanDesc2>
-  <MpArbiterDesc>Игра, которая запускается в трее и помогает с десинхронизацией.</MpArbiterDesc>
-  <MpAsyncTimeDesc>Разделить контроль времени для каждой карты и планеты.</MpAsyncTimeDesc>
-  <MpExperimentalFeature>Экспериментальная фича</MpExperimentalFeature>
+  <MpLanDesc1>Трансляция игры в вашу локальную сеть.</MpLanDesc1>
+  <MpLanDesc2>Текущий LAN адрес: {0}</MpLanDesc2>
+  <MpArbiterDesc>Экземпляр игры, который работает в фоновом режиме и помогает в решении рассинхронизации.</MpArbiterDesc>
+  <MpAsyncTimeDesc>Отдельный контроль времени для каждой карты и планеты..</MpAsyncTimeDesc>
+  <MpExperimentalFeature>Экспериментальная функция</MpExperimentalFeature>
   
-  <MpHostButton>Хостить</MpHostButton>
+  <MpHostButton>Создать</MpHostButton>
   <MpWatchReplay>Наблюдать</MpWatchReplay>
   <MpNothingSelected>Ничего не выбрано</MpNothingSelected>
-  <MpNoSaves>Мультиплеер может быть запущен только с уже имеющихся сейвов</MpNoSaves>
+  <MpNoSaves>Мультиплеер может быть запущен только с уже имеющихся файлов сохранения</MpNoSaves>
   
-  <MpHostIngame>Хостить данную игру</MpHostIngame>
-  <MpHostReplay>Хостить из реплея</MpHostReplay>
-  <MpHostSavefile>Хостить из файла сохранений</MpHostSavefile>
+  <MpHostIngame>Создать сервер для данной игры</MpHostIngame>
+  <MpHostReplay>Создать из реплея</MpHostReplay>
+  <MpHostSavefile>Создать из файла сохранения</MpHostSavefile>
   
   <MpJoinButton>Войти</MpJoinButton>
   <MpConnectButton>Присоединиться</MpConnectButton>
   <MpLanSearching>Поиск</MpLanSearching>
   
   <MpNotConnectedToSteam>Нет соединения со Steam</MpNotConnectedToSteam>
-  <MpNoFriendsPlaying>Никто из друзей сейчас не играет в RimWorld</MpNoFriendsPlaying>
+  <MpNoFriendsPlaying>Никто из Ваших друзей сейчас не играет в RimWorld</MpNoFriendsPlaying>
   <MpPlayingRimWorld>Играет в RimWorld</MpPlayingRimWorld>
   <MpNotInMultiplayer>Не в мультиплеере</MpNotInMultiplayer>
   
-  <MpPauseOnAutosave>Pause on Autosave</MpPauseOnAutosave>
-  <MpAppendNameToAutosave>Append Name to Autosave</MpAppendNameToAutosave>
-  <MpPauseAutosaveCounter>Pause autosave counter</MpPauseAutosaveCounter>
-  <MpPauseAutosaveCounterDesc>Pauses the counter along with the game preventing autosaving while time is paused.</MpPauseAutosaveCounterDesc>
+  <MpPauseOnAutosave>Пауза во время автосохранения</MpPauseOnAutosave>
+  <MpAppendNameToAutosave>Добить имя к автосохранению</MpAppendNameToAutosave>
+  <MpPauseAutosaveCounter>Останавливать счетчик автосохранения</MpPauseAutosaveCounter>
+  <MpPauseAutosaveCounterDesc>Приостанавливает счетчик вместе с игрой, предотвращая автосохранение во время паузы.</MpPauseAutosaveCounterDesc>
   <MpLan>LAN</MpLan>
   <MpDirect>Прямое</MpDirect>
   <MpSteam>Steam</MpSteam>
-  <MpHostTab>Хостить</MpHostTab>
+  <MpHostTab>Создать</MpHostTab>
   
   <MpMultiplayer>Мультиплеер</MpMultiplayer>
   <MpSingleplayer>Одиночная</MpSingleplayer>
   
   <MpNotAvailable>Недоступно в мультиплеере.</MpNotAvailable>
-  <MpCallingFactionNotAvailable>Называть иные фракции недоступно в мультиплеере.</MpCallingFactionNotAvailable>
+  <MpCallingFactionNotAvailable>Вызов других фракций в данный момент недоступен в мультиплеере.</MpCallingFactionNotAvailable>
   
-  <MpAggressiveTicking>Агрессивные такты</MpAggressiveTicking>
-  <MpAggressiveTickingDesc>Всегда пытаться автоматически догонять сервер ценой частоты кадров.</MpAggressiveTickingDesc>
+  <MpAggressiveTicking>Агрессивный тикрейт</MpAggressiveTicking>
+  <MpAggressiveTickingDesc>Автоматически пытаться принудительно синхронизироваться с Сервером ценой частоты кадров.</MpAggressiveTickingDesc>
   
 </LanguageData>
