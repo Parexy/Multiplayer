@@ -3,13 +3,16 @@
 <Manifest>
 
   <identifier>Multiplayer</identifier>
-  <version>0.4.7.1</version>
+  <version>0.4.8</version>
   <manifestUri>https://raw.githubusercontent.com/Parexy/Multiplayer/master/About/Manifest.xml</manifestUri>
   <downloadUri>https://github.com/Parexy/Multiplayer/releases/latest</downloadUri>
 
   <!-- Multiplayer should be placed right below Core -->
   <loadBefore>
-	<li>HugsLib</li>
+    <li>HugsLib</li>
   </loadBefore>
 
+  <incompatibleWith>
+    <li>Unofficial Multiplayer API</li>
+  </incompatibleWith>
 </Manifest>
