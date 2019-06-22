@@ -1,4 +1,4 @@
-﻿extern alias zip;
+extern alias zip;
 
 using Harmony;
 using Harmony.ILCopying;
@@ -131,7 +131,11 @@ namespace Multiplayer.Client
             try
             {
                 SyncHandlers.Init();
-                Sync.RegisterAllSyncMethods();
+
+                var asm = Assembly.GetExecutingAssembly();
+
+                Sync.RegisterAllAttributes(asm);
+                PersistentDialog.BindAll(asm);
             }
             catch (Exception e)
             {
@@ -149,13 +153,12 @@ namespace Multiplayer.Client
 
             Log.messageQueue.maxMessages = 1000;
 
-            // todo run it later
-            Sync.InitHandlers();
-
             DoubleLongEvent(() =>
             {
                 CollectDefInfos();
                 CollectModHashes();
+
+                Sync.InitHandlers();
             }, "Loading"); // right before the arbiter connects
 
             HandleCommandLine();

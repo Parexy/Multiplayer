@@ -1,4 +1,5 @@
 ﻿using Harmony;
+using Multiplayer.API;
 using Multiplayer.Common;
 using RimWorld;
 using RimWorld.Planet;
@@ -53,7 +54,15 @@ namespace Multiplayer.Client
 
                 menu.DebugAction("Save game for everyone", SaveGameCmd);
                 menu.DebugAction("Advance time", AdvanceTime);
+                if(Multiplayer.game?.sync?.currentOpinion != null)
+                    menu.DebugAction("Force Desync", ForceDesync);
             }
+        }
+
+        //No sync method here :)
+        private static void ForceDesync()
+        {
+            Multiplayer.game.sync.currentOpinion.GetRandomStatesForMap(0).Add((uint) Rand.Value >> 32);
         }
 
         public static void EntryAction()
@@ -65,8 +74,7 @@ namespace Multiplayer.Client
             );
         }
 
-        [SyncMethod]
-        [SyncDebugOnly]
+        [SyncMethod(debugOnly = true)]
         static void SaveGameCmd()
         {
             Map map = Find.Maps[0];
@@ -74,8 +82,7 @@ namespace Multiplayer.Client
             File.WriteAllBytes($"map_0_{Multiplayer.username}.xml", mapData);
         }
 
-        [SyncMethod]
-        [SyncDebugOnly]
+        [SyncMethod(debugOnly = true)]
         static void AdvanceTime()
         {
             File.WriteAllLines($"{Multiplayer.username}_all_static.txt", new string[] { AllModStatics() });

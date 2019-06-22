@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -11,6 +11,7 @@
     <AssemblyName>Multiplayer</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <ReleaseVersion>0.4.8</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>false</DebugSymbols>
@@ -72,6 +73,11 @@
     <Compile Include="Client\Blueprints.cs" />
     <Compile Include="Client\CacheForReloading.cs" />
     <Compile Include="Client\ConstantTicker.cs" />
+    <Compile Include="Client\Desyncs\ClientSyncOpinion.cs" />
+    <Compile Include="Client\Desyncs\MapRandomStateData.cs" />
+    <Compile Include="Client\Desyncs\StackTraceLogItem.cs" />
+    <Compile Include="Client\Desyncs\SyncCoordinator.cs" />
+    <Compile Include="Client\Desyncs\UserReadableDesyncInfo.cs" />
     <Compile Include="Client\ModPatches.cs" />
     <Compile Include="Client\Optimizations.cs" />
     <Compile Include="Client\SettingsPatches.cs" />
@@ -116,7 +122,6 @@
     <Compile Include="Client\SituationalThoughts.cs" />
     <Compile Include="Client\Sync\Sync.cs" />
     <Compile Include="Client\Sync\SyncHandlers.cs" />
-    <Compile Include="Client\DesyncCheck.cs" />
     <Compile Include="Client\Sync\SyncSerialization.cs" />
     <Compile Include="Client\TileTemperatures.cs" />
     <Compile Include="Client\Persistent\Trading.cs" />
@@ -133,18 +138,19 @@
     <Compile Include="Common\ServerConnection.cs" />
     <Compile Include="Common\Version.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Common\MultiplayerAPIBridge.cs" />
+    <Compile Include="Client\Sync\SyncWorkers.cs" />
+    <Compile Include="Common\DynDelegate.cs" />
+    <Compile Include="Client\Sync\SyncDictionary.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="MultiplayerAPI.csproj">
+      <Project>{1DF67DDA-04CB-4DDF-B867-4C0E152BC959}</Project>
+      <Name>MultiplayerAPI</Name>
+      <Private>False</Private>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <PropertyGroup>
-    <PostBuildEvent>if $(ConfigurationName) == Release (
-cd "$(ProjectDir)/.."
-powershell -executionpolicy bypass -file release.ps1
-echo "Release"
-) ELSE (
-echo "Debug"
-)
-</PostBuildEvent>
-  </PropertyGroup>
   <PropertyGroup>
     <PreBuildEvent>"$(ProjectDir)..\Publicise\Publicise.exe" "$(ProjectDir)..\..\..\RimWorldWin64_Data\Managed\Assembly-CSharp.dll" "$(ProjectDir)..\Publicise"</PreBuildEvent>
   </PropertyGroup>
