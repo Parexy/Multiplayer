@@ -12,7 +12,4 @@
     <li>HugsLib</li>
   </loadBefore>
 
-  <incompatibleWith>
-    <li>Unofficial Multiplayer API</li>
-  </incompatibleWith>
 </Manifest>
