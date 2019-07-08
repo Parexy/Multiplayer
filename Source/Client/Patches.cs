@@ -1108,12 +1108,6 @@ namespace Multiplayer.Client
         {
             if (Multiplayer.Client == null) return true;
 
-            if (window is Dialog_SplitCaravan)
-            {
-                Messages.Message("MpNotAvailable".Translate(), MessageTypeDefOf.RejectInput, false);
-                return false;
-            }
-
             return true;
         }
     }

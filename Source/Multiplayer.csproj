@@ -14,10 +14,10 @@
     <ReleaseVersion>0.4.8</ReleaseVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>false</DebugSymbols>
-    <DebugType>none</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
     <Optimize>true</Optimize>
-    <OutputPath>..\Assemblies\</OutputPath>
+    <OutputPath>..\..\..\..\..\..\Program Files %28x86%29\Steam\steamapps\common\RimWorld\Mods\Multiplayer\Assemblies\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -80,6 +80,7 @@
     <Compile Include="Client\Desyncs\UserReadableDesyncInfo.cs" />
     <Compile Include="Client\ModPatches.cs" />
     <Compile Include="Client\Optimizations.cs" />
+    <Compile Include="Client\Persistent\CaravanSplitting.cs" />
     <Compile Include="Client\SettingsPatches.cs" />
     <Compile Include="Client\TickPatch.cs" />
     <Compile Include="Client\Persistent\CaravanForming.cs" />

@@ -58,6 +58,7 @@ namespace Multiplayer.Client
         public TileTemperaturesComp uiTemperatures;
 
         public List<MpTradeSession> trading = new List<MpTradeSession>();
+        public MpCaravanSplitSession splitSession;
 
         public Queue<ScheduledCommand> cmds = new Queue<ScheduledCommand>();
 
