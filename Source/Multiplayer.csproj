@@ -157,4 +157,8 @@
   <PropertyGroup>
     <PreBuildEvent>"$(ProjectDir)..\Publicise\Publicise.exe" "$(ProjectDir)..\..\..\RimWorldWin64_Data\Managed\Assembly-CSharp.dll" "$(ProjectDir)..\Publicise"</PreBuildEvent>
   </PropertyGroup>
+  <PropertyGroup>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
 </Project>

@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Verse;
-using RimWorld;
+﻿using Verse;
 using RimWorld.Planet;
 using Harmony;
+using Multiplayer.API;
 
 namespace Multiplayer.Client.Persistent
 {
@@ -15,12 +11,11 @@ namespace Multiplayer.Client.Persistent
     [HarmonyPatch(typeof(WindowStack), nameof(WindowStack.Add))]
     class CancelDialogSplitCaravan
     {
-
         static bool Prefix(Window window)
         {
             if (Multiplayer.Client == null) return true;
 
-            if (window is Dialog_SplitCaravan)
+            if (window is Dialog_SplitCaravan && !(window is CaravanSplitting_Proxy))
             {
                 return false;
             }
@@ -35,26 +30,21 @@ namespace Multiplayer.Client.Persistent
     [HarmonyPatch(new[] { typeof(Caravan) })]
     class CancelDialogSplitCaravanCtor
     {
-        public static bool cancel;
 
         static bool Prefix(Caravan caravan)
         {
             if (Multiplayer.Client == null) return true;
 
-            if (cancel) return false;
+            Multiplayer.session.AddMsg("Cancelling Dialog_SplitCaravan", true);
 
             if (Multiplayer.ExecutingCmds || Multiplayer.Ticking)
-                return false;
+            {
+                return true;
+            }
 
-            //start caravan spltting session here by calling new session constructor
+            CaravanSplittingSession.CreateSplittingSession(caravan);
 
-            if (Multiplayer.WorldComp.splitSession == null)
-                Multiplayer.WorldComp.splitSession = new CaravanSplittingSession(caravan);
-
-            if (TickPatch.currentExecutingCmdIssuedBySelf)
-                Find.WindowStack.Add(new CaravanSplitting_Proxy(caravan));
-
-            return true;
+            return false;
         }
     }
 }

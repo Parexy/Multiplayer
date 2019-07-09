@@ -22,8 +22,7 @@ namespace Multiplayer.Common
         MapIdBlock,
         Forbid,
         Designator,
-        SpawnPawn,
-        SplitCaravan
+        SpawnPawn
     }
 
     public class ScheduledCommand
