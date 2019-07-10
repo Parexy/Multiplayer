@@ -897,7 +897,10 @@ namespace Multiplayer.Client
             if (method == null)
             {
                 PropertyInfo property = AccessTools.Property(type, methodOrPropertyName);
-                method = property.GetSetMethod();
+
+                if (property != null) {
+                    method = property.GetSetMethod();
+                }
             }
 
             if (method == null)
