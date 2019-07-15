@@ -23,7 +23,7 @@ namespace Multiplayer.API
             throw new UninitializedAPI();
         }
 
-        public void Watch(Type targetType, string fieldName, object index = null)
+        public void Watch(Type targetType, string fieldName, object target = null, object index = null)
         {
             throw new UninitializedAPI();
         }
@@ -39,11 +39,6 @@ namespace Multiplayer.API
         }
 
         public void WatchEnd()
-        {
-            throw new UninitializedAPI();
-        }
-
-        public void RegisterAll()
         {
             throw new UninitializedAPI();
         }

@@ -39,11 +39,11 @@ namespace Multiplayer.Client
 
             settings = GetSettings<MpSettings>();
 
-#if DEBUG
-            LongEventHandler.ExecuteWhenFinished(() => { 
-                Log.Message("== Structure == \n" + Sync.syncWorkers.PrintStructure());
-            });
-#endif
+            if (MpVersion.IsDebug) {
+                LongEventHandler.ExecuteWhenFinished(() => {
+                    Log.Message("== Structure == \n" + Sync.syncWorkers.PrintStructure());
+                });
+            }
         }
 
         public static void EarlyMarkNoInline(Assembly asm)
@@ -192,6 +192,9 @@ namespace Multiplayer.Client
 
             foreach (var mod in LoadedModManager.RunningMods) {
                 if (!mod.LoadedAnyAssembly)
+                    continue;
+
+                if (mod.Name == "Multiplayer")
                     continue;
 
                 Assembly assembly = mod.assemblies.loadedAssemblies.FirstOrDefault(a => a.GetName().Name == MpVersion.apiAssemblyName);

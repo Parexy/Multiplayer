@@ -8,12 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.InteropServices;
-using System.Runtime.Serialization;
-using System.Text;
 using Verse;
-using Verse.AI;
 
 namespace Multiplayer.Client
 {
@@ -909,7 +904,10 @@ namespace Multiplayer.Client
 
             if (method == null) {
                 PropertyInfo property = AccessTools.Property(type, methodOrPropertyName);
-                method = property.GetSetMethod();
+
+                if (property != null) {
+                    method = property.GetSetMethod();
+                }
             }
 
             if (method == null)
@@ -931,7 +929,7 @@ namespace Multiplayer.Client
                         RegisterSyncWorker(method, isImplicit: swa.isImplicit, shouldConstruct: swa.shouldConstruct);
                     }
                 }
-                foreach (FieldInfo field in type.GetDeclaredInstanceFields()) {
+                foreach (FieldInfo field in AccessTools.GetDeclaredFields(type)) {
                     if (field.TryGetAttribute(out SyncFieldAttribute sfa)) {
                         RegisterSyncField(field, sfa);
                     }
@@ -988,8 +986,11 @@ namespace Multiplayer.Client
 
         public static SyncField GetRegisteredSyncField(Type target, string name)
         {
-            string memberPath = target + "/" + name;
+            return GetRegisteredSyncField(target + "/" + name);
+        }
 
+        public static SyncField GetRegisteredSyncField(string memberPath)
+        {
             if (registeredSyncFields.TryGetValue(memberPath, out SyncField cached))
                 return cached;
 
@@ -1004,7 +1005,10 @@ namespace Multiplayer.Client
             SyncField sf = Field(field.ReflectedType, field.Name);
 
             registeredSyncFields.Add(field.ReflectedType + "/" + field.Name, sf);
-            Log.Message(field.ReflectedType + "/" + field.Name);
+
+            if (MpVersion.IsDebug) { 
+                Log.Message($"Registered Field: {field.ReflectedType}/{field.Name}");
+            }
 
             if (attribute.cancelIfValueNull)
                 sf.CancelIfValueNull();
@@ -1114,13 +1118,7 @@ namespace Multiplayer.Client
 
         private static void PatchMethodForSync(MethodBase method)
         {
-            var prefixMethod = AccessTools.Method(typeof(SyncTemplates), $"Prefix_{method.GetParameters().Length}");
-            if (prefixMethod == null)
-                throw new Exception($"No prefix method for {method.GetParameters().Length} parameters.");
-
-            HarmonyMethod prefix = new HarmonyMethod(prefixMethod);
-            prefix.priority = Priority.First;
-            MultiplayerMod.harmony.Patch(method, prefix);
+            MultiplayerMod.harmony.Patch(method, transpiler: SyncTemplates.CreateTranspiler());
         }
 
         public static void ApplyWatchFieldPatches(Type type)
