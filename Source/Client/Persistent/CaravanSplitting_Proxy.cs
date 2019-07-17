@@ -8,6 +8,8 @@ namespace Multiplayer.Client.Persistent
 {
     public class CaravanSplitting_Proxy : Dialog_SplitCaravan
     {
+        public CaravanSplittingSession session;
+
         public CaravanSplitting_Proxy(Caravan caravan) : base(caravan)
         {
             this.caravan = caravan;
@@ -15,6 +17,17 @@ namespace Multiplayer.Client.Persistent
 
         public override void DoWindowContents(Rect inRect)
         {
+            if (session == null)
+            {
+                Close();
+            }
+            else if (session.uiDirty)
+            {
+                CountToTransferChanged();
+
+                session.uiDirty = false;
+            }
+
             Rect rect = new Rect(0f, 0f, inRect.width, 35f);
             Text.Font = GameFont.Medium;
             Text.Anchor = TextAnchor.MiddleCenter;
@@ -67,10 +80,9 @@ namespace Multiplayer.Client.Persistent
             float x2 = bottomButtonSize2.x;
             Vector2 bottomButtonSize3 = BottomButtonSize;
             Rect rect2 = new Rect(x, y, x2, bottomButtonSize3.y);
-            if (Widgets.ButtonText(rect2, "AcceptButton".Translate(), true, false, true) && TrySplitCaravan())
+            if (Widgets.ButtonText(rect2, "AcceptButton".Translate(), true, false, true))
             {
-                SoundDefOf.Tick_High.PlayOneShotOnCamera(null);
-                Close(false);
+                AcceptButtonClicked();
             }
             float num2 = rect2.x - 10f;
             Vector2 bottomButtonSize4 = BottomButtonSize;
@@ -82,8 +94,7 @@ namespace Multiplayer.Client.Persistent
             Rect rect3 = new Rect(x3, y2, x4, bottomButtonSize6.y);
             if (Widgets.ButtonText(rect3, "ResetButton".Translate(), true, false, true))
             {
-                SoundDefOf.Tick_Low.PlayOneShotOnCamera(null);
-                CalculateAndRecacheTransferables();
+                ResetButtonClicked();
             }
             float x5 = rect2.xMax + 10f;
             float y3 = rect2.y;
@@ -97,8 +108,20 @@ namespace Multiplayer.Client.Persistent
             }
         }
 
-        private void CancelButtonClicked() {
+        private void AcceptButtonClicked()
+        {
+            CaravanSplittingSession.AcceptSplitSession();
+        }
+
+        private void CancelButtonClicked()
+        {
             CaravanSplittingSession.CancelSplittingSession();
+        }
+
+        private void ResetButtonClicked()
+        {
+            SoundDefOf.Tick_Low.PlayOneShotOnCamera(null);
+            CaravanSplittingSession.ResetSplittingSession();
         }
     }
 }

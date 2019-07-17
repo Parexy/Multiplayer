@@ -35,15 +35,32 @@ namespace Multiplayer.Client.Persistent
         {
             if (Multiplayer.Client == null) return true;
 
-            Multiplayer.session.AddMsg("Cancelling Dialog_SplitCaravan", true);
-
             if (Multiplayer.ExecutingCmds || Multiplayer.Ticking)
             {
                 return true;
             }
 
-            CaravanSplittingSession.CreateSplittingSession(caravan);
+            if (Multiplayer.WorldComp.splitSession != null)
+            {
+                Multiplayer.WorldComp.splitSession.OpenWindow();
+            }
+            else
+            {
+                CaravanSplittingSession.CreateSplittingSession(caravan);
+            }
 
+            return false;
+        }
+    }    
+    
+    /// <summary>
+    /// When a Dialog_SplitCaravan would be constructed, cancel and construct a CaravanSplitting_Proxy instead.
+    /// </summary>
+    [HarmonyPatch(typeof(Dialog_SplitCaravan), nameof(Dialog_SplitCaravan.PostOpen))]
+    class CancelDialogSplitCaravanPostOpen
+    {
+        static bool Prefix()
+        {   
             return false;
         }
     }

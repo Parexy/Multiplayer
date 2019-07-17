@@ -780,13 +780,19 @@ namespace Multiplayer.Client
 
                     int sessionId = data.ReadInt32();
                     var session = GetSessions(map).FirstOrDefault(s => s.SessionId == sessionId);
-                    if (session == null) return null;
+                    if (session == null) {
+                        throw new Exception($"Couldn't find session with id {sessionId}");
+                        return null;
+                    }
 
                     int thingId = data.ReadInt32();
                     if (thingId == -1) return null;
 
                     var transferable = session.GetTransferableByThingId(thingId);
-                    if (transferable == null) return null;
+                    if (transferable == null) {
+                        throw new Exception($"Couldn't find transferable with id {thingId}");
+                        return null;
+                    }
 
                     return new MpTransferableReference(session, transferable);
                 }
