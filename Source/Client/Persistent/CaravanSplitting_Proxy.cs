@@ -6,15 +6,29 @@ using RimWorld;
 
 namespace Multiplayer.Client.Persistent
 {
+    /// <summary>
+    /// Muliplayer replacement of the Dialog_SplitCaravan dialog.
+    /// </summary>
     public class CaravanSplitting_Proxy : Dialog_SplitCaravan
     {
+        /// <summary>
+        /// Reference to this proxy's CaravanSplittingSession.
+        /// </summary>
         public CaravanSplittingSession session;
 
+        /// <summary>
+        /// Handles creation of a CaravanSplitting_Proxy.
+        /// </summary>
+        /// <param name="caravan"></param>
         public CaravanSplitting_Proxy(Caravan caravan) : base(caravan)
         {
             this.caravan = caravan;
         }
 
+        /// <summary>
+        /// Override of Dialog_SplitCaravan.DoWindowContents that calls into this dialog's DoBottomButtons.
+        /// This was needed because Dialog_SplitCaravan.DoBottomButtons isn't virtual, but needed to be overridden.
+        /// </summary>
         public override void DoWindowContents(Rect inRect)
         {
             if (session == null)
@@ -70,6 +84,11 @@ namespace Multiplayer.Client.Persistent
             GUI.EndGroup();
         }
 
+        /// <summary>
+        /// Replaces Dialog_SplitCaravan.DoBottomButtons. 
+        /// This is a copy of the original but with the handlers for the buttons pulled out into seperate handlers.
+        /// </summary>
+        /// <param name="rect"></param>
         public new void DoBottomButtons(Rect rect)
         {
             float num = rect.width / 2f;

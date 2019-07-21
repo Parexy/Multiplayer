@@ -346,8 +346,6 @@ namespace Multiplayer.Client
 
         static void TransferableCount_PostApply(object target, object value)
         {
-
-            Multiplayer.session.AddMsg($"TransferableCount_PostApply", true);
             var tr = (MpTransferableReference)target;
             if (tr != null)
                 tr.session.Notify_CountChanged(tr.transferable);

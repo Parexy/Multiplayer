@@ -14,12 +14,37 @@ namespace Multiplayer.Client.Persistent
     public class CaravanSplittingSession : IExposable, ISessionWithTransferables
     {
         private int sessionId;
+
+        /// <summary>
+        /// Uniquly identifies this ISessionWithTransferables
+        /// </summary>
         public int SessionId => sessionId;
+
+        /// <summary>
+        /// The list of items that can be transferred, along with thier count.
+        /// </summary>
         public List<TransferableOneWay> transferables;
+
+        /// <summary>
+        /// Flag used to indicate that the ui needs to be redrawn.
+        /// </summary>
         public bool uiDirty;
+
+        /// <summary>
+        /// The caravan being split.
+        /// </summary>
         public Caravan caravan;
+
+        /// <summary>
+        /// Reference to the dialog that is being displayed.
+        /// </summary>
         public CaravanSplitting_Proxy dialog;
 
+        /// <summary>
+        /// Handles creation of new CaravanSplittingSession. 
+        /// Ensures a unique Id is given to this session and creates the dialog.
+        /// </summary>
+        /// <param name="caravan"></param>
         public CaravanSplittingSession(Caravan caravan)
         {
             sessionId = Multiplayer.GlobalIdBlock.NextId();
@@ -39,6 +64,11 @@ namespace Multiplayer.Client.Persistent
             Find.WindowStack.Add(dialog);
         }
 
+        /// <summary>
+        /// Opens the dialog for a currently ongoing session. This should only be called
+        /// when the dialog has been closed but the session still running. 
+        /// I.E. one player has closed the window without accepting/cancelling the session.
+        /// </summary>
         public void OpenWindow(bool sound = true)
         {
             Find.Selector.ClearSelection();
@@ -72,30 +102,41 @@ namespace Multiplayer.Client.Persistent
             Scribe_Collections.Look(ref transferables, "transferables", LookMode.Deep);
         }
 
+        /// <summary>
+        /// Find Transferrable by thingId
+        /// </summary>
         public Transferable GetTransferableByThingId(int thingId)
         {
-            Multiplayer.session.AddMsg($"GetTransferableByThingId {thingId}", true);
             return transferables.Find(tr => tr.things.Any(t => t.thingIDNumber == thingId));
         }
 
+        /// <summary>
+        /// Sets the uiDirty flag.
+        /// </summary>
+        /// <param name="tr"></param>
         public void Notify_CountChanged(Transferable tr)
         {
-            Multiplayer.session.AddMsg($"Caravan splitting session - Notify_CountChanged", true);
             uiDirty = true;
         }
-        
+
+        /// <summary>
+        /// Factory method that creates a new CaravanSplittingSession and stores it to Multiplayer.WorldComp.splitSession
+        /// Only one caravan split session can exist at a time.
+        /// </summary>
+        /// <param name="caravan"></param>
         [SyncMethod]
         public static void CreateSplittingSession(Caravan caravan)
         {
-            //start caravan spltting session here by calling new session constructor
-
+            //Start caravan spltting session here by calling new session constructor
             if (Multiplayer.WorldComp.splitSession == null)
             {
-                Multiplayer.session.AddMsg("Creating  Multiplayer.WorldComp.splitSession", true);
                 Multiplayer.WorldComp.splitSession = new CaravanSplittingSession(caravan);
             }
         }
 
+        /// <summary>
+        /// Cancel a splitting session without accepting it. Closes the dialog and frees Multiplayer.WorldComp.splitSession 
+        /// </summary>
         [SyncMethod]
         public static void CancelSplittingSession() {
             if (Multiplayer.WorldComp.splitSession != null) {
@@ -104,6 +145,9 @@ namespace Multiplayer.Client.Persistent
             }
         }
 
+        /// <summary>
+        /// Resets the counts on all the tranferrables to 0.
+        /// </summary>
         [SyncMethod]
         public static void ResetSplittingSession()
         {
@@ -111,6 +155,10 @@ namespace Multiplayer.Client.Persistent
             Multiplayer.WorldComp.splitSession.uiDirty = true;
         }
 
+        /// <summary>
+        /// Accept the splitting session, split the caravan in to two caravans, free Multiplayer.WorldComp.splitSession and close the dialog.
+        /// If the caravan fails to split, nothing will happen.
+        /// </summary>
         [SyncMethod]
         public static void AcceptSplitSession()
         {
