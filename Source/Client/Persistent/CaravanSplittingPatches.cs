@@ -40,8 +40,9 @@ namespace Multiplayer.Client.Persistent
             //When not playing multiplayer, don't modify behavior.
             if (Multiplayer.Client == null) return true;
 
-            //If in the middle of processing a tick, don't modify behavior.
-            if (Multiplayer.ExecutingCmds || Multiplayer.Ticking)
+            //If in the middle of creating a proxy, don't cancel.
+            //This is needed since CaravanSplitting_Proxy uses Dialog_SplitCaravan as a base class.
+            if (CaravanSplitting_Proxy.CreatingProxy)
             {
                 return true;
             }
@@ -51,7 +52,7 @@ namespace Multiplayer.Client.Persistent
             //  Otherwise, create a new session.
             if (Multiplayer.WorldComp.splitSession != null)
             {
-                Multiplayer.WorldComp.splitSession.OpenWindow();
+                Multiplayer.WorldComp.splitSession.OpenWindow(true);
             }
             else
             {
@@ -60,7 +61,7 @@ namespace Multiplayer.Client.Persistent
 
             return false;
         }
-    }    
+    }
     
     /// <summary>
     /// When a Dialog_SplitCaravan would be constructed, cancel and construct a CaravanSplitting_Proxy instead.
@@ -72,7 +73,7 @@ namespace Multiplayer.Client.Persistent
         {
             //When not playing multiplayer, don't modify behavior.
             if (Multiplayer.Client == null) return true;
-
+    
             //Otherwise prevent the Dialog_SplitCaravan.PostOpen from executing.
             //This is needed to prevent the Dialog_SplitCaravan.CalculateAndRecacheTransferables from being called,
             //  since if it gets called the Dialog_SplitCaravan tranferrable list is replaced with a new one, 

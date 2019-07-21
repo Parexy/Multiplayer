@@ -11,6 +11,8 @@ namespace Multiplayer.Client.Persistent
     /// </summary>
     public class CaravanSplitting_Proxy : Dialog_SplitCaravan
     {
+        public static bool CreatingProxy;
+
         /// <summary>
         /// Reference to this proxy's CaravanSplittingSession.
         /// </summary>

@@ -55,9 +55,12 @@ namespace Multiplayer.Client.Persistent
 
         private void AddItems()
         {
+            CaravanSplitting_Proxy.CreatingProxy = true;
             dialog = new CaravanSplitting_Proxy(caravan) {
                 session = this
             };
+            CaravanSplitting_Proxy.CreatingProxy = false;
+            dialog.doCloseX = true;
             dialog.CalculateAndRecacheTransferables();
             transferables = dialog.transferables;
 
@@ -86,11 +89,13 @@ namespace Multiplayer.Client.Persistent
 
         private CaravanSplitting_Proxy PrepareDialogProxy()
         {
+            CaravanSplitting_Proxy.CreatingProxy = true;
             var dialog = new CaravanSplitting_Proxy(caravan)
             {
                 transferables = transferables,
                 session = this
             };
+            CaravanSplitting_Proxy.CreatingProxy = false;
 
             return dialog;
         }
