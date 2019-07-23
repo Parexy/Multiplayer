@@ -1,7 +1,6 @@
 ﻿using Verse;
 using RimWorld.Planet;
 using Harmony;
-using Multiplayer.API;
 
 namespace Multiplayer.Client.Persistent
 {
@@ -17,13 +16,8 @@ namespace Multiplayer.Client.Persistent
             if (Multiplayer.Client == null) return true;
 
             //If the dialog being added is a native Dialog_SplitCaravan, cancel adding it to the window stack.
-            if (window is Dialog_SplitCaravan && !(window is CaravanSplitting_Proxy))
-            {
-                return false;
-            }
-
             //Otherwise, window being added is something else. Let it happen.
-            return true;
+            return !(window is Dialog_SplitCaravan) || window is CaravanSplitting_Proxy;
         }
     }
 
@@ -72,13 +66,11 @@ namespace Multiplayer.Client.Persistent
         static bool Prefix()
         {
             //When not playing multiplayer, don't modify behavior.
-            if (Multiplayer.Client == null) return true;
-    
             //Otherwise prevent the Dialog_SplitCaravan.PostOpen from executing.
             //This is needed to prevent the Dialog_SplitCaravan.CalculateAndRecacheTransferables from being called,
             //  since if it gets called the Dialog_SplitCaravan tranferrable list is replaced with a new one, 
             //  breaking the session's reference to the current list.
-            return false;
+            return Multiplayer.Client == null;    
         }
     }
 }

@@ -7,7 +7,7 @@ using RimWorld;
 namespace Multiplayer.Client.Persistent
 {
     /// <summary>
-    /// Muliplayer replacement of the Dialog_SplitCaravan dialog.
+    /// Multiplayer replacement of the Dialog_SplitCaravan dialog.
     /// </summary>
     public class CaravanSplitting_Proxy : Dialog_SplitCaravan
     {
@@ -88,7 +88,7 @@ namespace Multiplayer.Client.Persistent
 
         /// <summary>
         /// Replaces Dialog_SplitCaravan.DoBottomButtons. 
-        /// This is a copy of the original but with the handlers for the buttons pulled out into seperate handlers.
+        /// This is a copy of the original but with the handlers for the buttons pulled out into separate handlers.
         /// </summary>
         /// <param name="rect"></param>
         public new void DoBottomButtons(Rect rect)
@@ -141,7 +141,7 @@ namespace Multiplayer.Client.Persistent
 
         private void ResetButtonClicked()
         {
-            SoundDefOf.Tick_Low.PlayOneShotOnCamera(null);
+            SoundDefOf.Tick_Low.PlayOneShotOnCamera();
             CaravanSplittingSession.ResetSplittingSession();
         }
     }

@@ -16,14 +16,14 @@ namespace Multiplayer.Client.Persistent
         private int sessionId;
 
         /// <summary>
-        /// Uniquly identifies this ISessionWithTransferables
+        /// Uniquely identifies this ISessionWithTransferables
         /// </summary>
         public int SessionId => sessionId;
 
         /// <summary>
         /// The list of items that can be transferred, along with thier count.
         /// </summary>
-        public List<TransferableOneWay> transferables;
+        private List<TransferableOneWay> transferables;
 
         /// <summary>
         /// Flag used to indicate that the ui needs to be redrawn.
@@ -33,7 +33,7 @@ namespace Multiplayer.Client.Persistent
         /// <summary>
         /// The caravan being split.
         /// </summary>
-        public Caravan caravan;
+        private readonly Caravan caravan;
 
         /// <summary>
         /// Reference to the dialog that is being displayed.
@@ -45,7 +45,7 @@ namespace Multiplayer.Client.Persistent
         /// Ensures a unique Id is given to this session and creates the dialog.
         /// </summary>
         /// <param name="caravan"></param>
-        public CaravanSplittingSession(Caravan caravan)
+        private CaravanSplittingSession(Caravan caravan)
         {
             sessionId = Multiplayer.GlobalIdBlock.NextId();
             this.caravan = caravan;
@@ -90,14 +90,14 @@ namespace Multiplayer.Client.Persistent
         private CaravanSplitting_Proxy PrepareDialogProxy()
         {
             CaravanSplitting_Proxy.CreatingProxy = true;
-            var dialog = new CaravanSplitting_Proxy(caravan)
+            var newProxy = new CaravanSplitting_Proxy(caravan)
             {
                 transferables = transferables,
                 session = this
             };
             CaravanSplitting_Proxy.CreatingProxy = false;
 
-            return dialog;
+            return newProxy;
         }
 
         public void ExposeData()
@@ -108,7 +108,7 @@ namespace Multiplayer.Client.Persistent
         }
 
         /// <summary>
-        /// Find Transferrable by thingId
+        /// Find Transferable by thingId
         /// </summary>
         public Transferable GetTransferableByThingId(int thingId)
         {
@@ -132,7 +132,7 @@ namespace Multiplayer.Client.Persistent
         [SyncMethod]
         public static void CreateSplittingSession(Caravan caravan)
         {
-            //Start caravan spltting session here by calling new session constructor
+            //Start caravan splitting session here by calling new session constructor
             if (Multiplayer.WorldComp.splitSession == null)
             {
                 Multiplayer.WorldComp.splitSession = new CaravanSplittingSession(caravan);
@@ -145,7 +145,7 @@ namespace Multiplayer.Client.Persistent
         [SyncMethod]
         public static void CancelSplittingSession() {
             if (Multiplayer.WorldComp.splitSession != null) {
-                Multiplayer.WorldComp.splitSession.dialog.Close(true);
+                Multiplayer.WorldComp.splitSession.dialog.Close();
                 Multiplayer.WorldComp.splitSession = null;
             }
         }
@@ -167,14 +167,11 @@ namespace Multiplayer.Client.Persistent
         [SyncMethod]
         public static void AcceptSplitSession()
         {
-            if (Multiplayer.WorldComp.splitSession != null)
+            if ((Multiplayer.WorldComp.splitSession?.dialog.TrySplitCaravan()).Value)
             {
-                if (Multiplayer.WorldComp.splitSession.dialog.TrySplitCaravan())
-                {
-                    SoundDefOf.Tick_High.PlayOneShotOnCamera(null);
-                    Multiplayer.WorldComp.splitSession.dialog.Close(false);
-                    Multiplayer.WorldComp.splitSession = null;
-                }
+                SoundDefOf.Tick_High.PlayOneShotOnCamera();
+                Multiplayer.WorldComp.splitSession.dialog.Close(false);
+                Multiplayer.WorldComp.splitSession = null;
             }
         }
     }
