@@ -38,7 +38,7 @@ namespace Multiplayer.Client.Persistent
         /// <summary>
         /// Reference to the dialog that is being displayed.
         /// </summary>
-        public CaravanSplitting_Proxy dialog;
+        public CaravanSplittingProxy dialog;
 
         /// <summary>
         /// Handles creation of new CaravanSplittingSession. 
@@ -55,11 +55,11 @@ namespace Multiplayer.Client.Persistent
 
         private void AddItems()
         {
-            CaravanSplitting_Proxy.CreatingProxy = true;
-            dialog = new CaravanSplitting_Proxy(caravan) {
+            CaravanSplittingProxy.CreatingProxy = true;
+            dialog = new CaravanSplittingProxy(caravan) {
                 session = this
             };
-            CaravanSplitting_Proxy.CreatingProxy = false;
+            CaravanSplittingProxy.CreatingProxy = false;
             dialog.doCloseX = true;
             dialog.CalculateAndRecacheTransferables();
             transferables = dialog.transferables;
@@ -87,15 +87,15 @@ namespace Multiplayer.Client.Persistent
             Find.WindowStack.Add(dialog);
         }
 
-        private CaravanSplitting_Proxy PrepareDialogProxy()
+        private CaravanSplittingProxy PrepareDialogProxy()
         {
-            CaravanSplitting_Proxy.CreatingProxy = true;
-            var newProxy = new CaravanSplitting_Proxy(caravan)
+            CaravanSplittingProxy.CreatingProxy = true;
+            var newProxy = new CaravanSplittingProxy(caravan)
             {
                 transferables = transferables,
                 session = this
             };
-            CaravanSplitting_Proxy.CreatingProxy = false;
+            CaravanSplittingProxy.CreatingProxy = false;
 
             return newProxy;
         }

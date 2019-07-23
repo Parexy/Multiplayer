@@ -9,7 +9,7 @@ namespace Multiplayer.Client.Persistent
     /// <summary>
     /// Multiplayer replacement of the Dialog_SplitCaravan dialog.
     /// </summary>
-    public class CaravanSplitting_Proxy : Dialog_SplitCaravan
+    public class CaravanSplittingProxy : Dialog_SplitCaravan
     {
         public static bool CreatingProxy;
 
@@ -19,10 +19,10 @@ namespace Multiplayer.Client.Persistent
         public CaravanSplittingSession session;
 
         /// <summary>
-        /// Handles creation of a CaravanSplitting_Proxy.
+        /// Handles creation of a CaravanSplittingProxy.
         /// </summary>
         /// <param name="caravan"></param>
-        public CaravanSplitting_Proxy(Caravan caravan) : base(caravan)
+        public CaravanSplittingProxy(Caravan caravan) : base(caravan)
         {
             this.caravan = caravan;
         }
@@ -91,7 +91,7 @@ namespace Multiplayer.Client.Persistent
         /// This is a copy of the original but with the handlers for the buttons pulled out into separate handlers.
         /// </summary>
         /// <param name="rect"></param>
-        public new void DoBottomButtons(Rect rect)
+        private new void DoBottomButtons(Rect rect)
         {
             float num = rect.width / 2f;
             Vector2 bottomButtonSize = BottomButtonSize;

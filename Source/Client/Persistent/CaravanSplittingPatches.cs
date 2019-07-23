@@ -17,12 +17,12 @@ namespace Multiplayer.Client.Persistent
 
             //If the dialog being added is a native Dialog_SplitCaravan, cancel adding it to the window stack.
             //Otherwise, window being added is something else. Let it happen.
-            return !(window is Dialog_SplitCaravan) || window is CaravanSplitting_Proxy;
+            return !(window is Dialog_SplitCaravan) || window is CaravanSplittingProxy;
         }
     }
 
     /// <summary>
-    /// When a Dialog_SplitCaravan would be constructed, cancel and construct a CaravanSplitting_Proxy instead.
+    /// When a Dialog_SplitCaravan would be constructed, cancel and construct a CaravanSplittingProxy instead.
     /// </summary>
     [HarmonyPatch(typeof(Dialog_SplitCaravan), MethodType.Constructor)]
     [HarmonyPatch(new[] { typeof(Caravan) })]
@@ -35,8 +35,8 @@ namespace Multiplayer.Client.Persistent
             if (Multiplayer.Client == null) return true;
 
             //If in the middle of creating a proxy, don't cancel.
-            //This is needed since CaravanSplitting_Proxy uses Dialog_SplitCaravan as a base class.
-            if (CaravanSplitting_Proxy.CreatingProxy)
+            //This is needed since CaravanSplittingProxy uses Dialog_SplitCaravan as a base class.
+            if (CaravanSplittingProxy.CreatingProxy)
             {
                 return true;
             }
@@ -58,7 +58,7 @@ namespace Multiplayer.Client.Persistent
     }
     
     /// <summary>
-    /// When a Dialog_SplitCaravan would be constructed, cancel and construct a CaravanSplitting_Proxy instead.
+    /// When a Dialog_SplitCaravan would be constructed, cancel and construct a CaravanSplittingProxy instead.
     /// </summary>
     [HarmonyPatch(typeof(Dialog_SplitCaravan), nameof(Dialog_SplitCaravan.PostOpen))]
     class CancelDialogSplitCaravanPostOpen
