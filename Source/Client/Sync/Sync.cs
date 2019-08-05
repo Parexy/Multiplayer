@@ -908,12 +908,21 @@ namespace Multiplayer.Client
 
         public static void RegisterAllSyncMethods()
         {
-            foreach (Type type in MpUtil.AllModTypes())
-            {
-                foreach (MethodInfo method in type.GetDeclaredMethods())
-                {
-                    if (!MpUtil.HasAttr(method, typeof(SyncMethodAttribute)))
-                        continue;
+            foreach (Type type in asm.GetTypes()) {
+                foreach (MethodInfo method in type.GetDeclaredMethods()) {
+                    if (method.TryGetAttribute(out SyncMethodAttribute sma)) {
+                        RegisterSyncMethod(method, sma);
+                    } else if (method.TryGetAttribute(out SyncWorkerAttribute swa)) {
+                        RegisterSyncWorker(method, isImplicit: swa.isImplicit, shouldConstruct: swa.shouldConstruct);
+                    }
+                }
+                foreach (FieldInfo field in AccessTools.GetDeclaredFields(type)) {
+                    if (field.TryGetAttribute(out SyncFieldAttribute sfa)) {
+                        RegisterSyncField(field, sfa);
+                    }
+                }
+            }
+        }
 
                     if (!method.TryGetAttribute(out SyncMethodAttribute syncAttr))
                         continue;
