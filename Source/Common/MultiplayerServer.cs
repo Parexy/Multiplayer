@@ -7,7 +7,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using Verse;
 
 namespace Multiplayer.Common
 {
@@ -71,8 +70,6 @@ namespace Multiplayer.Common
 
         public event Action<MultiplayerServer> NetTick;
 
-        private float autosaveCountdown;
-
         public MultiplayerServer(ServerSettings settings)
         {
             this.settings = settings;
@@ -85,8 +82,6 @@ namespace Multiplayer.Common
 
             if (settings.lanAddress != null)
                 lanManager = new NetManager(new MpNetListener(this, false));
-
-            autosaveCountdown = settings.autosaveInterval * 2500 * 24;
         }
 
         public bool? StartListeningNet()
@@ -170,6 +165,8 @@ namespace Multiplayer.Common
             }
         }
 
+        private int lastAutosave;
+
         public void Tick()
         {
             if (gameTimer % 3 == 0)
@@ -177,16 +174,13 @@ namespace Multiplayer.Common
 
             gameTimer++;
 
-            if (settings.autosaveInterval <= 0)
-                return;
-
-            var curSpeed = Client.Multiplayer.WorldComp.TimeSpeed;
-
-            autosaveCountdown -= (curSpeed == Verse.TimeSpeed.Paused && !Client.MultiplayerMod.settings.pauseAutosaveCounter) 
-                ? 1 : Client.Multiplayer.WorldComp.TickRateMultiplier(curSpeed);
-
-            if (autosaveCountdown <= 0)
+            if (settings.autosaveInterval > 0 && lastAutosave >= settings.autosaveInterval * 60 * 60)
+            {
                 DoAutosave();
+                lastAutosave = 0;
+            }
+
+            lastAutosave++;
         }
 
         private void SendLatencies()
@@ -209,15 +203,11 @@ namespace Multiplayer.Common
             if (tmpMapCmds != null)
                 return false;
 
-            if (settings.pauseOnAutosave)
-                SendCommand(CommandType.WorldTimeSpeed, ScheduledCommand.NoFaction, ScheduledCommand.Global, new byte[] { (byte)Verse.TimeSpeed.Paused });
-
             SendCommand(CommandType.Autosave, ScheduledCommand.NoFaction, ScheduledCommand.Global, new byte[0]);
             tmpMapCmds = new Dictionary<int, List<byte[]>>();
 
             SendChat("Autosaving...");
 
-            autosaveCountdown = settings.autosaveInterval * 2500 * 24;
             return true;
         }
 
@@ -416,35 +406,16 @@ namespace Multiplayer.Common
         public DefCheckStatus status; // only used by client's DefMismatchWindow
     }
 
-    public class ServerSettings : IExposable
+    public class ServerSettings
     {
         public string gameName;
         public string bindAddress;
         public int bindPort;
         public string lanAddress;
-
-        public string directAddress = $"0.0.0.0:{MultiplayerServer.DefaultPort}";
         public int maxPlayers = 8;
-        public float autosaveInterval = 0.5f;
-        public bool pauseOnAutosave;
+        public int autosaveInterval = 8;
         public bool steam;
-        public bool direct;
-        public bool lan = true;
-        public bool arbiter = true;
-        public bool debugMode;
-
-        public void ExposeData()
-        {
-            Scribe_Values.Look(ref directAddress, "directAddress", $"0.0.0.0:{MultiplayerServer.DefaultPort}");
-            Scribe_Values.Look(ref maxPlayers, "maxPlayers", 8);
-            Scribe_Values.Look(ref autosaveInterval, "autosaveInterval", 0.5f);
-            Scribe_Values.Look(ref pauseOnAutosave, "pauseOnAutosave");
-            Scribe_Values.Look(ref steam, "steam");
-            Scribe_Values.Look(ref direct, "direct");
-            Scribe_Values.Look(ref lan, "lan", true);
-            Scribe_Values.Look(ref arbiter, "arbiter", true);
-            Scribe_Values.Look(ref debugMode, "debugMode");
-        }
+        public bool arbiter;
     }
 
     public struct ColorRGB

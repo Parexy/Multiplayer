@@ -12,7 +12,7 @@ namespace Multiplayer.Client
 {
     public abstract class BaseConnectingWindow : Window, IConnectionStatusListener
     {
-        public override Vector2 InitialSize => new Vector2(400f, 150f);
+        public override Vector2 InitialSize => new Vector2(300f, 150f);
 
         public virtual bool IsConnecting => result == null;
         public abstract string ConnectingString { get; }
@@ -66,15 +66,18 @@ namespace Multiplayer.Client
 
     public class ConnectingWindow : BaseConnectingWindow
     {
-        public override string ConnectingString => string.Format("MpConnectingTo".Translate("{0}", port), address);
+        public override string ConnectingString => "MpConnectingTo".Translate(addressStr, port);
 
-        private string address;
+        private IPAddress address;
         private int port;
+        private string addressStr;
 
-        public ConnectingWindow(string address, int port)
+        public ConnectingWindow(IPAddress address, int port)
         {
             this.address = address;
             this.port = port;
+
+            addressStr = address?.ToString();
 
             ClientUtil.TryConnect(address, port);
         }

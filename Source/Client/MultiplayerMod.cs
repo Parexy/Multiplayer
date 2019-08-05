@@ -35,15 +35,7 @@ namespace Multiplayer.Client
             EarlyMarkNoInline(typeof(Multiplayer).Assembly);
             EarlyPatches();
 
-            CheckInterfaceVersions();
-
             settings = GetSettings<MpSettings>();
-
-#if DEBUG
-            LongEventHandler.ExecuteWhenFinished(() => { 
-                Log.Message("== Structure == \n" + Sync.syncWorkers.PrintStructure());
-            });
-#endif
         }
 
         public static void EarlyMarkNoInline(Assembly asm)
@@ -99,6 +91,12 @@ namespace Multiplayer.Client
             );
 
             harmony.Patch(
+                AccessTools.Method(typeof(GenTypes), nameof(GenTypes.GetTypeInAnyAssembly)),
+                new HarmonyMethod(typeof(GetTypeInAnyAssemblyPatch), "Prefix"),
+                new HarmonyMethod(typeof(GetTypeInAnyAssemblyPatch), "Postfix")
+            );
+
+            harmony.Patch(
                 AccessTools.Method(typeof(LoadedModManager), nameof(LoadedModManager.ParseAndProcessXML)),
                 transpiler: new HarmonyMethod(typeof(ParseAndProcessXml_Patch), "Transpiler")
             );
@@ -119,10 +117,9 @@ namespace Multiplayer.Client
                 new HarmonyMethod(typeof(LoadableXmlAssetCtorPatch), "Prefix")
             );
 
-            // Cross os compatibility
-            harmony.Patch (
-                AccessTools.Method (typeof (DirectXmlLoader), nameof (DirectXmlLoader.XmlAssetsInModFolder)), null,
-                new HarmonyMethod (typeof (XmlAssetsInModFolderPatch), "Postfix")
+            harmony.Patch(
+                AccessTools.Method(typeof(ModMetaData), "<Init>m__1"),
+                new HarmonyMethod(typeof(ModPreviewImagePatch), "Prefix")
             );
 
             // Might fix some mod desyncs
@@ -149,13 +146,6 @@ namespace Multiplayer.Client
             listing.CheckboxLabeled("MpTransparentChat".Translate(), ref settings.transparentChat);
             listing.CheckboxLabeled("MpAggressiveTicking".Translate(), ref settings.aggressiveTicking, "MpAggressiveTickingDesc".Translate());
 
-            var appendNameToAutosaveLabel = $"{"MpAppendNameToAutosave".Translate()}:  ";
-            var appendNameToAutosaveLabelWidth = Text.CalcSize(appendNameToAutosaveLabel).x;
-            var appendNameToAutosaveCheckboxWidth = appendNameToAutosaveLabelWidth + 30f;
-            listing.CheckboxLabeled(appendNameToAutosaveLabel, ref settings.appendNameToAutosave);
-
-            listing.CheckboxLabeled("MpPauseAutosaveCounter".Translate(), ref settings.pauseAutosaveCounter, "MpPauseAutosaveCounterDesc".Translate());
-
             if (Prefs.DevMode)
                 listing.CheckboxLabeled("Show debug info", ref settings.showDevInfo);
 
@@ -180,47 +170,6 @@ namespace Multiplayer.Client
         }
 
         public override string SettingsCategory() => "Multiplayer";
-
-        static void CheckInterfaceVersions()
-        {
-            var mpAssembly = AppDomain.CurrentDomain.GetAssemblies().First(a => a.GetName().Name == "Multiplayer");
-            var curVersion = new System.Version(
-                (mpAssembly.GetCustomAttributes(typeof(AssemblyFileVersionAttribute), false)[0] as AssemblyFileVersionAttribute).Version
-            );
-
-            Log.Message($"Current API version: {curVersion}");
-
-            foreach (var mod in LoadedModManager.RunningMods) {
-                if (!mod.LoadedAnyAssembly)
-                    continue;
-
-                Assembly assembly = mod.assemblies.loadedAssemblies.FirstOrDefault(a => a.GetName().Name == MpVersion.apiAssemblyName);
-
-                if (assembly != null) {
-                    var version = new Version(FileVersionInfo.GetVersionInfo(System.IO.Path.Combine(mod.AssembliesFolder, $"{MpVersion.apiAssemblyName}.dll")).FileVersion);
-
-                    Log.Message($"Mod {mod.Name} has API client ({version})");
-
-                    if (curVersion > version)
-                        Log.Warning($"Mod {mod.Name} uses an older API version (mod: {version}, current: {curVersion})");
-                    else if (curVersion < version)
-                        Log.Error($"Mod {mod.Name} uses a newer API version! (mod: {version}, current: {curVersion})\nMake sure the Multiplayer mod is up to date");
-                }
-            }
-        }
-    }
-
-    static class XmlAssetsInModFolderPatch
-    {
-        // Sorts the files before processing, ensures cross os compatibility
-        static IEnumerable<LoadableXmlAsset> Postfix (IEnumerable<LoadableXmlAsset> __result)
-        {
-            var array = __result.ToArray ();
-
-            Array.Sort (array, (x, y) => StringComparer.OrdinalIgnoreCase.Compare (x.name, y.name));
-
-            return array;
-        }
     }
 
     static class LoadableXmlAssetCtorPatch
@@ -264,10 +213,7 @@ namespace Multiplayer.Client
         public int autosaveSlots = 5;
         public bool aggressiveTicking;
         public bool showDevInfo;
-        public string serverAddress = "127.0.0.1";
-        public bool appendNameToAutosave;
-        public bool pauseAutosaveCounter = true;
-        public ServerSettings serverSettings;
+        public string serverAddress;
 
         public override void ExposeData()
         {
@@ -279,12 +225,6 @@ namespace Multiplayer.Client
             Scribe_Values.Look(ref aggressiveTicking, "aggressiveTicking");
             Scribe_Values.Look(ref showDevInfo, "showDevInfo");
             Scribe_Values.Look(ref serverAddress, "serverAddress", "127.0.0.1");
-            Scribe_Values.Look(ref pauseAutosaveCounter, "pauseAutosaveCounter", true);
-
-            Scribe_Deep.Look(ref serverSettings, "serverSettings");
-
-            if (serverSettings == null)
-                serverSettings = new ServerSettings();
         }
     }
 }

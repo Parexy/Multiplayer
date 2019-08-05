@@ -438,11 +438,6 @@ namespace Multiplayer.Common
                 writer.Write(o);
             return writer.ToArray();
         }
-
-        internal void SetLength(long value)
-        {
-            stream.SetLength(value);
-        }
     }
 
     public class ByteReader
@@ -554,11 +549,6 @@ namespace Multiplayer.Common
             int i = index;
             index += size;
             return i;
-        }
-
-        public void Seek(int position)
-        {
-            index = position;
         }
     }
 

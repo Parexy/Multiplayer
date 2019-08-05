@@ -413,10 +413,6 @@ namespace Multiplayer.Client
     {
         static void Prefix(IIncidentTarget target, ref Map __state)
         {
-            // This may be running inside a context already
-            if (MapAsyncTimeComp.tickingMap != null)
-                return;
-
             if (MultiplayerWorldComp.tickingWorld && target is Map map)
             {
                 MapAsyncTimeComp.tickingMap = map;
@@ -557,7 +553,7 @@ namespace Multiplayer.Client
             {
                 PostContext();
 
-                Multiplayer.game.sync.TryAddMapRandomState(map.uniqueID, randState);
+                Multiplayer.game.sync.TryAddMap(map.uniqueID, randState);
 
                 tickingMap = null;
 
@@ -765,7 +761,7 @@ namespace Multiplayer.Client
 
                 keepTheMap = false;
 
-                Multiplayer.game.sync.TryAddCommandRandomState(randState);
+                Multiplayer.game.sync.TryAddCmd(randState);
             }
         }
 
@@ -821,13 +817,8 @@ namespace Multiplayer.Client
         private void HandleDesignator(ScheduledCommand command, ByteReader data)
         {
             DesignatorMode mode = Sync.ReadSync<DesignatorMode>(data);
-            ushort desId = Sync.ReadSync<ushort>(data);
-            Type desType = Sync.designatorTypes[desId];
-
-            Designator designator = Sync.ReadSyncObject(data, desType) as Designator;
-            if (designator == null) {
-                designator = (Designator) Activator.CreateInstance(desType);
-            }
+            Designator designator = Sync.ReadSync<Designator>(data);
+            if (designator == null) return;
 
             try
             {

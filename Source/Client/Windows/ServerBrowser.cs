@@ -104,15 +104,8 @@ namespace Multiplayer.Client
             {
                 var saveFile = new SaveFile(Path.GetFileNameWithoutExtension(file.Name), false, file);
 
-                try
-                {
-                    using (var stream = file.OpenRead())
-                        ReadSaveInfo(stream, saveFile);
-                }
-                catch (Exception ex)
-                {
-                    Log.Warning("Exception loading save info of " + file.Name + ": " + ex.ToString());
-                }
+                using (var stream = file.OpenRead())
+                    ReadSaveInfo(stream, saveFile);
 
                 spSaves.Add(saveFile);
             }
@@ -121,37 +114,32 @@ namespace Multiplayer.Client
 
             foreach (var file in replaysDir.GetFiles("*.zip", MpVersion.IsDebug ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly).OrderByDescending(f => f.LastWriteTime))
             {
+                var replay = Replay.ForLoading(file);
+                if (!replay.LoadInfo()) continue;
+
                 var displayName = Path.ChangeExtension(file.FullName.Substring(Multiplayer.ReplaysDir.Length + 1), null);
-                var saveFile = new SaveFile(displayName, true, file);
-                
-                try
-                {
-                    var replay = Replay.ForLoading(file);
-                    if (!replay.LoadInfo()) continue;
 
-                    saveFile.gameName = replay.info.name;
-                    saveFile.protocol = replay.info.protocol;
-                    saveFile.replaySections = replay.info.sections.Count;
-
-                    if (!replay.info.rwVersion.NullOrEmpty())
-                    {
-                        saveFile.rwVersion = replay.info.rwVersion;
-                        saveFile.modIds = replay.info.modIds.ToArray();
-                        saveFile.modNames = replay.info.modNames.ToArray();
-                        saveFile.modAssemblyHashes = replay.info.modAssemblyHashes.ToArray();
-                    }
-                    else
-                    {
-                        using (var zip = replay.ZipFile)
-                            ReadSaveInfo(zip["world/000_save"].OpenReader(), saveFile);
-                    }
-                }
-                catch (Exception ex)
+                var saveFile = new SaveFile(displayName, true, file)
                 {
-                    Log.Warning("Exception loading replay info of " + file.Name + ": " + ex.ToString());
-                }
+                    gameName = replay.info.name,
+                    protocol = replay.info.protocol,
+                    replaySections = replay.info.sections.Count
+                };
 
                 mpReplays.Add(saveFile);
+
+                if (!replay.info.rwVersion.NullOrEmpty())
+                {
+                    saveFile.rwVersion = replay.info.rwVersion;
+                    saveFile.modIds = replay.info.modIds.ToArray();
+                    saveFile.modNames = replay.info.modNames.ToArray();
+                    saveFile.modAssemblyHashes = replay.info.modAssemblyHashes.ToArray();
+                }
+                else
+                {
+                    using (var zip = replay.ZipFile)
+                        ReadSaveInfo(zip["world/000_save"].OpenReader(), saveFile);
+                }
             }
         }
 
@@ -262,31 +250,28 @@ namespace Multiplayer.Client
 
         private void DrawFileButtons(SaveFile file, ref float width)
         {
-            if (file.Valid)
+            if (file.replay)
             {
-                if (file.replay)
-                {
-                    if (Widgets.ButtonText(new Rect(width, 0, 120, 40), "MpWatchReplay".Translate()))
-                    {
-                        CheckGameVersionAndMods(
-                            file,
-                            () => { Close(false); Replay.LoadReplay(file.file); }
-                        );
-                    }
-
-                    width += 120 + 10;
-                }
-
-                if (Widgets.ButtonText(new Rect(width, 0, 120, 40), "MpHostButton".Translate()))
+                if (Widgets.ButtonText(new Rect(width, 0, 120, 40), "MpWatchReplay".Translate()))
                 {
                     CheckGameVersionAndMods(
                         file,
-                        () => { Close(false); Find.WindowStack.Add(new HostWindow(file) { returnToServerBrowser = true }); }
+                        () => { Close(false); Replay.LoadReplay(file.file); }
                     );
                 }
 
                 width += 120 + 10;
             }
+
+            if (Widgets.ButtonText(new Rect(width, 0, 120, 40), "MpHostButton".Translate()))
+            {
+                CheckGameVersionAndMods(
+                    file, 
+                    () => { Close(false); Find.WindowStack.Add(new HostWindow(file) { returnToServerBrowser = true }); }
+                );
+            }
+
+            width += 120 + 10;
 
             if (Widgets.ButtonText(new Rect(width, 0, 120, 40), "Delete".Translate()))
             {
@@ -359,18 +344,10 @@ namespace Multiplayer.Client
                 else
                 {
                     GUI.color = saveFile.VersionColor;
-                    Widgets.Label(infoText.Down(16), (saveFile.rwVersion ?? "???").Truncate(110));                        
+                    Widgets.Label(infoText.Down(16), (saveFile.rwVersion ?? "???").Truncate(110));
                 }
 
-                if (!saveFile.Valid)
-                {
-                    var rect = new Rect(infoText.x - 80, infoText.y + 8f, 80, 24f);
-                    GUI.color = Color.red;
-
-                    Widgets.Label(rect, $"({"EItemUpdateStatus_k_EItemUpdateStatusInvalid".Translate()})");
-                    TooltipHandler.TipRegion(rect, new TipSignal("SaveIsUnknownFormat".Translate()));
-                }
-                else if (saveFile.replay && saveFile.protocol != MpVersion.Protocol)
+                if (saveFile.replay && saveFile.protocol != MpVersion.Protocol)
                 {
                     bool autosave = saveFile.replaySections > 1;
 
@@ -385,7 +362,6 @@ namespace Multiplayer.Client
                     TooltipHandler.TipRegion(outdated, text);
                 }
 
-
                 Text.Font = GameFont.Small;
                 GUI.color = Color.white;
 
@@ -393,7 +369,7 @@ namespace Multiplayer.Client
                 {
                     if (Event.current.button == 0)
                         selectedFile = saveFile;
-                    else if(saveFile.Valid)
+                    else
                         Find.WindowStack.Add(new FloatMenu(SaveFloatMenu(saveFile).ToList()));
                 }
 
@@ -428,7 +404,7 @@ namespace Multiplayer.Client
 
             yield return new FloatMenuOption("Debug info", () =>
             {
-                Find.WindowStack.Add(new DebugTextWindow(UserReadableDesyncInfo.GenerateFromReplay(Replay.ForLoading(save.file))));
+                Find.WindowStack.Add(new DebugTextWindow(DesyncDebugInfo.Get(Replay.ForLoading(save.file))));
             });
 
             yield return new FloatMenuOption("Subscribe to Steam mods", () =>
@@ -537,24 +513,26 @@ namespace Multiplayer.Client
 
             if (Widgets.ButtonText(new Rect(inRect.center.x - btnWidth / 2, 60f, btnWidth, 35f), "MpConnectButton".Translate()))
             {
-                string addr = MultiplayerMod.settings.serverAddress.Trim();
+                string ip = MultiplayerMod.settings.serverAddress.Trim();
+
                 int port = MultiplayerServer.DefaultPort;
-                string[] hostport = addr.Split(':');
-                if (hostport.Length == 2)
-                    int.TryParse(hostport[1], out port);
+                string[] ipport = ip.Split(':');
+                if (ipport.Length == 2)
+                    int.TryParse(ipport[1], out port);
                 else
                     port = MultiplayerServer.DefaultPort;
 
-                Log.Message("Connecting directly");
-                try
-                {
-                    Find.WindowStack.Add(new ConnectingWindow(hostport[0], port) { returnToServerBrowser = true });
-                    MultiplayerMod.settings.Write();
-                    Close(false);
-                }
-                catch (Exception)
+                if (!IPAddress.TryParse(ipport[0], out IPAddress address))
                 {
                     Messages.Message("MpInvalidAddress".Translate(), MessageTypeDefOf.RejectInput, false);
+                }
+                else
+                {
+                    Log.Message("Connecting directly");
+
+                    Find.WindowStack.Add(new ConnectingWindow(address, port) { returnToServerBrowser = true });
+                    MultiplayerMod.settings.Write();
+                    Close(false);
                 }
             }
         }
@@ -592,7 +570,7 @@ namespace Multiplayer.Client
                 {
                     Close(false);
                     Log.Message("Connecting to lan server");
-                    Find.WindowStack.Add(new ConnectingWindow(server.endpoint.Address.ToString(), server.endpoint.Port) { returnToServerBrowser = true });
+                    Find.WindowStack.Add(new ConnectingWindow(server.endpoint.Address, server.endpoint.Port) { returnToServerBrowser = true });
                 }
 
                 Text.Anchor = TextAnchor.UpperLeft;
@@ -734,8 +712,6 @@ namespace Multiplayer.Client
         public int[] modAssemblyHashes = new int[0];
 
         public int protocol;
-
-        public bool Valid => rwVersion != null;
 
         public Color VersionColor
         {

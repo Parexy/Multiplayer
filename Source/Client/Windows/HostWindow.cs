@@ -29,14 +29,10 @@ namespace Multiplayer.Client
 
         private float height;
 
-        private ServerSettings settings;
-
         public HostWindow(SaveFile file = null, bool withSimulation = false)
         {
             closeOnAccept = false;
             doCloseX = true;
-
-            settings = MultiplayerMod.settings.serverSettings;
 
             this.withSimulation = withSimulation;
             this.file = file;
@@ -44,12 +40,19 @@ namespace Multiplayer.Client
 
             var localAddr = MpUtil.GetLocalIpAddress() ?? "127.0.0.1";
             settings.lanAddress = localAddr;
+            addressBuffer = localAddr;
+
+            lan = true;
+            settings.arbiter = true;
 
             if (MpVersion.IsDebug)
                 debugMode = true;
         }
 
-        private string maxPlayersBuffer, autosaveBuffer;
+        private ServerSettings settings = new ServerSettings();
+
+        private string maxPlayersBuffer, autosaveBuffer, addressBuffer;
+        private bool lan, direct;
 
         public override void DoWindowContents(Rect inRect)
         {
@@ -77,9 +80,9 @@ namespace Multiplayer.Client
 
             TextFieldNumericLabeled(entry.Width(labelWidth + 30f), $"{"MpMaxPlayers".Translate()}:  ", ref settings.maxPlayers, ref maxPlayersBuffer, labelWidth, 0, 999);
 
-            TextFieldNumericLabeled(entry.Right(150f).Width(labelWidth + 85f), $"{"MpAutosaveEvery".Translate()} ", ref settings.autosaveInterval, ref autosaveBuffer, labelWidth + 45f, 0, 999);
+            TextFieldNumericLabeled(entry.Right(150f).Width(labelWidth + 85f), $"{"MpAutosaveEvery".Translate()} ", ref settings.autosaveInterval, ref autosaveBuffer, labelWidth + 50f, 0, 999);
             Text.Anchor = TextAnchor.MiddleLeft;
-            Widgets.Label(entry.Right(200f).Right(labelWidth + 35f), $" {"MpAutosaveDays".Translate()}");
+            Widgets.Label(entry.Right(200f).Right(labelWidth + 35f), $" {"MpAutosaveMinutes".Translate()}");
             Text.Anchor = TextAnchor.UpperLeft;
             entry = entry.Down(40);
 
@@ -92,23 +95,16 @@ namespace Multiplayer.Client
 
             var checkboxWidth = labelWidth + 30f;
 
-            var pauseOnAutosaveLabel = $"{"MpPauseOnAutosave".Translate()}:  ";
-            var pauseOnAutosaveLabelWidth = Text.CalcSize(pauseOnAutosaveLabel).x;
-            var pauseOnAutosaveCheckboxWidth = pauseOnAutosaveLabelWidth + 30f;
-            CheckboxLabeled(entry.Width(pauseOnAutosaveCheckboxWidth), pauseOnAutosaveLabel, ref settings.pauseOnAutosave, placeTextNearCheckbox: true);
-
-            entry = entry.Down(30);
-
             var directLabel = $"{"MpDirect".Translate()}:  ";
             var directLabelWidth = Text.CalcSize(directLabel).x;
-            CheckboxLabeled(entry.Width(checkboxWidth), directLabel, ref settings.direct, placeTextNearCheckbox: true);
-            if (settings.direct)
-                settings.directAddress = Widgets.TextField(entry.Width(checkboxWidth + 10).Right(checkboxWidth + 10), settings.directAddress);
+            CheckboxLabeled(entry.Width(checkboxWidth), directLabel, ref direct, placeTextNearCheckbox: true);
+            if (direct)
+                addressBuffer = Widgets.TextField(entry.Width(checkboxWidth + 10).Right(checkboxWidth + 10), addressBuffer);
 
             entry = entry.Down(30);
 
             var lanRect = entry.Width(checkboxWidth);
-            CheckboxLabeled(lanRect, $"{"MpLan".Translate()}:  ", ref settings.lan, placeTextNearCheckbox: true);
+            CheckboxLabeled(lanRect, $"{"MpLan".Translate()}:  ", ref lan, placeTextNearCheckbox: true);
             TooltipHandler.TipRegion(lanRect, $"{"MpLanDesc1".Translate()}\n\n{"MpLanDesc2".Translate(settings.lanAddress)}");
 
             entry = entry.Down(30);
@@ -145,15 +141,12 @@ namespace Multiplayer.Client
             var buttonRect = new Rect((inRect.width - 100f) / 2f, inRect.height - 35f, 100f, 35f);
 
             if (Widgets.ButtonText(buttonRect, "MpHostButton".Translate()))
-            {
-                LoadedModManager.GetMod<MultiplayerMod>().WriteSettings();
                 TryHost();
-            }
         }
 
         private void TryHost()
         {
-            if (settings.direct && !TryParseIp(settings.directAddress, out settings.bindAddress, out settings.bindPort))
+            if (direct && !TryParseIp(addressBuffer, out settings.bindAddress, out settings.bindPort))
                 return;
 
             if (settings.gameName.NullOrEmpty())
@@ -162,10 +155,10 @@ namespace Multiplayer.Client
                 return;
             }
 
-            if (!settings.direct)
+            if (!direct)
                 settings.bindAddress = null;
 
-            if (!settings.lan)
+            if (!lan)
                 settings.lanAddress = null;
 
             if (file?.replay ?? Multiplayer.IsReplay)
@@ -242,7 +235,7 @@ namespace Multiplayer.Client
             return Widgets.TextField(fieldRect, text);
         }
 
-        public static void TextFieldNumericLabeled<T>(Rect rect, string label, ref T val, ref string buffer, float labelWidth, float min = 0, float max = float.MaxValue) where T : struct
+        public static void TextFieldNumericLabeled(Rect rect, string label, ref int val, ref string buffer, float labelWidth, float min = 0, float max = float.MaxValue)
         {
             Rect labelRect = rect;
             labelRect.width = labelWidth;
@@ -252,7 +245,7 @@ namespace Multiplayer.Client
             Text.Anchor = TextAnchor.MiddleRight;
             Widgets.Label(labelRect, label);
             Text.Anchor = anchor;
-            Widgets.TextFieldNumeric<T>(fieldRect, ref val, ref buffer, min, max);
+            Widgets.TextFieldNumeric(fieldRect, ref val, ref buffer, min, max);
         }
 
         public override void PostClose()

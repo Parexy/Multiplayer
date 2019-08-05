@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Harmony;
-using Multiplayer.API;
 using RimWorld;
 using RimWorld.Planet;
 using UnityEngine;
@@ -52,7 +51,8 @@ namespace Multiplayer.Client
                 Remove();
         }
 
-        [SyncMethod(debugOnly = true)]
+        [SyncMethod]
+        [SyncDebugOnly]
         public void DebugTryLoadInstantly()
         {
             if (PrepareDummyDialog().DebugTryLoadInstantly())

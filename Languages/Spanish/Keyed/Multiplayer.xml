@@ -33,7 +33,7 @@
   <MpReplayOutdated>(Desactualizado)</MpReplayOutdated>
   <MpReplayOutdatedDesc1>Esta repetición fue hecha para el protocolo de versión {0}, pero estás usando la versión {1}.</MpReplayOutdatedDesc1>
   <MpReplayOutdatedDesc2>Puede que la repetición no se reproduzca correctamente.</MpReplayOutdatedDesc2>
-  <MpReplayOutdatedDesc3>Posibles incompatibilidades están listadas con el historial de lanzamientos.</MpReplayOutdatedDesc3>
+  <MpReplayOutdatedDesc3>Posibles incopatibilidades están listadas con el historial de lanzamientos.</MpReplayOutdatedDesc3>
   <MpReplayOutdatedDesc4>Este archivo contiene información adicional y alojar de este debería funcionar bien.</MpReplayOutdatedDesc4>
   
   <MpServerCloseConfirmation>¿Estás seguro que quieres cerrar el servidor? El progreso sin guardar se perderá.</MpServerCloseConfirmation>
@@ -80,12 +80,12 @@
   
   <MpSaveReplayAs>Salvar repetición como</MpSaveReplayAs>
   <MpWillOverwrite>Sobrescribirá</MpWillOverwrite>
-  <MpReplaySaved>Repetición salva</MpReplaySaved>
+  <MpReplaySaved>Repetición</MpReplaySaved>
   
   <MpGameName>Nombre del juego</MpGameName>
   <MpMaxPlayers>Máximo de jugadores</MpMaxPlayers>
   <MpAutosaveEvery>Auto salvar cada</MpAutosaveEvery>
-  <MpAutosaveDays>dias</MpAutosaveDays>
+  <MpAutosaveMinutes>minutos</MpAutosaveMinutes>
   <MpLanDesc1>Transmitir el juego a tu red local.</MpLanDesc1>
   <MpLanDesc2>Dirección LAN resuelta: {0}</MpLanDesc2>
   <MpArbiterDesc>Una instancia del juego que corre en segundo plano y ayuda resolver problemas de sincronía.</MpArbiterDesc>
@@ -110,10 +110,6 @@
   <MpPlayingRimWorld>Jugando RimWorld</MpPlayingRimWorld>
   <MpNotInMultiplayer>No está en multijugador</MpNotInMultiplayer>
   
-  <MpPauseOnAutosave>Pause on Autosave</MpPauseOnAutosave>
-  <MpAppendNameToAutosave>Append Name to Autosave</MpAppendNameToAutosave>
-  <MpPauseAutosaveCounter>Pause autosave counter</MpPauseAutosaveCounter>
-  <MpPauseAutosaveCounterDesc>Pauses the counter along with the game preventing autosaving while time is paused.</MpPauseAutosaveCounterDesc>
   <MpLan>LAN</MpLan>
   <MpDirect>Directo</MpDirect>
   <MpSteam>Steam</MpSteam>

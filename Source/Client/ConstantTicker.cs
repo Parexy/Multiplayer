@@ -29,13 +29,13 @@ namespace Multiplayer.Client
                 TickShipCountdown();
 
                 var sync = Multiplayer.game.sync;
-                if (sync.ShouldCollect && TickPatch.Timer % 30 == 0 && sync.currentOpinion != null)
+                if (sync.ShouldCollect && TickPatch.Timer % 30 == 0 && sync.current != null)
                 {
                     if (!TickPatch.Skipping && (Multiplayer.LocalServer != null || MultiplayerMod.arbiterInstance))
-                        Multiplayer.Client.SendFragmented(Packets.Client_SyncInfo, sync.currentOpinion.Serialize());
+                        Multiplayer.Client.SendFragmented(Packets.Client_SyncInfo, sync.current.Serialize());
 
-                    sync.AddClientOpinionAndCheckDesync(sync.currentOpinion);
-                    sync.currentOpinion = null;
+                    sync.Add(sync.current);
+                    sync.current = null;
                 }
             }
             finally

@@ -141,7 +141,7 @@ namespace Multiplayer.Client
                 PostContext();
                 tickingWorld = false;
 
-                Multiplayer.game.sync.TryAddWorldRandomState(randState);
+                Multiplayer.game.sync.TryAddWorld(randState);
             }
         }
 
@@ -280,7 +280,7 @@ namespace Multiplayer.Client
                 TickPatch.currentExecutingCmdIssuedBySelf = false;
                 executingCmdWorld = false;
 
-                Multiplayer.game.sync.TryAddCommandRandomState(randState);
+                Multiplayer.game.sync.TryAddCmd(randState);
             }
         }
 
@@ -331,16 +331,9 @@ namespace Multiplayer.Client
 
         private static string AutosaveFile()
         {
-            var autosavePrefix = "Autosave-";
-
-            if (MultiplayerMod.settings.appendNameToAutosave)
-            {
-                autosavePrefix += $"{Multiplayer.session.gameName}-";
-            }
-
             return Enumerable
                 .Range(1, MultiplayerMod.settings.autosaveSlots)
-                .Select(i => $"{autosavePrefix}{i}")
+                .Select(i => $"Autosave-{i}")
                 .OrderBy(s => new FileInfo(Path.Combine(Multiplayer.ReplaysDir, $"{s}.zip")).LastWriteTime)
                 .First();
         }

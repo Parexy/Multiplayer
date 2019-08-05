@@ -21,7 +21,7 @@ namespace Multiplayer.Client
 {
     public static class ClientUtil
     {
-        public static void TryConnect(string address, int port)
+        public static void TryConnect(IPAddress address, int port)
         {
             Multiplayer.session = new MultiplayerSession();
             NetManager netClient = new NetManager(new MpClientNetListener());
@@ -31,7 +31,7 @@ namespace Multiplayer.Client
             netClient.MaxConnectAttempts = 8;
 
             Multiplayer.session.netClient = netClient;
-            netClient.Connect(address, port, "");
+            netClient.Connect(address.ToString(), port, "");
         }
 
         public static void HostServer(ServerSettings settings, bool fromReplay, bool withSimulation = false, bool debugMode = false)
@@ -223,14 +223,9 @@ namespace Multiplayer.Client
 
             Multiplayer.LocalServer.SetupArbiterConnection();
 
-            string args = $"-batchmode -nographics -arbiter -logfile arbiter_log.txt -connect=127.0.0.1:{Multiplayer.LocalServer.ArbiterPort}";
-
-            if(GenCommandLine.TryGetCommandLineArg("savedatafolder", out string saveDataFolder))
-                args += $" -savedatafolder=\"{saveDataFolder}\"";
-
             Multiplayer.session.arbiter = Process.Start(
                 Process.GetCurrentProcess().MainModule.FileName,
-                args
+                $"-batchmode -nographics -arbiter -logfile arbiter_log.txt -connect=127.0.0.1:{Multiplayer.LocalServer.ArbiterPort}"
             );
         }
 

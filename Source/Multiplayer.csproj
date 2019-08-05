@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
@@ -48,22 +48,22 @@
       <Aliases>zip</Aliases>
       <Private>False</Private>
     </Reference>
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>..\..\..\RimWorldWin64_Data\Managed\Assembly-CSharp-firstpass.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp_public">
+      <HintPath>..\..\..\RimWorldWin64_Data\Managed\Assembly-CSharp_public.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
-    <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>..\References\Assembly-CSharp-firstpass.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="Assembly-CSharp_public">
-      <HintPath>..\References\Assembly-CSharp_public.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="UnityEngine">
-      <HintPath>..\References\UnityEngine.dll</HintPath>
+      <HintPath>..\..\..\RimWorldWin64_Data\Managed\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
@@ -72,11 +72,6 @@
     <Compile Include="Client\Blueprints.cs" />
     <Compile Include="Client\CacheForReloading.cs" />
     <Compile Include="Client\ConstantTicker.cs" />
-    <Compile Include="Client\Desyncs\ClientSyncOpinion.cs" />
-    <Compile Include="Client\Desyncs\MapRandomStateData.cs" />
-    <Compile Include="Client\Desyncs\StackTraceLogItem.cs" />
-    <Compile Include="Client\Desyncs\SyncCoordinator.cs" />
-    <Compile Include="Client\Desyncs\UserReadableDesyncInfo.cs" />
     <Compile Include="Client\ModPatches.cs" />
     <Compile Include="Client\Optimizations.cs" />
     <Compile Include="Client\SettingsPatches.cs" />
@@ -121,6 +116,7 @@
     <Compile Include="Client\SituationalThoughts.cs" />
     <Compile Include="Client\Sync\Sync.cs" />
     <Compile Include="Client\Sync\SyncHandlers.cs" />
+    <Compile Include="Client\DesyncCheck.cs" />
     <Compile Include="Client\Sync\SyncSerialization.cs" />
     <Compile Include="Client\TileTemperatures.cs" />
     <Compile Include="Client\Persistent\Trading.cs" />
@@ -137,17 +133,15 @@
     <Compile Include="Common\ServerConnection.cs" />
     <Compile Include="Common\Version.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Common\MultiplayerAPIBridge.cs" />
-    <Compile Include="Client\Sync\SyncWorkers.cs" />
-    <Compile Include="Common\DynDelegate.cs" />
-    <Compile Include="Client\Sync\SyncDictionary.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="MultiplayerAPI.csproj">
-      <Project>{1DF67DDA-04CB-4DDF-B867-4C0E152BC959}</Project>
-      <Name>MultiplayerAPI</Name>
-      <Private>False</Private>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>if $(ConfigurationName) == Release (
+cd "$(ProjectDir)/.."
+powershell -executionpolicy bypass -file release.ps1
+echo "Release"
+) ELSE (
+echo "Debug"
+)</PostBuildEvent>
+  </PropertyGroup>
 </Project>
