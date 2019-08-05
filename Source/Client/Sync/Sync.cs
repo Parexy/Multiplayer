@@ -934,6 +934,48 @@ namespace Multiplayer.Client
             }
         }
 
+        public static SyncField GetRegisteredSyncField(Type target, string name)
+        {
+            string memberPath = target + "/" + name;
+
+            if (registeredSyncFields.TryGetValue(memberPath, out SyncField cached))
+                return cached;
+
+            var syncField = handlers.OfType<SyncField>().FirstOrDefault(sf => sf.memberPath == memberPath);
+
+            registeredSyncFields[memberPath] = syncField;
+            return syncField;
+        }
+
+        static void RegisterSyncField(FieldInfo field, SyncFieldAttribute attribute)
+        {
+            SyncField sf = Field(field.ReflectedType, field.Name);
+
+            registeredSyncFields.Add(field.ReflectedType + "/" + field.Name, sf);
+
+            if (MpVersion.IsDebug) { 
+                Log.Message($"Registered Field: {field.ReflectedType}/{field.Name}");
+            }
+
+            if (attribute.cancelIfValueNull)
+                sf.CancelIfValueNull();
+
+            if (attribute.inGameLoop)
+                sf.InGameLoop();
+
+            if (attribute.bufferChanges)
+                sf.SetBufferChanges();
+
+            if (attribute.debugOnly)
+                sf.SetDebugOnly();
+
+            if (attribute.hostOnly)
+                sf.SetHostOnly();
+
+            if (attribute.version > 0)
+                sf.SetVersion(attribute.version);
+        }
+
         public static SyncMethod RegisterSyncMethod(MethodInfo method, SyncType[] argTypes)
         {
             MpUtil.MarkNoInlining(method);

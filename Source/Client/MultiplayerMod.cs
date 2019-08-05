@@ -36,6 +36,12 @@ namespace Multiplayer.Client
             EarlyPatches();
 
             settings = GetSettings<MpSettings>();
+
+            if (MpVersion.IsDebug) {
+                LongEventHandler.ExecuteWhenFinished(() => {
+                    Log.Message("== Structure == \n" + Sync.syncWorkers.PrintStructure());
+                });
+            }
         }
 
         public static void EarlyMarkNoInline(Assembly asm)
