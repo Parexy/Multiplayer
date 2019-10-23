@@ -178,8 +178,6 @@ Package.StoreAssociation.xml
 _pkginfo.txt
 
 # Visual Studio cache files
-*.lastcodeanalysissucceeded
-*.CodeAnalysisLog.xml
 # files ending in .cache can be ignored
 *.[Cc]ache
 # but keep track of directories ending in .cache
