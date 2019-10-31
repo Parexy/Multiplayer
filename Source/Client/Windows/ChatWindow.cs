@@ -109,6 +109,8 @@ namespace Multiplayer.Client
                 ClickPlayer,
                 extra: (p, rect) =>
                 {
+                    Widgets.DrawRectFast(new Rect(rect.x + 137, rect.y, 3f, rect.height), p.color * new Color(0.8f, 0.8f, 0.8f));
+
                     if (p.type == PlayerType.Steam)
                     {
                         var steamIcon = new Rect(rect.xMax - 24f, 0, 24f, 24f);
