@@ -1,4 +1,11 @@
+# DEPRECATION NOTICE
+
+## This repo is not being updated anymore. Do not download or pr to this repo. The new repo is https://github.com/rwmt/Multiplayer
+
+
+
 # Rimworld Multiplayer
+
 Originally created by Zetrith, The Rimworld Multiplayer Mod is now being updated and maintained by community members. The original git repo is deprecated and will not receive any updates.
 
 Please do all pull requests to the development branch
